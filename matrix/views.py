@@ -2,7 +2,7 @@ import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import random
-from stb_sonda import settings
+from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateForm, ValidateEstadoForm, DetallesValidateForm,
