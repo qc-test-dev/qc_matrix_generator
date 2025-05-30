@@ -75,14 +75,3 @@ document.getElementById('form-casos').addEventListener('submit', function(event)
 setInterval(() => {
     enviarFormulario();
 }, 15000);
-
-//Funcion sobre ticktes por levantar 
-    // Filtrado simple por tester
-    document.getElementById('searchTester').addEventListener('input', function () {
-        const filter = this.value.toLowerCase();
-        const rows = document.querySelectorAll('#ticketsTable tbody tr');
-        rows.forEach(row => {
-            const testerCell = row.querySelector('td:first-child').textContent.toLowerCase();
-            row.style.display = testerCell.includes(filter) ? '' : 'none';
-        });
-    });
