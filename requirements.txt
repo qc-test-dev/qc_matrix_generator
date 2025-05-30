@@ -9,7 +9,7 @@ Django
 django-cors-headers
 django-extensions
 django-filter
-django-rest-auth=
+django-rest-auth
 django-rest-swagger
 django-widget-tweaks
 djangorestframework
