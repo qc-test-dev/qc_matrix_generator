@@ -26,6 +26,7 @@ COPY requirements.txt /requirements.txt
 # Instalar dependencias de Python
 RUN pip install --no-cache-dir -r /requirements.txt
 
+
 # Crear usuario ANTES de copiar archivos
 RUN useradd -ms /bin/bash qc-lab
 
