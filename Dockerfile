@@ -32,17 +32,11 @@ RUN mkdir /app
 COPY . /app/
 WORKDIR /app
 
-# Permisos de los scripts
-RUN chmod +x /app/scripts/*.sh
-
-# Crear usuario sin privilegios
 RUN useradd -ms /bin/bash qc-lab
 RUN chown -R qc-lab:qc-lab /app
-RUN chmod -R 777 /app
-RUN chmod 664 /app/db.sqlite3
 
+# Cambia a usuario sin privilegios
 
-USER qc-lab
 
 # Comando de inicio
 CMD ["entrypoint.sh"]
