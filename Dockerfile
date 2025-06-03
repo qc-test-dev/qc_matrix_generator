@@ -38,7 +38,8 @@ RUN chmod +x /app/scripts/*.sh
 # Crear usuario sin privilegios
 RUN useradd -ms /bin/bash qc-lab
 RUN chown -R qc-lab:qc-lab /app
-RUN chmod -R 755 /app
+RUN chmod -R 777 /app
+
 
 USER qc-lab
 
