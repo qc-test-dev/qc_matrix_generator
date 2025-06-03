@@ -39,6 +39,7 @@ RUN chmod +x /app/scripts/*.sh
 RUN useradd -ms /bin/bash qc-lab
 RUN chown -R qc-lab:qc-lab /app
 RUN chmod -R 777 /app
+RUN chmod 664 /app/db.sqlite3
 
 
 USER qc-lab
