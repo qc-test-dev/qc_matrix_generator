@@ -22,11 +22,10 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-from main_website.settings.local import get_secret
-SECRET_KEY = get_secret('SECRET_KEY')
+SECRET_KEY = 'django-insecure-aaxh@1amgd9@ps*wg=ex$sjpw7qclcpyga37e6z_^d1olj!y2v'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     '*',
@@ -62,7 +61,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'main_website.urls'
-
+ 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -154,7 +153,4 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 EXCEL_DIR = os.path.join(BASE_DIR, 'static', 'excel_files')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
-
-
-
 

@@ -1,28 +1,46 @@
-# Use Python 3.12.2 image based on Debian Bullseye in its slim variant as the base image
-FROM python:3.8-slim-bullseye
-# Set an environment variable to unbuffer Python output, aiding in logging and debugging
-ENV PYTHONBUFFERED=1
+FROM python:3.8-slim
 
-# Define an environment variable for the web service's port, commonly used in cloud services
-ENV PORT=8080
+LABEL maintainer="qc-lab"
+LABEL description="apk web matrix creator"
 
-# Set the working directory within the container to /app for any subsequent commands
+ENV PATH="/scripts:${PATH}"
+
+# Actualizar, instalar herramientas necesarias y paquetes de compilación
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        bash \
+        git \
+        curl \
+        wget \
+        unzip \
+        zip \
+        build-essential \
+        gfortran \
+        libblas-dev \
+        liblapack-dev \
+        linux-headers-amd64 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements.txt
+COPY requirements.txt /requirements.txt
+
+# Instalar dependencias de Python
+RUN pip install --no-cache-dir -r /requirements.txt
+
+# Preparar el directorio de la aplicación
+RUN mkdir /app
+COPY . /app/
 WORKDIR /app
 
-# Copy the entire current directory contents into the container at /app
-COPY . /app/
+# Permisos de los scripts
+RUN chmod +x /app/scripts/*.sh
 
-RUN pip install --upgrade pip setuptools wheel
+# Crear usuario sin privilegios
+RUN useradd -ms /bin/bash qc-lab
+RUN chown -R qc-lab:qc-lab /app
+RUN chmod -R 755 /app
 
+USER qc-lab
 
-# Upgrade pip to ensure we have the latest version for installing dependencies
-RUN pip install --upgrade pip
-
-# Install dependencies from the requirements.txt file to ensure our Python environment is ready
-RUN pip install -r requirements.txt
-
-# Set the command to run our web service using Gunicorn, binding it to 0.0.0.0 and the PORT environment variable
-CMD ["sh", "-c", "gunicorn main_website.wsgi:application --bind 0.0.0.0:${PORT}"]
-
-# Inform Docker that the container listens on the specified network port at runtime
-EXPOSE ${PORT}
+# Comando de inicio
+CMD ["entrypoint.sh"]
