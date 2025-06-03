@@ -35,7 +35,7 @@ COPY . /app/
 WORKDIR /app
 
 # Hacer ejecutable el entrypoint
-RUN chmod +x entrypoint.sh
+RUN chmod +x scripts/entrypoint.sh
 
 # Cambiar permisos DESPUÉS de copiar archivos
 RUN chown -R qc-lab:qc-lab /app
