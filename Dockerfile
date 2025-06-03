@@ -45,4 +45,4 @@ RUN chmod -R 755 /app
 USER qc-lab
 
 # Comando de inicio
-CMD ["bash", "entrypoint.sh"]
+CMD ["bash", "scripts/entrypoint.sh"]
