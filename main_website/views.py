@@ -1,8 +1,8 @@
 # Django views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from matrix.models import SuperMatriz
-from matrix.forms import SuperMatrizForm
+from app.matrix.models import SuperMatriz
+from app.matrix.forms import SuperMatrizForm
 
 #from matrix.utils import importar_validates_desde_excel
 import os

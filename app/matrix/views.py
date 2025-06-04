@@ -228,3 +228,5 @@ def editar_ticket(request, ticket_id):
         # Redirige a la página de lista de tickets de la supermatriz
         return redirect('matrix_app:tickets_por_levantar', super_matriz_id=ticket.super_matriz.id)
 
+JIRA_EMAIL = 'gabinol@globalhitss.com'
+JIRA_API_TOKEN='ATATT3xFfGF0UtaYB-qr3hR4_UcQz79xnK-ocrw4NJPdpmh8J7hrJQNUDna2xnQ1vbyyVR6RbvmxSoVq860gXSoKluCDpWmbDBFAPj9C-o90wfiFN3h-pgE91HW8LVV3QdK9h9JyAr5mhyoHa6A0fZ4bWSdSv9EDlmvIOY6rp0XjHKfhRoX1GUY=370A0AF8'
