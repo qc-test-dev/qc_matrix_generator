@@ -13,7 +13,7 @@ services:
       - ./tmp/sockets:/tmp/sockets
     environment:
       - SECRET_KEY=qcsecretkey
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,200.57.172.7
+      - ALLOWED_HOSTS=*
       - DOCKER_ENV=True
       - DEBUG=False
     expose:
