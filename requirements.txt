@@ -1,6 +1,5 @@
 asgiref
 astroid
-backports.zoneinfo
 certifi
 charset-normalizer
 coreapi

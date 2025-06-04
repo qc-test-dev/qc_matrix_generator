@@ -39,4 +39,4 @@ else:
 " || echo "Could not create superuser, continuing..."
 
 echo "🌐 Starting server on 0.0.0.0:8000..."
-exec sh -c "python manage.py migrate && python manage.py loaddata initial_data.json && python manage.py runserver 0.0.0.0:8000"
+exec sh -c "uwsgi --socket :8000 --master --enable-threads --module app.wsgi"
