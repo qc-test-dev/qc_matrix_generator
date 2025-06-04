@@ -1,42 +1,44 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+
 echo "🚀 Starting Django application..."
-sleep 2
-mkdir -p /app/db/
 
-# Asegurar permisos correctos de la base de datos
-if [ -f db.sqlite3 ]; then
-    chmod 664 db.sqlite3
-    echo "✅ Database permissions fixed"
-fi
+# Fix volume permissions
+echo "🔧 Fixing volume permissions..."
+sudo chown -R qc-lab:qc-lab /vol/static 2>/dev/null || true
+sudo chown -R qc-lab:qc-lab /vol/web/media 2>/dev/null || true
+mkdir -p /vol/static/excel_files
+mkdir -p /vol/static/admin
+mkdir -p /vol/static/css
+mkdir -p /vol/static/js
+chmod -R 755 /vol/static
+chmod -R 755 /vol/web/media
 
-# Generar migraciones
+echo "✅ Database permissions fixed"
+
 echo "📝 Making migrations..."
-python manage.py makemigrations
+python manage.py makemigrations --noinput
 
-# Aplicar migraciones
 echo "🔄 Applying migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
-# Cargar datos iniciales (solo si existe el archivo)
-if [ -f initial_data.json ]; then
-    echo "📊 Loading initial data..."
-    python manage.py loaddata initial_data.json
-else
-    echo "⚠️  No initial_data.json found, skipping..."
-fi
+echo "📊 Loading initial data..."
+python manage.py loaddata initial_data.json
 
-# Crear superusuario automáticamente (opcional)
 echo "👤 Creating superuser if needed..."
-python manage.py shell -c "
-from django.contrib.auth import get_user_model;
-User = get_user_model();
+python manage.py shell << EOF
+from django.contrib.auth.models import User
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin123');
+    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
     print('Superuser created: admin/admin123')
 else:
     print('Superuser already exists')
-" || echo "Could not create superuser, continuing..."
+EOF
 
-echo "🌐 Starting server on 0.0.0.0:8000..."
-exec sh -c "uwsgi --socket :8000 --master --enable-threads --module app.wsgi"
+echo "Running migrations..."
+python manage.py migrate
+
+echo "Collecting static files..."
+python manage.py collectstatic --noinput
+
+echo "🚀 Starting uWSGI server..."
+uwsgi --socket :8000 --module main_website.wsgi --master --processes 4 --threads 2

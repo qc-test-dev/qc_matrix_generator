@@ -1,0 +1,38 @@
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - static_data:/vol/static
+      - media_data:/vol/web/media
+    environment:
+      - SECRET_KEY=qcsecretkey
+      - ALLOWED_HOSTS=localhost,127.0.0.1,*
+      - DOCKER_ENV=True
+      - DEBUG=False
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    volumes:
+      - static_data:/vol/static:ro  # Read-only for static files
+      - media_data:/vol/web/media
+    ports:
+      - "8080:8080"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  static_data:
+    driver: local
+  media_data:
+    driver: local
