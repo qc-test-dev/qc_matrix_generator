@@ -4,8 +4,9 @@ echo "🚀 Starting Django application..."
 
 # Fix volume permissions
 echo "🔧 Fixing volume permissions..."
-sudo chown -R qc-lab:qc-lab /vol/static 2>/dev/null || true
-sudo chown -R qc-lab:qc-lab /vol/web/media 2>/dev/null || true
+chown -R $(id -u):$(id -g) /vol/static || true
+chown -R $(id -u):$(id -g) /vol/web/media || true
+chown -R $(id -u):$(id -g) /vol/web/db.sqlite3 || true
 mkdir -p /vol/static/excel_files
 mkdir -p /vol/static/admin
 mkdir -p /vol/static/css

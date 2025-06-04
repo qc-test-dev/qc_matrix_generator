@@ -48,8 +48,7 @@ RUN chown -R qc-lab:qc-lab /app && \
 # IMPORTANTE: Cambiar a usuario sin privilegios ANTES de collectstatic
 USER qc-lab
 
-# Ejecutar collectstatic como usuario qc-lab
-RUN python manage.py collectstatic --noinput
+
 
 # Comando de inicio
 CMD ["bash", "scripts/entrypoint.sh"]
