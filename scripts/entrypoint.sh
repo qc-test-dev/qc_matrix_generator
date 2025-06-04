@@ -1,7 +1,8 @@
 #!/bin/bash
 
 echo "🚀 Starting Django application..."
-
+mkdir -p /tmp/sockets
+chmod 777 /tmp/sockets  
 # Fix volume permissions
 echo "🔧 Fixing volume permissions..."
 chown -R $(id -u):$(id -g) /vol/static || true
@@ -42,4 +43,9 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "🚀 Starting uWSGI server..."
-uwsgi --socket :8000 --module main_website.wsgi --master --processes 4 --threads 2
+uwsgi --socket /tmp/sockets/uwsgi.sock \
+      --chmod-socket=666 \
+      --module main_website.wsgi \
+      --master \
+      --processes 4 \
+      --threads 2

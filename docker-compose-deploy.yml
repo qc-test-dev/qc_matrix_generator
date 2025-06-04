@@ -10,9 +10,10 @@ services:
     volumes:
       - static_data:/vol/static
       - media_data:/vol/web/media
+      - ./tmp/sockets:/tmp/sockets
     environment:
       - SECRET_KEY=qcsecretkey
-      - ALLOWED_HOSTS=localhost,127.0.0.1,*
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,200.57.172.7
       - DOCKER_ENV=True
       - DEBUG=False
     expose:
@@ -26,6 +27,7 @@ services:
     volumes:
       - static_data:/vol/static:ro  # Read-only for static files
       - media_data:/vol/web/media
+      - ./tmp/sockets:/tmp/sockets
     ports:
       - "8080:8080"
     depends_on:
