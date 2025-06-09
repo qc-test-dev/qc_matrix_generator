@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    user: "1000:1000"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - static_data:/vol/static
+      - media_data:/vol/web/media
+      - ./tmp/sockets:/tmp/sockets  # Socket compartido con Nginx
+    environment:
+      - SECRET_KEY=qcsecretkey
+      - ALLOWED_HOSTS=localhost,127.0.0.1,200.57.172.7  # Removido 0.0.0.0 (innecesario)
+      - DOCKER_ENV=True
+      - DEBUG=False
+    expose:
+      - "8000"  # Solo para comunicación interna (no se expone al host)
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    volumes:
+      - static_data:/vol/static:ro
+      - media_data:/vol/web/media
+      - ./tmp/sockets:/tmp/sockets  # Socket compartido con uWSGI
+    ports:
+      - "80:80"  # Acceso público sin puerto (HTTP estándar)
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  static_data:
+    driver: local
+  media_data:
+    driver: local

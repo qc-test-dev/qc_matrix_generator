@@ -26,24 +26,29 @@ COPY requirements.txt /requirements.txt
 # Instalar dependencias de Python
 RUN pip install --no-cache-dir -r /requirements.txt
 
-
 # Crear usuario ANTES de copiar archivos
 RUN useradd -ms /bin/bash qc-lab
 
+# Crear directorios con permisos correctos
+RUN mkdir -p /vol/static && \
+    mkdir -p /vol/web/media && \
+    mkdir -p /app && \
+    chown -R qc-lab:qc-lab /vol && \
+    chown -R qc-lab:qc-lab /app
+
 # Preparar el directorio de la aplicación
-RUN mkdir /app
 COPY . /app/
 WORKDIR /app
 
-# Hacer ejecutable el entrypoint
-RUN chmod +x scripts/entrypoint.sh
-
 # Cambiar permisos DESPUÉS de copiar archivos
-RUN chown -R qc-lab:qc-lab /app
-RUN chmod -R 755 /app
+RUN chown -R qc-lab:qc-lab /app && \
+    chmod -R 755 /app && \
+    chmod +x scripts/entrypoint.sh
 
-# IMPORTANTE: Cambiar a usuario sin privilegios
+# IMPORTANTE: Cambiar a usuario sin privilegios ANTES de collectstatic
 USER qc-lab
+
+
 
 # Comando de inicio
 CMD ["bash", "scripts/entrypoint.sh"]

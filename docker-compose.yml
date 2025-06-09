@@ -13,6 +13,7 @@ services:
     
     environment:
       - DEBUG=1
+      - DOCKER_ENV=true
       - PYTHONUNBUFFERED=1
 
 volumes:
