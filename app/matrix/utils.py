@@ -130,7 +130,8 @@ def importar_validates(super_matriz, link):
                     estado="por_ejecutar"
                 )
             )
-    
+    print(f"Se crearon {len(validate_objects)} validates distribuidos entre testers.")
+
     Validate.objects.bulk_create(validate_objects)
     print(f"Se crearon {len(validate_objects)} validates distribuidos entre testers.")
 
