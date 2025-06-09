@@ -5,8 +5,8 @@ from app.matrix.models import SuperMatriz
 from app.matrix.forms import SuperMatrizForm
 from django.core.paginator import Paginator
 
-#from matrix.utils import importar_validates_desde_excel
-import os
+
+
 @login_required
 def home(request):
     # Obtener todas las super matrices
@@ -27,11 +27,10 @@ def home(request):
 
     return render(request, "home.html", {
         'form': form,
-        'page_obj': page_obj,  # Cambiamos super_matrices por page_obj
+        'page_obj': page_obj, 
     })
 def login_redirect(request):
     if not request.user.is_authenticated:
         return redirect("/accounts/login/")
     return redirect("/home/")
 
-# Redirect to login if not authenticated

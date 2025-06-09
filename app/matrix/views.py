@@ -1,6 +1,8 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 import random
 from main_website import settings
 from .forms import (
@@ -11,7 +13,7 @@ from .forms import (
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
-
+@login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
@@ -84,7 +86,7 @@ def detalle_super_matriz(request, super_matriz_id):
         'validates': validates,
     })
 
-
+@login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     casos_de_prueba = matriz.casos.all()
@@ -135,7 +137,7 @@ def detalle_matriz(request, matriz_id):
     })
 
 
-
+@login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     validates = Validate.objects.filter(super_matriz=super_matriz)
@@ -166,7 +168,7 @@ def editar_validates(request, super_matriz_id):
     })
 
 
-
+@login_required
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
 
@@ -193,7 +195,7 @@ def detalles_validate_modal(request, super_matriz_id):
         'super_matriz': super_matriz
     })
 
-
+@login_required
 def tickets_por_levantar_view(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)
@@ -213,7 +215,7 @@ def tickets_por_levantar_view(request, super_matriz_id):
         'tickets': tickets,
         'form': form,
     })
-
+@login_required
 def editar_ticket(request, ticket_id):
     ticket = get_object_or_404(TicketPorLevantar, id=ticket_id)
 
@@ -228,3 +230,11 @@ def editar_ticket(request, ticket_id):
         # Redirige a la página de lista de tickets de la supermatriz
         return redirect('matrix_app:tickets_por_levantar', super_matriz_id=ticket.super_matriz.id)
 
+@login_required
+def eliminar_super_matriz(request, super_matriz_id):
+    matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
+    if request.method == "POST":
+        matriz.delete()
+        messages.success(request, "Matriz eliminada correctamente.")
+        return redirect('home') 
+    return render(request, 'home.html', {'matriz': matriz})
