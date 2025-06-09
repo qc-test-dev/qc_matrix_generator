@@ -13,6 +13,8 @@ from .forms import (
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
+from django.views.decorators.http import require_POST
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -238,3 +240,12 @@ def eliminar_super_matriz(request, super_matriz_id):
         messages.success(request, "Matriz eliminada correctamente.")
         return redirect('home') 
     return render(request, 'home.html', {'matriz': matriz})
+
+
+@login_required
+@require_POST
+def eliminar_matriz(request, matriz_id):
+    matriz = get_object_or_404(Matriz, id=matriz_id)
+    super_matriz_id = matriz.super_matriz.id
+    matriz.delete()
+    return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz_id)
