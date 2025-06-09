@@ -22,10 +22,19 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('home/', views.home, name='home'),
+<<<<<<< HEAD
     path('accounts/', include('accounts.urls')),
     path('', views.home, name='home'),
     path('matrix/', include('matrix.urls')),
 ]
+=======
+
+    path('accounts/', include('app.accounts.urls')),
+    path('', views.home, name='home'),
+    
+    path('matrix/', include('app.matrix.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+>>>>>>> aeb04f6 (Matrix V1.0.5 ordering apps to dir app)
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

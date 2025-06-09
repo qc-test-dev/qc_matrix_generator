@@ -1,11 +1,11 @@
 import openpyxl
 from .models import CasoDePrueba,Validate
 from requests.auth import HTTPBasicAuth
-from decouple import config
 import pandas as pd
 import re
 import requests
 import random
+
 
 def limpiar(valor):
     if isinstance(valor, str):
@@ -153,7 +153,7 @@ def fetch_jira_issues(link):
             url,
             headers=headers,
             params=params,
-            auth=HTTPBasicAuth(config("JIRA_EMAIL"),config("JIRA_API_TOKEN"))
+            auth=HTTPBasicAuth(JIRA_EMAIL,JIRA_API_TOKEN)
         )
         response.raise_for_status()
     except requests.RequestException as e:
@@ -171,3 +171,5 @@ def fetch_jira_issues(link):
     ]
 
     return detailed_issues, None
+JIRA_EMAIL = 'gabinol@globalhitss.com'
+JIRA_API_TOKEN='ATATT3xFfGF0UtaYB-qr3hR4_UcQz79xnK-ocrw4NJPdpmh8J7hrJQNUDna2xnQ1vbyyVR6RbvmxSoVq860gXSoKluCDpWmbDBFAPj9C-o90wfiFN3h-pgE91HW8LVV3QdK9h9JyAr5mhyoHa6A0fZ4bWSdSv9EDlmvIOY6rp0XjHKfhRoX1GUY=370A0AF8'
