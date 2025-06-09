@@ -1,51 +1,58 @@
 #!/bin/bash
+set -e
 
-echo "🚀 Starting Django application..."
-mkdir -p /tmp/sockets
-chmod 777 /tmp/sockets  
-# Fix volume permissions
-echo "🔧 Fixing volume permissions..."
-chown -R $(id -u):$(id -g) /vol/static || true
-chown -R $(id -u):$(id -g) /vol/web/media || true
-chown -R $(id -u):$(id -g) /vol/web/db.sqlite3 || true
-mkdir -p /vol/static/excel_files
-mkdir -p /vol/static/admin
-mkdir -p /vol/static/css
-mkdir -p /vol/static/js
+echo "🚀 Starting Django application setup..."
+
+# Configurar directorios
+echo "🔧 Creating necessary directories..."
+mkdir -p /vol/static/excel_files /vol/static/admin /vol/static/css /vol/static/js /vol/web/media
 chmod -R 755 /vol/static
 chmod -R 755 /vol/web/media
 
-echo "✅ Database permissions fixed"
+# Configurar socket
+echo "🔧 Setting up socket directory..."
+mkdir -p /tmp/sockets
+chmod -R 770 /tmp/sockets
+chown -R 1000:1000 /tmp/sockets
 
-echo "📝 Making migrations..."
+# Migraciones
+echo "🔄 Running database migrations..."
 python manage.py makemigrations --noinput
-
-echo "🔄 Applying migrations..."
 python manage.py migrate --noinput
 
-echo "📊 Loading initial data..."
-python manage.py loaddata initial_data.json
+# Cargar datos iniciales (si existe el fixture)
+if [ -f "initialdata.json" ]; then
+    echo "📂 Loading initial data..."
+    python manage.py loaddata initialdata.json
+fi
 
-echo "👤 Creating superuser if needed..."
-python manage.py shell << EOF
-from django.contrib.auth.models import User
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-    print('Superuser created: admin/admin123')
-else:
-    print('Superuser already exists')
-EOF
+# Archivos estáticos
+echo "📦 Collecting static files..."
+python manage.py collectstatic --noinput --clear
 
-echo "Running migrations..."
-python manage.py migrate
+# Superusuario
+if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
+    echo "👤 Checking/creating superuser..."
+    python manage.py shell -c "
+import os
+from django.contrib.auth import get_user_model
+User = get_user_model()
+username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+if not User.objects.filter(username=username).exists():
+    User.objects.create_superuser(username, email, password)
+"
+fi
 
-echo "Collecting static files..."
-python manage.py collectstatic --noinput
-
+# Iniciar uWSGI
 echo "🚀 Starting uWSGI server..."
-uwsgi --socket /tmp/sockets/uwsgi.sock \
-      --chmod-socket=666 \
-      --module main_website.wsgi \
-      --master \
-      --processes 4 \
-      --threads 2
+exec uwsgi --socket /tmp/sockets/uwsgi.sock \
+     --module main_website.wsgi \
+     --master \
+     --processes 4 \
+     --threads 2 \
+     --chmod-socket=660 \
+     --uid 1000 \
+     --gid 1000 \
+     --enable-threads
