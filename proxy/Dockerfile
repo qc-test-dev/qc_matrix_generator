@@ -1,18 +1,6 @@
-FROM nginxinc/nginx-unprivileged:1-alpine
-LABEL maintainer="qc-lab"
-LABEL description="nginx web matrix creator"
+FROM nginx:1.21
 
-COPY ./default.conf /etc/nginx/conf.d/default.conf
-COPY ./uwsgi_params /etc/nginx/uwsgi_params
+RUN rm /etc/nginx/conf.d/default.conf
+COPY default.conf /etc/nginx/conf.d/default.conf
 
-USER root
-
-# Crear directorios para static y media
-RUN mkdir -p /vol/static && \
-    mkdir -p /vol/web/media && \
-    chmod -R 755 /vol/static && \
-    chmod -R 755 /vol/web/media && \
-    chown -R nginx:nginx /vol/static && \
-    chown -R nginx:nginx /vol/web/media
-
-USER nginx
+CMD ["nginx", "-g", "daemon off;"]

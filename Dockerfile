@@ -1,54 +1,33 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
+ENV PATH="/scripts:${PATH}" 
+ENV PATH="/app:${PATH}"
 
-LABEL maintainer="qc-lab"
-LABEL description="apk web matrix creator"
+COPY ./requirements.txt /requirements.txt
 
-ENV PATH="/scripts:${PATH}"
+RUN apt-get update && apt-get install -y gcc libpq-dev linux-headers-generic \
+    && apt-get install -y postgresql postgresql-contrib \
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir -r /requirements.txt \
+    && apt-get remove -y gcc libpq-dev linux-headers-generic \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Actualizar, instalar herramientas necesarias y paquetes de compilación
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-        bash \
-        git \
-        curl \
-        wget \
-        unzip \
-        zip \
-        build-essential \
-        gfortran \
-        libblas-dev \
-        liblapack-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN useradd -ms /bin/bash usr_admin
 
-# Copiar requirements.txt
-COPY requirements.txt /requirements.txt
-
-# Instalar dependencias de Python
-RUN pip install --no-cache-dir -r /requirements.txt
-
-# Crear usuario ANTES de copiar archivos
-RUN useradd -ms /bin/bash qc-lab
-
-# Crear directorios con permisos correctos
-RUN mkdir -p /vol/static && \
-    mkdir -p /vol/web/media && \
-    mkdir -p /app && \
-    chown -R qc-lab:qc-lab /vol && \
-    chown -R qc-lab:qc-lab /app
-
-# Preparar el directorio de la aplicación
+RUN mkdir /app
 COPY . /app/
 WORKDIR /app
 
-# Cambiar permisos DESPUÉS de copiar archivos
-RUN chown -R qc-lab:qc-lab /app && \
-    chmod -R 755 /app && \
-    chmod +x scripts/entrypoint.sh
 
-# IMPORTANTE: Cambiar a usuario sin privilegios ANTES de collectstatic
-USER qc-lab
+RUN chmod +x /app/scripts/entrypoint.sh
+RUN mkdir -p /vol/web/media
+RUN mkdir -p /vol/web/
+
+RUN chown -R usr_admin:usr_admin /app
+RUN chown -R usr_admin:usr_admin /vol
+RUN chmod -R 755 /vol/web
+RUN chmod -R 755 /app/scripts
 
 
-
-# Comando de inicio
-CMD ["bash", "scripts/entrypoint.sh"]
+USER usr_admin
+CMD [ "entrypoint.sh" ]

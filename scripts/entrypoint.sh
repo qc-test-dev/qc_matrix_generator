@@ -1,51 +1,28 @@
+
 #!/bin/bash
+set -e
 
-echo "🚀 Starting Django application..."
-mkdir -p /tmp/sockets
-chmod 777 /tmp/sockets  
-# Fix volume permissions
-echo "🔧 Fixing volume permissions..."
-chown -R $(id -u):$(id -g) /vol/static || true
-chown -R $(id -u):$(id -g) /vol/web/media || true
-chown -R $(id -u):$(id -g) /vol/web/db.sqlite3 || true
-mkdir -p /vol/static/excel_files
-mkdir -p /vol/static/admin
-mkdir -p /vol/static/css
-mkdir -p /vol/static/js
-chmod -R 755 /vol/static
-chmod -R 755 /vol/web/media
+echo "🚀 Starting Django application setup..."
 
-echo "✅ Database permissions fixed"
 
-echo "📝 Making migrations..."
-python manage.py makemigrations --noinput
+# Superusuario
+if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
+    echo "👤 Checking/creating superuser..."
+    python manage.py shell -c "
+import os
+from django.contrib.auth import get_user_model
+User = get_user_model()
+username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+if not User.objects.filter(username=username).exists():
+    User.objects.create_superuser(username, email, password)
+"
+fi
 
-echo "🔄 Applying migrations..."
-python manage.py migrate --noinput
-
-echo "📊 Loading initial data..."
-python manage.py loaddata initial_data.json
-
-echo "👤 Creating superuser if needed..."
-python manage.py shell << EOF
-from django.contrib.auth.models import User
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-    print('Superuser created: admin/admin123')
-else:
-    print('Superuser already exists')
-EOF
-
-echo "Running migrations..."
-python manage.py migrate
-
-echo "Collecting static files..."
-python manage.py collectstatic --noinput
-
+# Iniciar uWSGI
 echo "🚀 Starting uWSGI server..."
-uwsgi --socket /tmp/sockets/uwsgi.sock \
-      --chmod-socket=666 \
-      --module main_website.wsgi \
-      --master \
-      --processes 4 \
-      --threads 2
+exec uwsgi --socket :8000 \
+     --master \
+     --module main_website.wsgi \
+     --enable-threads

@@ -28,7 +28,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY','changeme')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', True)
 
-ALLOWED_HOSTS = ['200.57.172.7', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['200.57.172.7', 'localhost', '127.0.0.1','0.0.0.0','*']
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
@@ -93,8 +93,8 @@ DATABASES = {
         'NAME': 'qc_matrix',
         'USER': 'qc_admin',
         'PASSWORD': 'qc_admin_pass',
-        'HOST': 'localhost',
-        'PORT': '',
+        'HOST': 'db',
+        'PORT': '5432',
     }
 }
 
