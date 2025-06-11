@@ -22,7 +22,7 @@ fi
 
 # Iniciar uWSGI
 echo "🚀 Starting uWSGI server..."
-exec uwsgi --socket :8080 \
+exec uwsgi --socket :8000 \
      --master \
      --module main_website.wsgi \
      --enable-threads
