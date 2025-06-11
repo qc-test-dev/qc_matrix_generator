@@ -1,20 +1,47 @@
-version: '3.8'
+version: '3.9'
 
 services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: qc_admin
+      POSTGRES_PASSWORD: qc_admin_pass
+      POSTGRES_DB: qc_matrix
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   app:
     build:
       context: .
     ports:
       - "8000:8000"
-    
-    # NO montar volúmenes que sobrescriban permisos
     volumes:
-      - db_data:/app/db
-    
+      - ./:/app
+      - staticfiles-volume:/app/staticfiles
     environment:
       - DEBUG=1
-      - DOCKER_ENV=true
-      - PYTHONUNBUFFERED=1
+      - POSTGRES_DB=qc_matrix
+      - POSTGRES_USER=qc_admin
+      - POSTGRES_PASSWORD=qc_admin_pass
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      - db
+    command: > 
+      sh -c "
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput --clear &&
+        if [ -f /app/initialdata.json ]; then
+            python manage.py loaddata /app/initialdata.json;
+        fi &&
+        python manage.py runserver 0.0.0.0:8000
+      "
 
 volumes:
-  db_data:
+  postgres_data:
+  staticfiles-volume:
+

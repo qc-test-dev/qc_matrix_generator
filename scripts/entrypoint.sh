@@ -1,34 +1,9 @@
+
 #!/bin/bash
 set -e
 
 echo "🚀 Starting Django application setup..."
 
-# Configurar directorios
-echo "🔧 Creating necessary directories..."
-mkdir -p /vol/static/excel_files /vol/static/admin /vol/static/css /vol/static/js /vol/web/media
-chmod -R 755 /vol/static
-chmod -R 755 /vol/web/media
-
-# Configurar socket
-echo "🔧 Setting up socket directory..."
-mkdir -p /tmp/sockets
-chmod -R 770 /tmp/sockets
-chown -R 1000:1000 /tmp/sockets
-
-# Migraciones
-echo "🔄 Running database migrations..."
-python manage.py makemigrations --noinput
-python manage.py migrate --noinput
-
-# Cargar datos iniciales (si existe el fixture)
-if [ -f "initialdata.json" ]; then
-    echo "📂 Loading initial data..."
-    python manage.py loaddata initialdata.json
-fi
-
-# Archivos estáticos
-echo "📦 Collecting static files..."
-python manage.py collectstatic --noinput --clear
 
 # Superusuario
 if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
@@ -47,12 +22,7 @@ fi
 
 # Iniciar uWSGI
 echo "🚀 Starting uWSGI server..."
-exec uwsgi --socket /tmp/sockets/uwsgi.sock \
-     --module main_website.wsgi \
+exec uwsgi --socket :8000 \
      --master \
-     --processes 4 \
-     --threads 2 \
-     --chmod-socket=660 \
-     --uid 1000 \
-     --gid 1000 \
+     --module main_website.wsgi \
      --enable-threads
