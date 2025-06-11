@@ -17,7 +17,7 @@ services:
     build:
       context: .
     ports:
-      - "8000:8000"
+      - "8080:8000"
     volumes:
       - ./:/app
       - staticfiles-volume:/app/staticfiles
