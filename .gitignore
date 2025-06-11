@@ -7,4 +7,4 @@ static/videos/
 static/*.apk
 *.apk
 #db.sqlite3
-.env
+/home/at-/Desktop/qc/qc_matrix_generator/.env
