@@ -5,8 +5,10 @@ import pandas as pd
 import re
 import requests
 import random
+import os
 
-
+JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
+print(JIRA_API_TOKEN,JIRA_EMAIL)
 def limpiar(valor):
     if isinstance(valor, str):
         return valor.strip()
@@ -15,8 +17,6 @@ def limpiar(valor):
 import openpyxl
 from .models import CasoDePrueba
 
-import openpyxl
-from .models import CasoDePrueba
 
 def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
     """
@@ -172,5 +172,3 @@ def fetch_jira_issues(link):
     ]
 
     return detailed_issues, None
-JIRA_EMAIL = 'gabinol@globalhitss.com'
-JIRA_API_TOKEN='ATATT3xFfGF0UtaYB-qr3hR4_UcQz79xnK-ocrw4NJPdpmh8J7hrJQNUDna2xnQ1vbyyVR6RbvmxSoVq860gXSoKluCDpWmbDBFAPj9C-o90wfiFN3h-pgE91HW8LVV3QdK9h9JyAr5mhyoHa6A0fZ4bWSdSv9EDlmvIOY6rp0XjHKfhRoX1GUY=370A0AF8'
