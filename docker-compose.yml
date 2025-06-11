@@ -28,8 +28,8 @@ services:
       - POSTGRES_PASSWORD=qc_admin_pass
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      - JIRA_EMAIL = 's_tamezaa@globalhitss.com'
-      - JIRA_API_TOKEN = 'ATATT3xFfGF0s9-rWEiFqSyvTuqGMlj8CNZfVFIkZYYFtZAZSF8gbpBsSCQ0dj93YHcGhVDtsVerrlgrPzHy_DnjoDXjO2RHMJLx-YKLH7hifH49lOezzcxEZWhAZaOgpIn4dwPVTK4PnZ3oni874UcAMETwaj_Hy516_6gkCRrnkPtiPaiomjY=17CC4F2B'
+      - JIRA_EMAIL=s_tamezaa@globalhitss.com
+      - JIRA_API_TOKEN=ATATT3xFfGF0XqHq8pFnTA7X5KnVtKy9twdH_h0ljMzcnNGLdB3bo_LMX9_MR_AkPJMLNl7ctkFESPw5nHLVIEYILIxhLrukB-OdxO8eU4BtBCOlBdkRTu8GR1PCGR48LBdHZzlWvMNq7_z0HTWjUdOWWyoKSHIys5UEBNQx3SduhKFbyCXWYbI=5B754F4D
     depends_on:
       - db
     command: > 
