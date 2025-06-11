@@ -2,7 +2,7 @@
     <h1>QC Seguimiento Revisiones</h1>
     <div class="group-btn">
         <a href="{% url 'home' %}" class="home-btn">Home</a>
-    <form method="post" action="{% url 'logout' %}">
+    <form method="post" action="{% url 'accounts_app:logout' %}">
         {% csrf_token %}
         
         <button type="submit" class="logout-btn">Cerrar sesión</button>

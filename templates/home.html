@@ -7,14 +7,35 @@
 
 {% block content %}
 {% include 'includes/header.html' %}
+
 <div class="container mt-4">
+
+    <!-- Bloque de mensajes -->
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div class="row">
+        <!-- Columna principal -->
         <div class="col-lg-8 col-md-7 pe-4">
             <div class="card shadow-sm border-success mb-4">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h4 class="card-title mb-0 text-success">
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
+                    {% if request.user.is_superuser %}
+                        <!-- Botón para abrir modal -->
+                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
+                            <i class="fas fa-user-plus"></i> Crear Usuario
+                        </button>
+                    {% endif %}
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
@@ -32,11 +53,10 @@
                                         <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-outline-danger ms-2" title="Eliminar">
-                                                <i class="fas fa-trash-alt">Eliminar    </i>
+                                                <i class="fas fa-trash-alt"> Eliminar</i>
                                             </button>
                                         </form>
                                     </div>
-                                    
                                 </div>
                                 <span class="ms-3 text-success">
                                     <i class="fas fa-chevron-right fa-lg"></i>
@@ -46,70 +66,61 @@
                             <div class="list-group-item text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <h5 class="text-muted">No hay revisiones registradas</h5>
-                                <p class="text-muted"></p>
                             </div>
                         {% endfor %}
                     </div>
-                    
-                    <!-- Paginación Verde -->
+
+                    <!-- Paginación -->
                     {% if page_obj.paginator.num_pages > 1 %}
-                    <div class="card-footer bg-white">
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination justify-content-center mb-0">
-                                {% if page_obj.has_previous %}
-                                    <li class="page-item">
-                                        <a class="page-link text-success" href="?page=1" aria-label="First">
-                                            <span aria-hidden="true">&laquo;&laquo;</span>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link text-success" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                                
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                        <li class="page-item active">
-                                            <a class="page-link bg-success border-success" href="?page={{ num }}">{{ num }}</a>
-                                        </li>
-                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <div class="card-footer bg-white">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center mb-0">
+                                    {% if page_obj.has_previous %}
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?page={{ num }}">{{ num }}</a>
+                                            <a class="page-link text-success" href="?page=1">&laquo;&laquo;</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link text-success" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
                                         </li>
                                     {% endif %}
-                                {% endfor %}
-                                
-                                {% if page_obj.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link text-success" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link text-success" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
-                                            <span aria-hidden="true">&raquo;&raquo;</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        <div class="text-center small text-success mt-2">
-                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <a class="page-link bg-success border-success" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link text-success" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link text-success" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link text-success" href="?page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            <div class="text-center small text-success mt-2">
+                                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </div>
                         </div>
-                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Formulario Compacto (Derecha - 30%) -->
+        <!-- Formulario de revisión -->
         <div class="col-lg-4 col-md-5">
             <div class="card shadow-sm border-success sticky-top" style="top: 20px;">
                 <div class="card-header bg-success text-white py-2">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-plus-circle me-1"></i>Crear Nueva Revision
+                        <i class="fas fa-plus-circle me-1"></i>Crear Nueva Revisión
                     </h5>
                 </div>
                 <div class="card-body">
@@ -117,11 +128,11 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="id_nombre" class="form-label small fw-bold">Nombre</label>
-                            {{ form.nombre }}
+                            {{ matriz_form.nombre }}
                         </div>
                         <div class="mb-3">
                             <label for="id_descripcion" class="form-label small fw-bold">Descripción</label>
-                            {{ form.descripcion }}
+                            {{ matriz_form.descripcion }}
                         </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-save me-1"></i>Crear
@@ -132,4 +143,48 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="crearUsuarioModal" tabindex="-1" aria-labelledby="crearUsuarioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="crearUsuarioModalLabel">
+            <i class="fas fa-user-plus me-2"></i>Crear Nuevo Usuario
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" action="{% url 'accounts_app:crear_usuario' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="id_username" class="form-label">Nombre de usuario</label>
+                {{ usuario_form.username }}
+            </div>
+            <div class="mb-3">
+                <label for="id_nombre" class="form-label">Nombre</label>
+                {{ usuario_form.nombre }}
+            </div>
+            <div class="mb-3">
+                <label for="id_apellido" class="form-label">Apellido</label>
+                {{ usuario_form.apellido }}
+            </div>
+            <div class="mb-3">
+                <label for="id_password" class="form-label">Contraseña</label>
+                {{ usuario_form.password }}
+            </div>
+            <div class="mb-3">
+                <label for="id_cargo" class="form-label">Cargo</label>
+                {{ usuario_form.cargo }}
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock content %}
