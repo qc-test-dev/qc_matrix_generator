@@ -180,7 +180,7 @@ def detalles_validate_modal(request, super_matriz_id):
     if request.method == 'POST':
         form = DetallesValidateForm(request.POST, instance=detalles)
         link = request.POST.get('filtro_RN', '')
-        
+        print(link)
         if form.is_valid():
             detalles = form.save(commit=False)
             detalles.super_matriz = super_matriz
