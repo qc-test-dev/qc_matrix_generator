@@ -1,11 +1,13 @@
 import openpyxl
 from .models import CasoDePrueba,Validate
 from requests.auth import HTTPBasicAuth
+from decouple import config
 import pandas as pd
 import re
 import requests
 import random
 import os
+
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
 print(JIRA_API_TOKEN,JIRA_EMAIL)
@@ -93,30 +95,31 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
 #             estado=estado
 #         )
 
-def importar_validates(super_matriz, link):
-    TESTERS = ['Kevin', 'Erik', 'Kyle', 'Alberto', 'Axel', 'Luis Rene']
+def importar_validates(super_matriz, link, testers_qs):
+    TESTERS = list(testers_qs.values_list('username', flat=True))
+
+    if not TESTERS:
+        print("No hay testers disponibles para asignar.")
+        return  # o lanzar excepción o manejar el caso
 
     issues, error = fetch_jira_issues(link)
-
     if error:
         print(f"Error al obtener issues: {error}")
         return
-    
+
     if not issues:
         print("No se encontraron issues.")
         return
 
-    random.shuffle(issues)  # Baraja los issues, no necesitas barajar los testers
+    random.shuffle(issues)
 
     tester_count = len(TESTERS)
     assignments = {tester: [] for tester in TESTERS}
 
-    # Distribuye equitativamente
     for idx, caso in enumerate(issues):
         assigned_tester = TESTERS[idx % tester_count]
         assignments[assigned_tester].append(caso)
 
-    # Crea los Validate en bloques por tester (mejor para la DB que hacer cada uno por separado)
     validate_objects = []
     for tester, casos in assignments.items():
         for caso in casos:
@@ -130,11 +133,7 @@ def importar_validates(super_matriz, link):
                     estado="por_ejecutar"
                 )
             )
-    print(f"Se crearon {len(validate_objects)} validates distribuidos entre testers.")
-
     Validate.objects.bulk_create(validate_objects)
-    print(f"Se crearon {len(validate_objects)} validates distribuidos entre testers.")
-
 def fetch_jira_issues(link):
     """
     Obtiene los issues desde Jira usando un filtro.
@@ -154,7 +153,7 @@ def fetch_jira_issues(link):
             url,
             headers=headers,
             params=params,
-            auth=HTTPBasicAuth(JIRA_EMAIL,JIRA_API_TOKEN)
+            auth=HTTPBasicAuth(config('JIRA_EMAIL'),config('JIRA_API_TOKEN'))
         )
         response.raise_for_status()
     except requests.RequestException as e:

@@ -174,28 +174,30 @@ def editar_validates(request, super_matriz_id):
 @login_required
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-
+    
+    # Obtener testers del equipo de la super matriz
+    testers_seleccionados = User.objects.filter(equipo=super_matriz.equipo)
+    #testers_seleccionados = User.objects.filter(equipo=super_matriz.equipo, cargo='tester')
+    
     # Obtén o inicializa el detalle asociado
     detalles, _ = DetallesValidate.objects.get_or_create(super_matriz=super_matriz)
 
     if request.method == 'POST':
         form = DetallesValidateForm(request.POST, instance=detalles)
         link = request.POST.get('filtro_RN', '')
-        print(link)
         if form.is_valid():
             detalles = form.save(commit=False)
             detalles.super_matriz = super_matriz
             detalles.save()
             if not Validate.objects.filter(super_matriz=super_matriz).exists():
-                importar_validates(super_matriz, link)
-
+                importar_validates(super_matriz, link, testers_seleccionados)
             return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
     else:
         form = DetallesValidateForm(instance=detalles)
 
     return render(request, 'excel_files/detalles_validate_modal.html', {
         'form': form,
-        'super_matriz': super_matriz
+        'super_matriz': super_matriz,
     })
 @login_required
 def tickets_por_levantar_view(request, super_matriz_id):

@@ -8,3 +8,4 @@ static/*.apk
 *.apk
 #db.sqlite3
 .env/
+app/matrix/*.env
