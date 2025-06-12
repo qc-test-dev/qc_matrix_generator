@@ -160,7 +160,11 @@ Prioridad_CHOICES = [
     ('Crítico', 'Crítico'),
 ]
 class TicketPorLevantarForm(forms.ModelForm):
-    tester = forms.ChoiceField(choices=TESTERS, widget=forms.Select(attrs={'class': 'form-select'}))
+    tester = forms.ModelChoiceField(
+        queryset=User.objects.none(),  
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Tester"
+    )
     Region = forms.ChoiceField(choices=REGIONES, widget=forms.Select(attrs={'class': 'form-select'}))
     prioridad = forms.ChoiceField(choices=Prioridad_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
 
@@ -170,8 +174,14 @@ class TicketPorLevantarForm(forms.ModelForm):
         widgets = {
             'ticket_SCT': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ticket SCT'}),
             'BRF': forms.TextInput(attrs={'class': 'form-control'}),
-            'prioridad': forms.TextInput(attrs={'class': 'form-control'}),
             'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'nota': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'url': forms.URLInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super_matriz = kwargs.pop('super_matriz', None)
+        super().__init__(*args, **kwargs)
+        if super_matriz:
+            equipo = super_matriz.equipo
+            self.fields['tester'].queryset = User.objects.filter(equipo=equipo)

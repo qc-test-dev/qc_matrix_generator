@@ -7,14 +7,15 @@ import random
 from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
-    ValidateForm, ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm
+    ValidateEstadoForm, DetallesValidateForm,
+    TicketPorLevantarForm,ValidateForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
+from app.accounts.models import User
 
 Usuario = get_user_model()
 @login_required
@@ -196,21 +197,20 @@ def detalles_validate_modal(request, super_matriz_id):
         'form': form,
         'super_matriz': super_matriz
     })
-
 @login_required
 def tickets_por_levantar_view(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)
 
     if request.method == 'POST':
-        form = TicketPorLevantarForm(request.POST)
+        form = TicketPorLevantarForm(request.POST, super_matriz=super_matriz)
         if form.is_valid():
             nuevo_ticket = form.save(commit=False)
             nuevo_ticket.super_matriz = super_matriz
             nuevo_ticket.save()
             return redirect('matrix_app:tickets_por_levantar', super_matriz_id=super_matriz.id)
     else:
-        form = TicketPorLevantarForm()
+        form = TicketPorLevantarForm(super_matriz=super_matriz)
 
     return render(request, 'excel_files/tickets_por_levantar.html', {
         'super_matriz': super_matriz,

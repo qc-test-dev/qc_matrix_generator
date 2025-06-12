@@ -30,8 +30,12 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                     {{ form.non_field_errors }}
 
                     <div class="form-group">
-                        {{ form.tester.label_tag }}
-                        {{ form.tester }}
+                        <label for="id_tester" class="form-label">Tester</label>
+                        <select name="tester" id="id_tester" class="form-select">
+                            {% for tester in form.fields.tester.queryset %}
+                                <option value="{{ tester.id }}">{{ tester.nombre }} {{ tester.apellido }}</option>
+                            {% endfor %}
+                        </select>
                         {{ form.tester.errors }}
                     </div>
 
@@ -86,7 +90,7 @@ Tickets por Levantar - {{ super_matriz.nombre }}
             </div>
         </div>
 
-        <!-- Lista de tickets (compacto, lado derecho) -->
+        <!-- Lista de tickets (lado derecho) -->
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
