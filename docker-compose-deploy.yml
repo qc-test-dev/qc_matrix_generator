@@ -26,6 +26,7 @@ services:
       - ./:/app
       - staticfiles-volume:/app/staticfiles
     environment:
+      - DJANGO_SETTINGS_MODULE=main_website.settings.prod
       - DEBUG=0
       - POSTGRES_DB=qc_matrix
       - POSTGRES_USER=qc_admin
