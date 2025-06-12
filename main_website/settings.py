@@ -25,7 +25,7 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 SECRET_KEY = os.environ.get('SECRET_KEY','changeme')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', True)
+DEBUG = bool(int(os.environ.get('DEBUG', 0)))
 
 ALLOWED_HOSTS = ['200.57.172.7', 'localhost', '127.0.0.1','0.0.0.0','*']
 REST_FRAMEWORK = {
@@ -33,6 +33,13 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
 }
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost',
+    'http://localhost:80',
+    'http://localhost:8080',
+    'http://*:8080',    
+    'http://*:80',
+]
 
 
 # Application definition
@@ -146,7 +153,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 
-MEDIA_URL = '/static/media/'  # Esto ya debería estar en tu settings.py
+MEDIA_URL = '/media/'  # Esto ya debería estar en tu settings.py
 
 # O, si deseas apuntar directamente a /tmp:
 #MEDIA_ROOT = '/tmp'
@@ -155,37 +162,20 @@ MEDIA_URL = '/static/media/'  # Esto ya debería estar en tu settings.py
 
 STATIC_URL = '/static/'  # Esto ya debería estar en tu settings.py
 
-STATIC_ROOT = '/vol/static'  # Esto ya debería estar en tu settings.py
-MEDIA_ROOT= '/vol/static/media'  # Esto ya debería estar en tu settings.py
 EXCEL_DIR = os.path.join(BASE_DIR, 'static', 'excel_files')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
-
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 
-# Directorios donde Django busca archivos estáticos durante desarrollo
-MEDIA_URL = '/media/'  # CAMBIO IMPORTANTE: Ya no está dentro de /static/
+STATIC_ROOT = '/vol/static'
+MEDIA_ROOT = '/vol/media'
 
-# Directorios donde Django busca archivos estáticos durante desarrollo
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# Configuración para desarrollo vs producción
-if os.environ.get('DOCKER_ENV'):
-    # Configuración para Docker
-    STATIC_ROOT = '/vol/static'
-    MEDIA_ROOT = '/vol/web/media'  # Separado de static
-else:
-    # Configuración para desarrollo local
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Directorios donde Django busca archivos estáticos durante desarrollo
 
-# Otras configuraciones
-EXCEL_DIR = os.path.join(BASE_DIR, 'static', 'excel_files')
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.CustomUser'

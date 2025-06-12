@@ -1,40 +1,62 @@
-version: '3.8'
+version: '3.9'
+
+networks:
+  qc_network:
+    driver: bridge
 
 services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: qc_admin
+      POSTGRES_PASSWORD: qc_admin_pass
+      POSTGRES_DB: qc_matrix
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - qc_network
+
   app:
     build:
       context: .
-      dockerfile: Dockerfile
     volumes:
-      - static_data:/vol/static
-      - media_data:/vol/web/media
-      - sockets:/tmp/sockets
-        # Montar la SQLite directamente
+      - ./:/app
+      - staticfiles-volume:/app/staticfiles
     environment:
-      - SECRET_KEY=qcsecretkey
-      - ALLOWED_HOSTS=localhost,127.0.0.1,200.57.172.7,200.57.172.8
-      - DEBUG=False
-      - DJANGO_SUPERUSER_USERNAME=admin
-      - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SUPERUSER_PASSWORD=unacontraseñasegura
-    user: "1000:1000"
-    restart: unless-stopped
+      - DEBUG=0
+      - POSTGRES_DB=qc_matrix
+      - POSTGRES_USER=qc_admin
+      - POSTGRES_PASSWORD=qc_admin_pass
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput --clear &&
+        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json; fi &&
+        uwsgi --socket :8000 --master --module main_website.wsgi --enable-threads
+      "
+    networks:
+      - qc_network
 
   proxy:
     build:
       context: ./proxy
-      dockerfile: Dockerfile
-    volumes:
-      - static_data:/vol/static:ro
-      - media_data:/vol/web/media:ro
-      - sockets:/tmp/sockets
     ports:
       - "80:80"
+    volumes:
+      - staticfiles-volume:/vol/static
     depends_on:
       - app
-    restart: unless-stopped
+    networks:
+      - qc_network
 
 volumes:
-  static_data:
-  media_data:
-  sockets:
+  postgres_data:
+  staticfiles-volume:

@@ -1,5 +1,9 @@
 version: '3.9'
 
+networks:
+  qc_network:
+    driver: bridge
+
 services:
   db:
     image: postgres:14
@@ -12,12 +16,14 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - qc_network
 
   app:
     build:
       context: .
     ports:
-      - "8080:8000"
+      - "8080:8000"  # Cambié a 8081 para no chocar con prod
     volumes:
       - ./:/app
       - staticfiles-volume:/app/staticfiles
@@ -28,7 +34,6 @@ services:
       - POSTGRES_PASSWORD=qc_admin_pass
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
- 
     depends_on:
       - db
     command: > 
@@ -36,13 +41,12 @@ services:
         python manage.py makemigrations &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --clear &&
-        if [ -f /app/initialdata.json ]; then
-            python manage.py loaddata /app/initialdata.json;
-        fi &&
+        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json; fi &&
         python manage.py runserver 0.0.0.0:8000
       "
+    networks:
+      - qc_network
 
 volumes:
   postgres_data:
   staticfiles-volume:
-
