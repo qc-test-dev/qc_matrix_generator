@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 from .models import SuperMatriz, Matriz, CasoDePrueba,Validate,TicketPorLevantar,DetallesValidate
-
+from django.contrib.auth import get_user_model
 class MatrizForm(forms.ModelForm):
     class Meta:
         model = Matriz
@@ -117,6 +117,8 @@ REGIONES = [
     ('Guatemala', 'Guatemala'),
     ('Panama', 'Panama'),    
 ]
+User = get_user_model()
+
 class MatrizForm(forms.ModelForm):
     alcance = forms.ChoiceField(
         choices=ALCANCE_CHOICES,
@@ -124,18 +126,31 @@ class MatrizForm(forms.ModelForm):
         label='Alcance Evaluación',
         required=True
     )
-    testers = forms.MultipleChoiceField(
-        choices=TESTERS,
+
+    testers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),  # Esto lo seteamos dinámicamente
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label="Testers"
     )
+
     regiones = forms.MultipleChoiceField(
         choices=REGIONES,
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label="Regiones"
     )
+
+    class Meta:
+        model = Matriz
+        fields = ['nombre', 'alcance', 'testers', 'regiones']
+
+    def __init__(self, *args, **kwargs):
+        equipo = kwargs.pop('equipo', None)
+        super().__init__(*args, **kwargs)
+        if equipo:
+            self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
+
 
     class Meta:
         model = Matriz

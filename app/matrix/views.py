@@ -14,13 +14,15 @@ from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesVali
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.contrib.auth import get_user_model
 
+Usuario = get_user_model()
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
     validates = super_matriz.validates.all()
-
+    
     matrices_info = []
     for matriz in matrices:
         casos = matriz.casos.all()
@@ -37,14 +39,13 @@ def detalle_super_matriz(request, super_matriz_id):
             'porcentaje': round(porcentaje, 2),
         })
 
-    # Inicializar formularios por defecto
-    form = MatrizForm()
+    # Formulario vacío al principio
+    form = MatrizForm(equipo=super_matriz.equipo)
     validate_form = ValidateForm()
 
     if request.method == 'POST':
-        # Crear Matriz
         if 'crear_matriz' in request.POST:
-            form = MatrizForm(request.POST)
+            form = MatrizForm(request.POST, equipo=super_matriz.equipo)
             if form.is_valid():
                 nueva_matriz = form.save(commit=False)
                 nueva_matriz.super_matriz = super_matriz
@@ -58,20 +59,20 @@ def detalle_super_matriz(request, super_matriz_id):
                 ruta_excel_matriz = os.path.join('static', 'excel_files', 'matriz_base.xlsx')
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
-                testers_seleccionados = form.cleaned_data.get('testers', [])
+                testers_seleccionados = list(form.cleaned_data.get('testers', []))
                 regiones_seleccionados = form.cleaned_data.get('regiones', [])
                 casos = list(nueva_matriz.casos.all())
                 random.shuffle(regiones_seleccionados)
                 random.shuffle(testers_seleccionados)
                 random.shuffle(casos)
                 for idx, caso in enumerate(casos):
-                    caso.tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
-                    caso.tester+='-'+regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
+                    tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
+                    region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
+                    caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
                     caso.save()
 
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
-        # Crear Validate
         elif 'crear_validate' in request.POST:
             validate_form = ValidateForm(request.POST)
             if validate_form.is_valid():
@@ -87,7 +88,6 @@ def detalle_super_matriz(request, super_matriz_id):
         'validate_form': validate_form,
         'validates': validates,
     })
-
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
