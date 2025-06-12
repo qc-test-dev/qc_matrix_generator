@@ -93,7 +93,7 @@ DATABASES = {
         'NAME': 'qc_matrix',
         'USER': 'qc_admin',
         'PASSWORD': 'qc_admin_pass',
-        'HOST': 'db',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }

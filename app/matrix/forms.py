@@ -37,12 +37,21 @@ class CasoDePruebaForm(forms.ModelForm):
         model = CasoDePrueba
         fields = ['estado', 'nota']
 class SuperMatrizForm(forms.ModelForm):
+    EQUIPO_CHOICES=(
+    ('Roku','Roku'),
+    ('STV(TATA)','STV(TATA)'),
+    ('STB','STB'),
+    ('WEB','WEB'),
+    ('IOS','IOS')
+    )
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion']
+        fields = ['nombre', 'descripcion','equipo']
 
     nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     descripcion = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}))
+    equipo = forms.ChoiceField(choices=EQUIPO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
 class ValidateForm(forms.ModelForm):
     class Meta:
         model = Validate

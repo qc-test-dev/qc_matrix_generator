@@ -10,7 +10,6 @@
 
 <div class="container mt-4">
 
-    <!-- Bloque de mensajes -->
     {% if messages %}
       <div class="mb-3">
         {% for message in messages %}
@@ -23,20 +22,28 @@
     {% endif %}
 
     <div class="row">
-        <!-- Columna principal -->
-        <div class="col-lg-8 col-md-7 pe-4">
+        <div class="{% if es_lider %}col-lg-8 col-md-7 pe-4{% else %}col-12{% endif %}">
             <div class="card shadow-sm border-success mb-4">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h4 class="card-title mb-0 text-success">
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
                     {% if request.user.is_superuser %}
-                        <!-- Botón para abrir modal -->
                         <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
                             <i class="fas fa-user-plus"></i> Crear Usuario
                         </button>
                     {% endif %}
                 </div>
+
+                <!-- Filtros -->
+                <div class="px-3 py-2 bg-white border-bottom">
+                    <strong class="me-2">Filtrar por equipo:</strong>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
+                    {% for eq in equipos %}
+                        <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
+                    {% endfor %}
+                </div>
+
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         {% for matriz in page_obj %}
@@ -45,17 +52,20 @@
                                 <div class="w-100">
                                     <h5 class="mb-1 text-success">{{ matriz.nombre }}</h5>
                                     <p class="mb-0 text-muted small">{{ matriz.descripcion|truncatechars:100 }}</p>
+                                    <p class="mb-0 text-muted small">{{ matriz.equipo }}</p>
                                     <div class="d-flex justify-content-between mt-2">
                                         <span class="badge bg-light text-dark small">
                                             <i class="far fa-calendar me-1"></i>
                                             Fecha de inicio: {{ matriz.fecha_creacion|date:"d/m/Y" }}
                                         </span>
+                                        {% if es_lider %}
                                         <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-outline-danger ms-2" title="Eliminar">
                                                 <i class="fas fa-trash-alt"> Eliminar</i>
                                             </button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <span class="ms-3 text-success">
@@ -70,38 +80,37 @@
                         {% endfor %}
                     </div>
 
-                    <!-- Paginación -->
                     {% if page_obj.paginator.num_pages > 1 %}
                         <div class="card-footer bg-white">
                             <nav aria-label="Page navigation">
                                 <ul class="pagination justify-content-center mb-0">
                                     {% if page_obj.has_previous %}
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?page=1">&laquo;&laquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page=1">&laquo;&laquo;</a>
                                         </li>
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
                                         </li>
                                     {% endif %}
 
                                     {% for num in page_obj.paginator.page_range %}
                                         {% if page_obj.number == num %}
                                             <li class="page-item active">
-                                                <a class="page-link bg-success border-success" href="?page={{ num }}">{{ num }}</a>
+                                                <a class="page-link bg-success border-success" href="#">{{ num }}</a>
                                             </li>
                                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                                             <li class="page-item">
-                                                <a class="page-link text-success" href="?page={{ num }}">{{ num }}</a>
+                                                <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ num }}">{{ num }}</a>
                                             </li>
                                         {% endif %}
                                     {% endfor %}
 
                                     {% if page_obj.has_next %}
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
                                         </li>
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
                                         </li>
                                     {% endif %}
                                 </ul>
@@ -115,7 +124,8 @@
             </div>
         </div>
 
-        <!-- Formulario de revisión -->
+        {% if es_lider %}
+        <!-- Formulario lateral solo para líderes -->
         <div class="col-lg-4 col-md-5">
             <div class="card shadow-sm border-success sticky-top" style="top: 20px;">
                 <div class="card-header bg-success text-white py-2">
@@ -134,6 +144,10 @@
                             <label for="id_descripcion" class="form-label small fw-bold">Descripción</label>
                             {{ matriz_form.descripcion }}
                         </div>
+                        <div class="mb-3">
+                            <label for="id_equipo" class="form-label small fw-bold">Dispositivo</label>
+                            {{ matriz_form.equipo }}
+                        </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-save me-1"></i>Crear
                         </button>
@@ -141,9 +155,11 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
+{% if request.user.is_superuser %}
 <!-- Modal Crear Usuario -->
 <div class="modal fade" id="crearUsuarioModal" tabindex="-1" aria-labelledby="crearUsuarioModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -177,6 +193,10 @@
                 <label for="id_cargo" class="form-label">Cargo</label>
                 {{ usuario_form.cargo }}
             </div>
+            <div class="mb-3">
+                <label for="id_equipo" class="form-label">Equipo</label>
+                {{ usuario_form.equipo }}
+            </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -186,5 +206,6 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 {% endblock content %}

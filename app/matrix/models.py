@@ -1,10 +1,17 @@
 # models.py
 from django.db import models
 class SuperMatriz(models.Model):
+    EQUIPO_CHOICES=(
+    ('Roku','Roku'),
+    ('STV(TATA)','STV(TATA)'),
+    ('STB','STB'),
+    ('WEB','WEB'),
+    ('IOS','IOS')
+    )
     nombre = models.CharField(max_length=255)
     descripcion = models.TextField(blank=True, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-
+    equipo=models.CharField('Equipo',choices=EQUIPO_CHOICES,default='STB')
     def __str__(self):
         return self.nombre
 
