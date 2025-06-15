@@ -20,7 +20,11 @@
         {% endfor %}
       </div>
     {% endif %}
-
+    {% if request.user.is_superuser %}
+                        <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
+                            <i class="fas fa-user-plus"></i> Crear Usuario
+                        </button>
+    {% endif %}
     <div class="row">
         <div class="{% if es_lider %}col-lg-8 col-md-7 pe-4{% else %}col-12{% endif %}">
             <div class="card shadow-sm border-success mb-4">
@@ -28,11 +32,7 @@
                     <h4 class="card-title mb-0 text-success">
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
-                    {% if request.user.is_superuser %}
-                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
-                            <i class="fas fa-user-plus"></i> Crear Usuario
-                        </button>
-                    {% endif %}
+                    
                 </div>
 
                 <!-- Filtros -->

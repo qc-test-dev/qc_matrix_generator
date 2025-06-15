@@ -16,13 +16,14 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
 from app.accounts.models import User
-
+from collections import defaultdict
 Usuario = get_user_model()
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
     validates = super_matriz.validates.all()
+    es_lider = request.user.cargo=='Lider'
     
     matrices_info = []
     for matriz in matrices:
@@ -30,16 +31,26 @@ def detalle_super_matriz(request, super_matriz_id):
         total_casos = casos.count()
         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente']
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
-
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
+
+        testers_por_region = defaultdict(set)
+        for caso in casos:
+            if caso.tester:
+                partes = caso.tester.split('-')
+                if len(partes) == 2:
+                    nombre, region = partes
+                    testers_por_region[region.strip()].add(nombre.strip())
+
+        # Convertir sets a listas ordenadas
+        testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
 
         matrices_info.append({
             'matriz': matriz,
             'total_casos': total_casos,
             'casos_filtrados': casos_filtrados,
             'porcentaje': round(porcentaje, 2),
+            'testers_por_region': testers_por_region,
         })
-
     # Formulario vacío al principio
     form = MatrizForm(equipo=super_matriz.equipo)
     validate_form = ValidateForm()
@@ -88,6 +99,7 @@ def detalle_super_matriz(request, super_matriz_id):
         'form': form,
         'validate_form': validate_form,
         'validates': validates,
+        'es_lider': es_lider,
     })
 @login_required
 def detalle_matriz(request, matriz_id):

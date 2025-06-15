@@ -100,22 +100,21 @@ ALCANCE_CHOICES = [
     ('A,B', 'SMOKE TEST (A,B)'),
     ('A,B,C', 'NA (A,B,C)'),
 ]
-TESTERS = [
-    ('Kevin', 'Kevin'),
-    ('Erik', 'Erik'),
-    ('Kyle', 'Kyle'),
-    ('Alberto', 'Alberto'),
-    ('Axel', 'Axel'),
-    ('Luis Rene', 'Luis Rene'),
-    
-    
-]
 REGIONES = [
-    ('Peru', 'Peru'),
-    ('Argentina', 'Argentina'),
-    ('Dominicana', 'Dominicana'),
-    ('Guatemala', 'Guatemala'),
-    ('Panama', 'Panama'),    
+    ('Mexico', 'Mexico'),
+    ('Dominicana','Dominicana'),
+    ('Colombia', 'Colombia'),
+    ('Ecuador', 'Ecuador'),
+    ('Peru', 'Peru'), 
+    ('Chile','Chile'),
+    ('Argentina','Argentina'),
+    ('Uruguay','Uruguay'),
+    ('Paraguay','Paraguay'),
+    ('Guatemala','Guatemala'),
+    ('Salvador','Salvador'),
+    ('Nicaragua','Nicaragua'),
+    ('Costa Rica','Costa Rica'),
+    ('Honduras','Honduras'),   
 ]
 User = get_user_model()
 
