@@ -8,8 +8,8 @@ class SuperMatriz(models.Model):
     ('WEB','WEB'),
     ('IOS','IOS')
     )
-    nombre = models.CharField(max_length=255)
-    descripcion = models.TextField(blank=True, null=True)
+    nombre = models.CharField(max_length=75)
+    descripcion = models.TextField(blank=True, null=True,max_length=100)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     equipo=models.CharField('Equipo',choices=EQUIPO_CHOICES,default='STB')
     def __str__(self):

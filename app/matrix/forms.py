@@ -37,20 +37,39 @@ class CasoDePruebaForm(forms.ModelForm):
         model = CasoDePrueba
         fields = ['estado', 'nota']
 class SuperMatrizForm(forms.ModelForm):
-    EQUIPO_CHOICES=(
-    ('Roku','Roku'),
-    ('STV(TATA)','STV(TATA)'),
-    ('STB','STB'),
-    ('WEB','WEB'),
-    ('IOS','IOS')
+    EQUIPO_CHOICES = (
+        ('Roku', 'Roku'),
+        ('STV(TATA)', 'STV(TATA)'),
+        ('STB', 'STB'),
+        ('WEB', 'WEB'),
+        ('IOS', 'IOS'),
     )
+
+    nombre = forms.CharField(
+        max_length=75,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'maxlength': '75'  
+        })
+    )
+    
+    descripcion = forms.CharField(
+        max_length=100,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'maxlength': '100' 
+        })
+    )
+
+    equipo = forms.ChoiceField(
+        choices=EQUIPO_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion','equipo']
-
-    nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    descripcion = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}))
-    equipo = forms.ChoiceField(choices=EQUIPO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+        fields = ['nombre', 'descripcion', 'equipo']
 
 class ValidateForm(forms.ModelForm):
     class Meta:
