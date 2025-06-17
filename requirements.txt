@@ -1,3 +1,4 @@
+psycopg2-binary
 asgiref
 astroid
 certifi
@@ -28,7 +29,6 @@ packaging
 pandas
 pillow
 platformdirs
-psycopg2
 pylint
 python-dateutil
 python-decouple
