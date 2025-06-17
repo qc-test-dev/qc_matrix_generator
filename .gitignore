@@ -7,4 +7,5 @@ static/videos/
 static/*.apk
 *.apk
 #db.sqlite3
-.env
+.env/
+app/matrix/*.env

@@ -28,7 +28,7 @@ packaging
 pandas
 pillow
 platformdirs
-psycopg2-binary
+psycopg2
 pylint
 python-dateutil
 python-decouple

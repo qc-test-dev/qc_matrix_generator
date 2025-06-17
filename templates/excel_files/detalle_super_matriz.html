@@ -12,9 +12,11 @@
     <p class="text-muted">{{ super_matriz.descripcion }}</p>
 
     <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn btn-success mb-3">Validates</a>
-    <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">tickets por levantar</a>
+    <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">Tickets por levantar</a>
     
     <div class="row mt-5">
+        
+        {% if es_lider %}
         <div class="col-md-4">
             <h3>Agregar nueva matriz</h3>
             <form method="post" class="card p-3 shadow-sm">
@@ -35,18 +37,36 @@
                     <label for="id_testers" class="form-label">Seleccionar Testers</label>
                     {{ form.testers }}
                 </div>
+
                 <div class="mb-3">
-                    <label for="id_regiones" class="form-label">Seleccionar Region</label>
-                    {{ form.regiones}}
+                    <label class="form-label">Seleccionar Región</label>
+                    <div class="d-flex flex-wrap">
+                        {% for checkbox in form.regiones %}
+                            {% if forloop.first or forloop.counter0|divisibleby:5 %}
+                                <div class="me-4 mb-2">
+                            {% endif %}
+                
+                            <div class="form-check">
+                                {{ checkbox.tag }}
+                                {{ checkbox.choice_label }}
+                            </div>
+                
+                            {% if forloop.counter|divisibleby:5 or forloop.last %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-dark w-100">Agregar Matriz</button>
             </form>
         </div>
+        {% endif %}
+            
 
         <!-- Grid de matrices -->
-        <div class="col-md-8">
-            <h4>Matrices por región</h4>
+        <div class="{% if es_lider %}col-md-8{% else %}col-md-12{% endif %}">
+            <h4>Matrices</h4>
             {% if matrices_info %}
             <div class="row row-cols-1 row-cols-md-2 g-4 mt-2">
                 {% for info in matrices_info %}
@@ -57,9 +77,8 @@
                             </div>
                             <div class="card-body d-flex flex-column">
                                 <p>Casos Totales: {{ info.total_casos }}</p>
-                                <p>Casos Filtrados:{{ info.casos_filtrados }}</p>
-                                <p>Porcentaje:{{ info.porcentaje|floatformat:2 }}%</p>
-
+                                <p>Casos Completos: {{ info.casos_filtrados }}</p>
+                                <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>
                                 <div class="progress mb-3">
                                     <div class="progress-bar bg-success" role="progressbar"
                                          style="width: {{ info.porcentaje }}%;" aria-valuenow="{{ info.porcentaje }}"
@@ -67,9 +86,33 @@
                                         {{ info.porcentaje|floatformat:0 }}%
                                     </div>
                                 </div>
-
+                                {% if info.testers_por_region %}
+                                    <p><strong>Testers por región:</strong></p>
+                                    <div style="max-height: 10em; overflow-y: auto;">
+                                        {% for region, testers in info.testers_por_region.items %}
+                                            <p class="mb-1"><strong>{{ region }}</strong></p>
+                                            <ul class="list-unstyled ms-3 mb-2">
+                                                {% for tester in testers %}
+                                                    <li>• {{ tester }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                                 <div class="mt-auto">
-                                    <a href="{% url 'matrix_app:detalle_matriz' info.matriz.id %}" class="btn btn-success w-100">Ver Matriz</a>
+                                    <a href="{% url 'matrix_app:detalle_matriz' info.matriz.id %}" class="btn btn-success w-100 mb-2">
+                                        Ver Matriz
+                                    </a>
+                                    
+                                    {% if es_lider %}
+                                    <form method="POST" action="{% url 'matrix_app:eliminar_matriz' info.matriz.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta matriz?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger w-100">
+                                            <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                        
                                 </div>
                             </div>
                         </div>

@@ -1,20 +1,55 @@
-version: '3.8'
+version: '3.9'
+
+networks:
+  qc_network:
+    driver: bridge
 
 services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: qc_admin
+      POSTGRES_PASSWORD: qc_admin_pass
+      POSTGRES_DB: qc_matrix
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - qc_network
+
   app:
     build:
       context: .
     ports:
-      - "8000:8000"
-    
-    # NO montar volúmenes que sobrescriban permisos
+      - "8080:8000"  # Cambié a 8081 para no chocar con prod
     volumes:
-      - db_data:/app/db
-    
+      - ./:/app
+      - staticfiles-volume:/app/staticfiles
     environment:
+      - DJANGO_SETTINGS_MODULE=main_website.settings.uat
       - DEBUG=1
-      - DOCKER_ENV=true
-      - PYTHONUNBUFFERED=1
+      - POSTGRES_DB=qc_matrix
+      - POSTGRES_USER=qc_admin
+      - POSTGRES_PASSWORD=qc_admin_pass
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+    depends_on:
+      - db
+    command: > 
+      sh -c "
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput --clear &&
+        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json; fi &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+    networks:
+      - qc_network
 
 volumes:
-  db_data:
+  postgres_data:
+  staticfiles-volume:

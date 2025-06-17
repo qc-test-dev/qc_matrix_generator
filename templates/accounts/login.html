@@ -1,61 +1,297 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f7;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 300px;
-            text-align: center;
-        }
-        .login-container h1 {
-            margin-bottom: 20px;
-        }
-        .login-container form {
-            display: flex;
-            flex-direction: column;
-        }
-        .login-container input {
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .login-container button {
-            padding: 10px;
-            background: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .login-container button:hover {
-            background: #0056b3;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plataforma de Seguimiento QC</title>
+  <style>
+    :root {
+      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --background-color: #f5f7ff;
+      --backgroundform-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --light-color: #f8f9fa;
+      --dark-color: #212529;
+      --card-shadow: rgba(0, 0, 0, 0.1);
+      --border-color: #ccc;
+      --button-color: #28a745;
+      --button-hover-color: #218838;
+      --input-padding: 10px;
+      --input-radius: 8px;
+      --alert-success-bg: #d4edda;
+      --alert-success-color: #155724;
+      --alert-success-border: #c3e6cb;
+      --alert-error-bg: #f8d7da;
+      --alert-error-color: #721c24;
+      --alert-error-border: #f5c6cb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      background: linear-gradient(135deg, #f5f7ff, #e0e6ff);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Base shape style */
+    .shape {
+      position: absolute;
+      opacity: 0.05;
+      z-index: 0;
+    }
+
+    /* Circles */
+    .shape.circle1 {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: #000;
+      top: -50px;
+      left: -50px;
+      animation: float1 12s infinite alternate;
+    }
+
+    .shape.circle2 {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: #000;
+      bottom: -120px;
+      right: -100px;
+      animation: float2 14s infinite alternate;
+    }
+
+    /* Squares */
+    .shape.square1 {
+      width: 120px;
+      height: 120px;
+      background: #000;
+      top: 20%;
+      left: 10%;
+      animation: float3 10s infinite alternate;
+    }
+
+    .shape.square2 {
+      width: 80px;
+      height: 80px;
+      background: #000;
+      bottom: 15%;
+      right: 20%;
+      animation: float4 11s infinite alternate;
+    }
+
+    /* Triangles */
+    .shape.triangle1, .shape.triangle2 {
+      width: 0;
+      height: 0;
+      border-left: 60px solid transparent;
+      border-right: 60px solid transparent;
+      border-bottom: 100px solid #000;
+      opacity: 0.05;
+      position: absolute;
+    }
+
+    .shape.triangle1 {
+      top: 10%;
+      right: 10%;
+      animation: float5 13s infinite alternate;
+    }
+
+    .shape.triangle2 {
+      bottom: 5%;
+      left: 5%;
+      animation: float6 16s infinite alternate;
+    }
+
+    /* Login container */
+    .login-container {
+      background-color: var(--light-color);
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px var(--card-shadow);
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid var(--border-color);
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-container h1 {
+      margin-bottom: 5px;
+      color: var(--dark-color);
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .login-container .sub {
+      margin-bottom: 24px;
+      font-size: 14px;
+      text-align: center;
+      color: #555;
+    }
+
+    .icon-check {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    .icon-check svg {
+      width: 40px;
+      height: 40px;
+      fill: var(--button-color);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Form group styling */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--dark-color);
+      font-size: 15px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: var(--input-padding);
+      border-radius: var(--input-radius);
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+    }
+
+    button {
+      background-color: var(--button-color);
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: var(--input-radius);
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: var(--button-hover-color);
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: var(--input-radius);
+      font-size: 14px;
+    }
+
+    .alert-success {
+      background-color: var(--alert-success-bg);
+      color: var(--alert-success-color);
+      border: 1px solid var(--alert-success-border);
+    }
+
+    .alert-error {
+      background-color: var(--alert-error-bg);
+      color: var(--alert-error-color);
+      border: 1px solid var(--alert-error-border);
+    }
+
+    /* Animaciones */
+    @keyframes float1 {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(20px); }
+    }
+
+    @keyframes float2 {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-25px); }
+    }
+
+    @keyframes float3 {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(10px, 15px); }
+    }
+
+    @keyframes float4 {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-10px, -20px); }
+    }
+
+    @keyframes float5 {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes float6 {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+  </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>Iniciar Sesión</h1>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Login</button>
-        </form>
+  <!-- Figuras decorativas -->
+  <div class="shape circle1"></div>
+  <div class="shape circle2"></div>
+  <div class="shape square1"></div>
+  <div class="shape square2"></div>
+  <div class="shape triangle1"></div>
+  <div class="shape triangle2"></div>
+
+  <!-- Login -->
+  <div class="login-container">
+    <div class="icon-check">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M20.29 5.71a1 1 0 0 0-1.42 0L9 15.59l-3.29-3.3a1 1 0 0 0-1.42 1.42l4 4a1 1 0 0 0 1.42 0l11-11a1 1 0 0 0 0-1.42z"/>
+      </svg>
     </div>
+    <h1>Plataforma de Seguimiento QC</h1>
+    <div class="sub">Accede para gestionar matrices de pruebas, validates y tickets</div>
+
+    <form method="post" novalidate autocomplete="off">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+        {% for error in form.password.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <button type="submit">Ingresar</button>
+    </form>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="message {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
 </body>
 </html>
