@@ -157,12 +157,24 @@
       flex-direction: column;
     }
 
-    input[type="text"],
-    input[type="password"] {
+    /* Form group styling */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--dark-color);
+      font-size: 15px;
+    }
+
+    .form-group input {
+      width: 100%;
       padding: var(--input-padding);
       border-radius: var(--input-radius);
       border: 1px solid var(--border-color);
-      margin-bottom: 15px;
       font-size: 15px;
     }
 
@@ -251,9 +263,25 @@
     <h1>Plataforma de Seguimiento QC</h1>
     <div class="sub">Accede para gestionar matrices de pruebas, validates y tickets</div>
 
-    <form method="post">
+    <form method="post" novalidate autocomplete="off">
       {% csrf_token %}
-      {{ form.as_p }}
+      
+      <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+        {% for error in form.password.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+
       <button type="submit">Ingresar</button>
     </form>
 

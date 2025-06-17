@@ -20,7 +20,11 @@
         {% endfor %}
       </div>
     {% endif %}
-
+    {% if request.user.is_superuser %}
+                        <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
+                            <i class="fas fa-user-plus"></i> Crear Usuario
+                        </button>
+    {% endif %}
     <div class="row">
         <div class="{% if es_lider %}col-lg-8 col-md-7 pe-4{% else %}col-12{% endif %}">
             <div class="card shadow-sm border-success mb-4">
@@ -28,20 +32,18 @@
                     <h4 class="card-title mb-0 text-success">
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
-                    {% if request.user.is_superuser %}
-                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
-                            <i class="fas fa-user-plus"></i> Crear Usuario
-                        </button>
-                    {% endif %}
+                    
                 </div>
 
                 <!-- Filtros -->
                 <div class="px-3 py-2 bg-white border-bottom">
-                    <strong class="me-2">Filtrar por equipo:</strong>
-                    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
-                    {% for eq in equipos %}
-                        <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
-                    {% endfor %}
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <strong class="me-2 mb-0">Filtrar por equipo:</strong>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
+                        {% for eq in equipos %}
+                            <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <div class="card-body p-0">

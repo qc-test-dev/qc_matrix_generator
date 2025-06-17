@@ -2,6 +2,7 @@
 from django import forms
 from .models import SuperMatriz, Matriz, CasoDePrueba,Validate,TicketPorLevantar,DetallesValidate
 from django.contrib.auth import get_user_model
+
 class MatrizForm(forms.ModelForm):
     class Meta:
         model = Matriz
@@ -38,19 +39,40 @@ class CasoDePruebaForm(forms.ModelForm):
         fields = ['estado', 'nota']
 class SuperMatrizForm(forms.ModelForm):
     EQUIPO_CHOICES=(
-    ('Roku','Roku'),
-    ('STV(TATA)','STV(TATA)'),
-    ('STB','STB'),
-    ('WEB','WEB'),
-    ('IOS','IOS')
+    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
+    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
+    ('IPTV  A   OSP','IPTV  AOSP'),
+    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
+    ('IOS - TvOS','IOS - TvOS'),
+    ('Android','Android'),
+    ('Smart TV AAF','Smart TV AAF')
     )
+
+    nombre = forms.CharField(
+        max_length=75,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'maxlength': '75'  
+        })
+    )
+    
+    descripcion = forms.CharField(
+        max_length=100,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'maxlength': '100' 
+        })
+    )
+
+    equipo = forms.ChoiceField(
+        choices=EQUIPO_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion','equipo']
-
-    nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    descripcion = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}))
-    equipo = forms.ChoiceField(choices=EQUIPO_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+        fields = ['nombre', 'descripcion', 'equipo']
 
 class ValidateForm(forms.ModelForm):
     class Meta:
@@ -78,7 +100,15 @@ class ValidateEstadoForm(forms.ModelForm):
                 ('por_ejecutar', 'Por Ejecutar')
             ], attrs={'class': 'form-select estado-select'})
         }
-class DetallesValidateForm(forms.ModelForm):
+User = get_user_model()
+class DetallesValidateForm(forms.ModelForm): 
+    testers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(), 
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Testers"
+    )
+
     class Meta:
         model = DetallesValidate
         fields = ['filtro_RN', 'comentario_RN']
@@ -90,32 +120,36 @@ class DetallesValidateForm(forms.ModelForm):
             'comentario_RN': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'style': 'resize: none;',  # Evita que el textarea se redimensione
+                'style': 'resize: none;',
                 'placeholder': 'Agrega aquí los labels de RN'
             }),
         }
+    def __init__(self, *args, **kwargs):
+        equipo = kwargs.pop('equipo', None)
+        super().__init__(*args, **kwargs)
+        if equipo:
+            self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
 
 ALCANCE_CHOICES = [
     ('A', 'MVP (A)'),
     ('A,B', 'SMOKE TEST (A,B)'),
     ('A,B,C', 'NA (A,B,C)'),
 ]
-TESTERS = [
-    ('Kevin', 'Kevin'),
-    ('Erik', 'Erik'),
-    ('Kyle', 'Kyle'),
-    ('Alberto', 'Alberto'),
-    ('Axel', 'Axel'),
-    ('Luis Rene', 'Luis Rene'),
-    
-    
-]
 REGIONES = [
-    ('Peru', 'Peru'),
-    ('Argentina', 'Argentina'),
-    ('Dominicana', 'Dominicana'),
-    ('Guatemala', 'Guatemala'),
-    ('Panama', 'Panama'),    
+    ('Mexico', 'Mexico'),
+    ('Dominicana','Dominicana'),
+    ('Colombia', 'Colombia'),
+    ('Ecuador', 'Ecuador'),
+    ('Peru', 'Peru'), 
+    ('Chile','Chile'),
+    ('Argentina','Argentina'),
+    ('Uruguay','Uruguay'),
+    ('Paraguay','Paraguay'),
+    ('Guatemala','Guatemala'),
+    ('Salvador','Salvador'),
+    ('Nicaragua','Nicaragua'),
+    ('Costa Rica','Costa Rica'),
+    ('Honduras','Honduras'),   
 ]
 User = get_user_model()
 

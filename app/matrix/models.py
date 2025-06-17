@@ -2,14 +2,16 @@
 from django.db import models
 class SuperMatriz(models.Model):
     EQUIPO_CHOICES=(
-    ('Roku','Roku'),
-    ('STV(TATA)','STV(TATA)'),
-    ('STB','STB'),
-    ('WEB','WEB'),
-    ('IOS','IOS')
+    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
+    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
+    ('IPTV  A   OSP','IPTV  AOSP'),
+    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
+    ('IOS - TvOS','IOS - TvOS'),
+    ('Android','Android'),
+    ('Smart TV AAF','Smart TV AAF')
     )
-    nombre = models.CharField(max_length=255)
-    descripcion = models.TextField(blank=True, null=True)
+    nombre = models.CharField(max_length=75)
+    descripcion = models.TextField(blank=True, null=True,max_length=100)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     equipo=models.CharField('Equipo',choices=EQUIPO_CHOICES,default='STB')
     def __str__(self):

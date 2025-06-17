@@ -29,7 +29,13 @@ def home(request):
             super_matriz = matriz_form.save()
             return redirect('matrix_app:detalles_validate_modal', super_matriz_id=super_matriz.id)
 
-    equipos = ['Roku', 'STV(TATA)', 'STB', 'WEB', 'IOS']
+    
+    equipos=['Claro TV STB - IPTV - Roku - TATA',
+    'STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)',
+    'WIN - WEB - Fire TV',
+    'IOS - TvOS',
+    'Android','Smart TV AAF']
+    
 
     return render(request, "home.html", {
         'matriz_form': matriz_form,
