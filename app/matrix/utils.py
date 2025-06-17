@@ -96,11 +96,15 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
 #         )
 
 def importar_validates(super_matriz, link, testers_qs):
-    TESTERS = list(testers_qs.values_list('username', flat=True))
+    # Convertir queryset a lista de nombres completos
+    TESTERS = [
+        f"{t.nombre} {t.apellido}".strip()
+        for t in testers_qs
+    ]
 
     if not TESTERS:
         print("No hay testers disponibles para asignar.")
-        return  # o lanzar excepción o manejar el caso
+        return
 
     issues, error = fetch_jira_issues(link)
     if error:
@@ -126,7 +130,7 @@ def importar_validates(super_matriz, link, testers_qs):
             validate_objects.append(
                 Validate(
                     super_matriz=super_matriz,
-                    tester=tester,
+                    tester=tester, 
                     ticket=caso["key"],
                     descripcion=caso["summary"],
                     prioridad=caso['priority'],

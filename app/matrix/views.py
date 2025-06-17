@@ -18,13 +18,35 @@ from django.contrib.auth import get_user_model
 from app.accounts.models import User
 from collections import defaultdict
 Usuario = get_user_model()
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from collections import defaultdict
+import random
+import os
+from django.contrib import messages
+from django.conf import settings
+
+from .models import SuperMatriz, Validate
+from .forms import MatrizForm, ValidateForm
+from .utils import importar_matriz_desde_excel  # Asegúrate de tener esta función
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
     validates = super_matriz.validates.all()
-    es_lider = request.user.cargo=='Lider'
-    
+    es_lider = request.user.cargo == 'Lider'
+
+    # Mapeo de equipos a archivos Excel
+    RUTA_EXCEL_EQUIPOS = {
+        'Claro TV STB - IPTV - Roku - TATA': 'static/excel_files/matriz_base.xlsx',
+        'STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)': 'static/excel_files/matriz_base.xlsx',
+        'WIN - WEB - Fire TV': 'static/excel_files/matriz_base.xlsx',
+        'IOS - TvOS': 'static/excel_files/matriz_base.xlsx',
+        'Android': 'static/excel_files/matriz_base.xlsx',
+        'Smart TV AAF': 'static/excel_files/matriz_base.xlsx',
+    }
+
     matrices_info = []
     for matriz in matrices:
         casos = matriz.casos.all()
@@ -41,7 +63,6 @@ def detalle_super_matriz(request, super_matriz_id):
                     nombre, region = partes
                     testers_por_region[region.strip()].add(nombre.strip())
 
-        # Convertir sets a listas ordenadas
         testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
 
         matrices_info.append({
@@ -51,7 +72,7 @@ def detalle_super_matriz(request, super_matriz_id):
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
         })
-    # Formulario vacío al principio
+
     form = MatrizForm(equipo=super_matriz.equipo)
     validate_form = ValidateForm()
 
@@ -68,7 +89,18 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                ruta_excel_matriz = os.path.join('static', 'excel_files', 'matriz_base.xlsx')
+                # Obtener la ruta del Excel correspondiente al equipo
+                ruta_excel_matriz = RUTA_EXCEL_EQUIPOS.get(super_matriz.equipo)
+
+                if not ruta_excel_matriz:
+                    messages.error(request, f"No hay archivo Excel configurado para el equipo: {super_matriz.equipo}")
+                    return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+
+                ruta_absoluta = os.path.join(settings.BASE_DIR, ruta_excel_matriz)
+                if not os.path.exists(ruta_absoluta):
+                    messages.error(request, f"El archivo '{ruta_excel_matriz}' no existe en el servidor.")
+                    return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
@@ -101,6 +133,90 @@ def detalle_super_matriz(request, super_matriz_id):
         'validates': validates,
         'es_lider': es_lider,
     })
+
+# @login_required
+# def detalle_super_matriz(request, super_matriz_id):
+#     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
+#     matrices = super_matriz.matrices.all()
+#     validates = super_matriz.validates.all()
+#     es_lider = request.user.cargo=='Lider'
+    
+#     matrices_info = []
+#     for matriz in matrices:
+#         casos = matriz.casos.all()
+#         total_casos = casos.count()
+#         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente']
+#         casos_filtrados = casos.filter(estado__in=estados_interes).count()
+#         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
+
+#         testers_por_region = defaultdict(set)
+#         for caso in casos:
+#             if caso.tester:
+#                 partes = caso.tester.split('-')
+#                 if len(partes) == 2:
+#                     nombre, region = partes
+#                     testers_por_region[region.strip()].add(nombre.strip())
+
+#         # Convertir sets a listas ordenadas
+#         testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
+
+#         matrices_info.append({
+#             'matriz': matriz,
+#             'total_casos': total_casos,
+#             'casos_filtrados': casos_filtrados,
+#             'porcentaje': round(porcentaje, 2),
+#             'testers_por_region': testers_por_region,
+#         })
+#     # Formulario vacío al principio
+#     form = MatrizForm(equipo=super_matriz.equipo)
+#     validate_form = ValidateForm()
+
+#     if request.method == 'POST':
+#         if 'crear_matriz' in request.POST:
+#             form = MatrizForm(request.POST, equipo=super_matriz.equipo)
+#             if form.is_valid():
+#                 nueva_matriz = form.save(commit=False)
+#                 nueva_matriz.super_matriz = super_matriz
+
+#                 alcance_seleccionado = request.POST.get('alcance', '')
+#                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
+
+#                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
+#                 nueva_matriz.save()
+
+#                 ruta_excel_matriz = os.path.join('static', 'excel_files', 'matriz_base.xlsx')
+#                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
+
+#                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
+#                 regiones_seleccionados = form.cleaned_data.get('regiones', [])
+#                 casos = list(nueva_matriz.casos.all())
+#                 random.shuffle(regiones_seleccionados)
+#                 random.shuffle(testers_seleccionados)
+#                 random.shuffle(casos)
+#                 for idx, caso in enumerate(casos):
+#                     tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
+#                     region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
+#                     caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
+#                     caso.save()
+
+#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+
+#         elif 'crear_validate' in request.POST:
+#             validate_form = ValidateForm(request.POST)
+#             if validate_form.is_valid():
+#                 validate = validate_form.save(commit=False)
+#                 validate.super_matriz = super_matriz
+#                 validate.save()
+#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+
+#     return render(request, 'excel_files/detalle_super_matriz.html', {
+#         'super_matriz': super_matriz,
+#         'matrices_info': matrices_info,
+#         'form': form,
+#         'validate_form': validate_form,
+#         'validates': validates,
+#         'es_lider': es_lider,
+#     })
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -182,30 +298,29 @@ def editar_validates(request, super_matriz_id):
         'testers': testers,  # <<< aquí está
     })
 
-
 @login_required
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-    
-    # Obtener testers del equipo de la super matriz
-    testers_seleccionados = User.objects.filter(equipo=super_matriz.equipo)
-    #testers_seleccionados = User.objects.filter(equipo=super_matriz.equipo, cargo='tester')
-    
-    # Obtén o inicializa el detalle asociado
     detalles, _ = DetallesValidate.objects.get_or_create(super_matriz=super_matriz)
-
+    testers_del_equipo = User.objects.filter(equipo=super_matriz.equipo)
     if request.method == 'POST':
         form = DetallesValidateForm(request.POST, instance=detalles)
-        link = request.POST.get('filtro_RN', '')
+        form.fields['testers'].queryset = testers_del_equipo
+
         if form.is_valid():
             detalles = form.save(commit=False)
             detalles.super_matriz = super_matriz
             detalles.save()
+
+            testers_seleccionados = form.cleaned_data['testers']
+
             if not Validate.objects.filter(super_matriz=super_matriz).exists():
-                importar_validates(super_matriz, link, testers_seleccionados)
+                importar_validates(super_matriz, detalles.filtro_RN, testers_seleccionados)
+
             return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
     else:
         form = DetallesValidateForm(instance=detalles)
+        form.fields['testers'].queryset = testers_del_equipo
 
     return render(request, 'excel_files/detalles_validate_modal.html', {
         'form': form,

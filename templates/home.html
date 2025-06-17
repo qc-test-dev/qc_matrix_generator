@@ -37,11 +37,13 @@
 
                 <!-- Filtros -->
                 <div class="px-3 py-2 bg-white border-bottom">
-                    <strong class="me-2">Filtrar por equipo:</strong>
-                    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
-                    {% for eq in equipos %}
-                        <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
-                    {% endfor %}
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <strong class="me-2 mb-0">Filtrar por equipo:</strong>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
+                        {% for eq in equipos %}
+                            <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <div class="card-body p-0">

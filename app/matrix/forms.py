@@ -2,6 +2,7 @@
 from django import forms
 from .models import SuperMatriz, Matriz, CasoDePrueba,Validate,TicketPorLevantar,DetallesValidate
 from django.contrib.auth import get_user_model
+
 class MatrizForm(forms.ModelForm):
     class Meta:
         model = Matriz
@@ -37,12 +38,14 @@ class CasoDePruebaForm(forms.ModelForm):
         model = CasoDePrueba
         fields = ['estado', 'nota']
 class SuperMatrizForm(forms.ModelForm):
-    EQUIPO_CHOICES = (
-        ('Roku', 'Roku'),
-        ('STV(TATA)', 'STV(TATA)'),
-        ('STB', 'STB'),
-        ('WEB', 'WEB'),
-        ('IOS', 'IOS'),
+    EQUIPO_CHOICES=(
+    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
+    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
+    ('IPTV  A   OSP','IPTV  AOSP'),
+    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
+    ('IOS - TvOS','IOS - TvOS'),
+    ('Android','Android'),
+    ('Smart TV AAF','Smart TV AAF')
     )
 
     nombre = forms.CharField(
@@ -97,7 +100,15 @@ class ValidateEstadoForm(forms.ModelForm):
                 ('por_ejecutar', 'Por Ejecutar')
             ], attrs={'class': 'form-select estado-select'})
         }
-class DetallesValidateForm(forms.ModelForm):
+User = get_user_model()
+class DetallesValidateForm(forms.ModelForm): 
+    testers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(), 
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Testers"
+    )
+
     class Meta:
         model = DetallesValidate
         fields = ['filtro_RN', 'comentario_RN']
@@ -109,10 +120,15 @@ class DetallesValidateForm(forms.ModelForm):
             'comentario_RN': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'style': 'resize: none;',  # Evita que el textarea se redimensione
+                'style': 'resize: none;',
                 'placeholder': 'Agrega aquí los labels de RN'
             }),
         }
+    def __init__(self, *args, **kwargs):
+        equipo = kwargs.pop('equipo', None)
+        super().__init__(*args, **kwargs)
+        if equipo:
+            self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
 
 ALCANCE_CHOICES = [
     ('A', 'MVP (A)'),

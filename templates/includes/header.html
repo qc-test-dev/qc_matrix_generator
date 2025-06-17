@@ -6,6 +6,17 @@
     </div>
     </div>
     <div class="group-btn">
+        <div class="d-flex align-items-center gap-3">
+            <!-- Menú de engranaje -->
+            <div class="dropdown me-3">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    ⚙️
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                    <li><a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">Cambiar contraseña</a></li>
+                </ul>
+            </div>
+        </div>
         <a href="{% url 'home' %}" class="home-btn">Home</a>
     <form method="post" action="{% url 'accounts_app:logout' %}">
         {% csrf_token %}
