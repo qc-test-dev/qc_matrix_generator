@@ -42,9 +42,12 @@ services:
     command: > 
       sh -c "
         python manage.py makemigrations &&
+        python manage.py makemigrations matrix &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --clear &&
-        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json; fi &&
+        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission; fi &&
+
+
         python manage.py runserver 0.0.0.0:8000
       "
     networks:
