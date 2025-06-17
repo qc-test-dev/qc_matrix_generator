@@ -17,14 +17,36 @@
             {% csrf_token %}
 
             <div class="mb-3">
+                <label for="id_old_password" class="form-label">Contraseña actual</label>
+                {{ form.old_password }}
+                {% for error in form.old_password.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
                 <label for="id_new_password1" class="form-label">Nueva contraseña</label>
-                <input type="password" name="new_password1" id="id_new_password1" class="form-control" required minlength="8" autocomplete="new-password">
+                {{ form.new_password1 }}
+                {% for error in form.new_password1.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
             </div>
 
             <div class="mb-3">
                 <label for="id_new_password2" class="form-label">Confirmar nueva contraseña</label>
-                <input type="password" name="new_password2" id="id_new_password2" class="form-control" required autocomplete="new-password">
+                {{ form.new_password2 }}
+                {% for error in form.new_password2.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
             </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             <div class="d-grid">
                 <button type="submit" class="btn btn-success">Guardar</button>
