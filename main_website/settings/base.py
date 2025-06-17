@@ -79,7 +79,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'America/Mexico_City'
-USE_TZ = False
+
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -97,7 +97,7 @@ EXCEL_DIR = os.path.join(BASE_DIR, 'static', 'excel_files')
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-AUTH_USER_MODEL = 'accounts.CustomUser'
+AUTH_USER_MODEL = 'accounts.User'
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')

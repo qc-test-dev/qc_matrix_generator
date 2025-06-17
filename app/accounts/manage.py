@@ -13,7 +13,7 @@ class UserManager(BaseUserManager,models.Manager):
             **extra_fields
             )
         user.set_password(password)
-        user.save(using=self.db)
+        user.save(using=self._db)
         return user
     def create_user(self,username, nombre, apellido,password,**extra_fields):
         return self._create_user(username, nombre, apellido, password,False,False, **extra_fields)
