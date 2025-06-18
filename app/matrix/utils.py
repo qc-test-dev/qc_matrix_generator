@@ -96,6 +96,11 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
 #         )
 
 def importar_validates(super_matriz, link, testers_qs):
+    # Evitar errores si el link está vacío o es None
+    if not link:
+        print("El link está vacío o es None. No se puede importar validates.")
+        return
+
     # Convertir queryset a lista de nombres completos
     TESTERS = [
         f"{t.nombre} {t.apellido}".strip()
@@ -130,10 +135,10 @@ def importar_validates(super_matriz, link, testers_qs):
             validate_objects.append(
                 Validate(
                     super_matriz=super_matriz,
-                    tester=tester, 
+                    tester=tester,
                     ticket=caso["key"],
                     descripcion=caso["summary"],
-                    prioridad=caso['priority'],
+                    prioridad=caso["priority"],
                     estado="por_ejecutar"
                 )
             )

@@ -315,7 +315,8 @@ def detalles_validate_modal(request, super_matriz_id):
             testers_seleccionados = form.cleaned_data['testers']
 
             if not Validate.objects.filter(super_matriz=super_matriz).exists():
-                importar_validates(super_matriz, detalles.filtro_RN, testers_seleccionados)
+                if detalles.filtro_RN:  
+                    importar_validates(super_matriz, detalles.filtro_RN, testers_seleccionados)
 
             return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
     else:
