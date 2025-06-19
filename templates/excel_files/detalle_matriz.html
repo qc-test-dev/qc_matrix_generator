@@ -89,95 +89,106 @@
         Cambios guardados correctamente.
     </div>
 </div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1) Colorea el <select> según estado
-    function actualizarColor(select) {
-        const valor = select.value;
-        select.classList.remove(
-            'estado-funciona','estado-falla-nueva','estado-falla-persistente',
-            'estado-na','estado-pendiente','estado-por-ejecutar'
-        );
-        switch (valor) {
-            case 'funciona':           select.classList.add('estado-funciona'); break;
-            case 'falla_nueva':        select.classList.add('estado-falla-nueva'); break;
-            case 'falla_persistente':  select.classList.add('estado-falla-persistente'); break;
-            case 'na':                 select.classList.add('estado-na'); break;
-            case 'pendiente':          select.classList.add('estado-pendiente'); break;
-            case 'por_ejecutar':       select.classList.add('estado-por-ejecutar'); break;
+    // 1) Función para colorear según estado
+    function aplicarColorEstado(select) {
+        const valor = select.value.toLowerCase();
+        select.classList.remove("bg-success","bg-warning","bg-danger","bg-secondary","text-white","text-dark");
+        if (valor === "completado" || valor.includes("funcio")) {
+            select.classList.add("bg-success","text-white");
+        } else if (valor.includes("por") || valor.includes("pendient")) {
+            select.classList.add("bg-warning","text-dark");
+        } else if (valor.includes("falla") || valor.includes("error")) {
+            select.classList.add("bg-danger","text-white");
+        } else {
+            select.classList.add("bg-secondary","text-white");
         }
     }
 
-    // 2) Al cambiar un estado (o nota), marca dirty, recolorea, guarda y recarga
-    document.querySelectorAll('.validate-estado').forEach(select => {
-        actualizarColor(select);
-        select.addEventListener('change', function () {
+    // 2) Cuando cambie estado o nota: marcar dirty, recolorear y guardar
+    document.querySelectorAll('.estado-input, .nota-input').forEach(input => {
+        if (input.classList.contains('estado-input')) {
+            aplicarColorEstado(input);
+        }
+        input.addEventListener('change', function () {
             const tr = this.closest('tr');
             tr.dataset.dirty = "true";
-            actualizarColor(this);
+            if (this.classList.contains('estado-input')) {
+                aplicarColorEstado(this);
+            }
             console.log("🟡 Fila marcada y auto-guardando:", tr.dataset.id);
-            guardarValidates();           // dispara el POST
-            window.location.reload();     // recarga inmediata
+            guardarCambios();
+            window.location.reload();
+            
         });
     });
 
     // 3) Función de guardado parcial
-    window.guardarValidates = async function () {
-        const filas = Array.from(document.querySelectorAll('tr[data-dirty="true"]'));
-        if (!filas.length) return;
+    window.guardarCambios = function () {
+        const filas = Array.from(document.querySelectorAll("tr[data-dirty='true']"));
+        if (!filas.length) return;  // nada que enviar
 
         const cambios = filas.map(tr => ({
             id: tr.dataset.id,
-            estado: tr.querySelector('.validate-estado').value
+            estado: tr.querySelector(".estado-input").value,
+            nota: tr.querySelector(".nota-input").value
         }));
+        console.log("📤 Enviando cambios:", cambios);
 
-        console.log("📤 Enviando validates:", cambios);
-        try {
-            const resp = await fetch("/matrix/api/guardar-validates/", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ registros: cambios })
-            });
-            const data = await resp.json();
-            if (data.status === 'ok') {
+        fetch("/matrix/api/guardar-estado/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ registros: cambios })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === "ok") {
                 filas.forEach(tr => delete tr.dataset.dirty);
-                const msg = document.getElementById('auto-save-msg');
-                msg.style.display = 'inline';
-                setTimeout(() => msg.style.display = 'none', 3000);
+                mostrarMensaje("Cambios guardados correctamente.", "success");
             } else {
-                console.error('Error guardando:', data.error);
+                mostrarMensaje("Error al guardar: " + data.error, "danger");
             }
-        } catch (e) {
-            console.error('Fetch error:', e);
-        }
+        })
+        .catch(err => {
+            console.error("💥 Error de red:", err);
+            mostrarMensaje("Error de red al guardar.", "danger");
+        });
     };
 
-    // 4) Auto‐save cada 30 segundos
-    setInterval(guardarValidates, 30 * 1000);
+    // 4) Auto-save cada 2 minutos (120 000 ms)
+    setInterval(guardarCambios, 2 * 60 * 1000);
 
-    // 5) (Opcional) Auto‐reload cada 60 segundos
+    // 5) Auto-reload cada 1 minuto (60 000 ms)
     setInterval(() => {
-        console.log("⏰ Recargando para captar cambios externos…");
+        console.log("⏰ Recargando la página para obtener cambios…");
         window.location.reload();
     }, 60 * 1000);
 
     // — Helpers —
     function getCookie(name) {
-        let value = null;
+        let v = null;
         document.cookie.split(';').forEach(c => {
             c = c.trim();
             if (c.startsWith(name + '=')) {
-                value = decodeURIComponent(c.split('=')[1]);
+                v = decodeURIComponent(c.split('=')[1]);
             }
         });
-        return value;
+        return v;
+    }
+    function mostrarMensaje(texto, tipo) {
+        const msg = document.getElementById("mensaje");
+        msg.className = `alert alert-${tipo} alert-position`;
+        msg.innerText = texto;
+        msg.classList.remove("d-none");
+        setTimeout(() => msg.classList.add("d-none"), 3000);
     }
 });
 </script>
-
 
 
 {% endblock content %}
