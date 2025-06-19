@@ -81,7 +81,7 @@
     </table>
 
     <div class="sticky-action-bar">
-        <button type="button" class="btn btn-success" onclick="guardarCambios()">💾 Guardar</button>
+        <!--<button type="button" class="btn btn-success" onclick="guardarCambios()">💾 Guardar</button>-->
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 
@@ -165,6 +165,10 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("💥 Error de red:", err);
             mostrarMensaje("Error de red al guardar.", "danger");
         });
+        setInterval(function() {
+        console.log("⏰ auto save…");
+        window.location.reload();
+    }, 60 * 1); // 60 000 ms = 1 minuto
     };
 
     // Auto-save cada 2 minutos

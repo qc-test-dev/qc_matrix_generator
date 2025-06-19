@@ -21,8 +21,8 @@ Validates – {{ super_matriz.nombre }}
          style="z-index: 1100; width: 40%;">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz.id %}" 
            class="btn btn-secondary btn-sm">⬅ Volver</a>
-        <button type="button" class="btn btn-success btn-sm" onclick="guardarValidates()">
-            💾 Guardar cambios
+        <!-- <button type="button" class="btn btn-success btn-sm" onclick="guardarValidates()"> 
+            💾 Guardar cambios-->
         </button>
         <span id="auto-save-msg" class="text-success small ms-3" style="display:none;">
             Guardado automáticamente ✔️
@@ -185,6 +185,10 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
             console.error('Fetch error:', e);
         }
+            setInterval(function() {
+        console.log("⏰ Recargando para obtener cambios externos…");
+        window.location.reload();
+    }, 60 * 1);
     };
 
     // 4) Botón manual “Guardar cambios”
@@ -197,10 +201,6 @@ document.addEventListener("DOMContentLoaded", function () {
     setInterval(guardarValidates, 30 * 5);
 
     // 6) Auto‐reload cada 60 segundos para ver cambios de otros usuarios
-    setInterval(function() {
-        console.log("⏰ Recargando para obtener cambios externos…");
-        window.location.reload();
-    }, 60 * 500);
 
     // Helper: obtener CSRF token
     function getCookie(name) {
