@@ -111,33 +111,30 @@ Validates – {{ super_matriz.nombre }}
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1) Función para colorear según estado
+    // 1) Función para colorear selects según estado
     function actualizarColor(select) {
-        const valor = select.value;
+        const v = select.value.toLowerCase();
         select.classList.remove(
             'estado-funciona','estado-falla-nueva','estado-falla-persistente',
             'estado-na','estado-pendiente','estado-por-ejecutar'
         );
-        switch (valor) {
-            case 'funciona':           select.classList.add('estado-funciona'); break;
-            case 'falla_nueva':        select.classList.add('estado-falla-nueva'); break;
-            case 'falla_persistente':  select.classList.add('estado-falla-persistente'); break;
-            case 'na':                 select.classList.add('estado-na'); break;
-            case 'pendiente':          select.classList.add('estado-pendiente'); break;
-            case 'por_ejecutar':       select.classList.add('estado-por-ejecutar'); break;
-        }
+        if (v === 'funciona')           select.classList.add('estado-funciona');
+        else if (v === 'falla_nueva')   select.classList.add('estado-falla-nueva');
+        else if (v === 'falla_persistente') select.classList.add('estado-falla-persistente');
+        else if (v === 'na')            select.classList.add('estado-na');
+        else if (v === 'pendiente')     select.classList.add('estado-pendiente');
+        else if (v === 'por_ejecutar')  select.classList.add('estado-por-ejecutar');
     }
 
-    // 2) Al cambiar un estado: marcar dirty, recolorear, guardar y recargar
+    // 2) Al cambiar un select: marcar dirty, recolorear, auto‐guardar y recargar
     document.querySelectorAll('.validate-estado').forEach(select => {
         actualizarColor(select);
         select.addEventListener('change', function () {
             const tr = this.closest('tr');
-            tr.dataset.dirty = "true";            // 2.1
-            actualizarColor(this);                // 2.2
-            console.log("🟡 Fila marcada y auto-guardando:", tr.dataset.id);
-            guardarValidates();                   // 2.3
-            window.location.reload();             // 2.4
+            tr.dataset.dirty = "true";
+            actualizarColor(this);
+            guardarValidates();       // guarda solo esta fila
+            window.location.reload(); // recarga para reflejar todo
         });
     });
 
@@ -163,21 +160,64 @@ document.addEventListener("DOMContentLoaded", function () {
                 filas.forEach(tr => delete tr.dataset.dirty);
                 const msg = document.getElementById('auto-save-msg');
                 msg.style.display = 'inline';
-                setTimeout(() => msg.style.display = 'none', 3000);
+                setTimeout(() => msg.style.display='none', 3000);
+            } else {
+                console.error('Error guardando:', data.error);
             }
-        } catch (e) { console.error(e) }
+        } catch (e) {
+            console.error('Fetch error:', e);
+        }
     };
 
-    // 4) Auto-save cada 30 s
+    // 4) Auto‐save cada 30 s
     setInterval(guardarValidates, 30 * 1000);
 
-    // 5) Auto-reload cada 60 s (opcional)
-    setInterval(() => window.location.reload(), 60 * 1000);
+    // 5) Auto‐reload cada 60 s
+    setInterval(() => {
+        console.log("⏰ Recargando para captar cambios externos…");
+        window.location.reload();
+    }, 60 * 1000);
 
-    // Helpers…
-    function getCookie(name) { /*…*/ }
+    // 6) Filtro por tester con persistencia en URL
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const rows = document.querySelectorAll('#validates-table tbody tr');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tester = btn.dataset.tester;
+            rows.forEach(r => {
+                r.style.display = (tester==='all' || r.dataset.tester===tester) ? '' : 'none';
+            });
+            const url = new URL(window.location);
+            if (tester==='all') url.searchParams.delete('tester');
+            else url.searchParams.set('tester', tester);
+            history.replaceState(null, '', url);
+        });
+    });
+    // Al cargar, reaplicar filtro desde URL
+    (function reaplicarFiltro(){
+        const p = new URLSearchParams(window.location.search).get('tester');
+        if (p) {
+            const btn = document.querySelector(`.filter-btn[data-tester="${p}"]`);
+            if (btn) btn.click();
+        } else {
+            document.querySelector('.filter-btn[data-tester="all"]').click();
+        }
+    })();
+
+    // — Helpers —
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(c=>{
+            c = c.trim();
+            if (c.startsWith(name+'=')) v = decodeURIComponent(c.slice(name.length+1));
+        });
+        return v;
+    }
 });
 </script>
+
 
 {% endblock content %}
 
