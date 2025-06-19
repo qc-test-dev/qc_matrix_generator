@@ -37,6 +37,10 @@ class CasoDePruebaForm(forms.ModelForm):
     class Meta:
         model = CasoDePrueba
         fields = ['estado', 'nota']
+        widgets = {
+            'estado': forms.Select(attrs={'class': 'estado-input form-control'}),
+            'nota': forms.TextInput(attrs={'class': 'nota-input form-control'}),
+        }
 class SuperMatrizForm(forms.ModelForm):
     EQUIPO_CHOICES=(
     ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
@@ -105,7 +109,7 @@ class DetallesValidateForm(forms.ModelForm):
     testers = forms.ModelMultipleChoiceField(
         queryset=User.objects.none(), 
         widget=forms.CheckboxSelectMultiple,
-        required=True,
+        required=False,
         label="Testers"
     )
 
@@ -127,6 +131,8 @@ class DetallesValidateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         equipo = kwargs.pop('equipo', None)
         super().__init__(*args, **kwargs)
+        self.fields['filtro_RN'].required = False
+        
         if equipo:
             self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
 

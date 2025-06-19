@@ -51,7 +51,7 @@ def detalle_super_matriz(request, super_matriz_id):
     for matriz in matrices:
         casos = matriz.casos.all()
         total_casos = casos.count()
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente']
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente',"na"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
 
@@ -217,41 +217,28 @@ def detalle_super_matriz(request, super_matriz_id):
 #         'validates': validates,
 #         'es_lider': es_lider,
 #     })
+
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
-    casos_de_prueba = matriz.casos.all()
     super_matriz_id = matriz.super_matriz.id
 
-    # Obtener lista de filtros si existen
-    alcances_lista = []
-    if matriz.alcances_utilizados:
-        alcances_lista = matriz.alcances_utilizados.split(',')
+    # ✅ Obtener todos los testers disponibles antes de filtrar por tester
+    testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
 
-    # Obtener lista única de testers desde los casos
-    testers_disponibles = casos_de_prueba.values_list('tester', flat=True).distinct()
-
-    # Filtrar por tester si viene en la URL (GET)
+    # ✅ Obtener todos los casos, aplicar filtro por tester si es necesario
+    casos_de_prueba = matriz.casos.all()
     tester_filtrado = request.GET.get('tester')
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
-    if request.method == 'POST':
-        success = True
-        for caso in casos_de_prueba:
-            form = CasoDePruebaForm(request.POST, instance=caso, prefix=f"caso_{caso.id}")
-            if form.is_valid():
-                form.save()
-            else:
-                success = False
+    # ✅ Orden fijo para que no se desordene la tabla
+    casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            if success:
-                return JsonResponse({'status': 'ok'})
-            else:
-                return JsonResponse({'status': 'error', 'message': 'Formulario inválido'}, status=400)
-        else:
-            return redirect('matrix_app:detalle_matriz', matriz_id=matriz.id)
+    # Lista de filtros
+    alcances_lista = []
+    if matriz.alcances_utilizados:
+        alcances_lista = matriz.alcances_utilizados.split(',')
 
     formularios_casos_de_prueba = [
         (caso, CasoDePruebaForm(instance=caso, prefix=f"caso_{caso.id}"))
@@ -264,7 +251,7 @@ def detalle_matriz(request, matriz_id):
         'super_matriz_id': super_matriz_id,
         'alcances_lista': alcances_lista,
         'testers_disponibles': testers_disponibles,
-        'tester_filtrado': tester_filtrado,  # por si quieres marcar cuál está activo
+        'tester_filtrado': tester_filtrado,
     })
 
 

@@ -1,4 +1,5 @@
 from django.urls import path
+from app.matrix.update_api import api_guardar_estado
 from . import views
 app_name='matrix_app'
 #matrix_app:dashboard_super_matrices
@@ -11,6 +12,8 @@ urlpatterns = [
     path('editar_ticket/<int:ticket_id>/', views.editar_ticket, name='editar_ticket'),
     path('eliminar/<int:super_matriz_id>/', views.eliminar_super_matriz, name='eliminar_super_matriz'),
     path('eliminar_matriz/<int:matriz_id>/', views.eliminar_matriz, name='eliminar_matriz'),
+    path("api/guardar-estado/", api_guardar_estado, name="api_guardar_estado"),
+
 ]   
 
 

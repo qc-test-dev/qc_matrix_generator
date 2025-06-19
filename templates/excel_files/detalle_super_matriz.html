@@ -7,6 +7,13 @@
 
 {% block content %}
 {% include 'includes/header.html' %}
+style>
+.progress-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
 <div class="container mt-3">
     <h1 class="mb-3">{{ super_matriz.nombre }}</h1>
     <p class="text-muted">{{ super_matriz.descripcion }}</p>
@@ -79,13 +86,21 @@
                                 <p>Casos Totales: {{ info.total_casos }}</p>
                                 <p>Casos Completos: {{ info.casos_filtrados }}</p>
                                 <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>
-                                <div class="progress mb-3">
-                                    <div class="progress-bar bg-success" role="progressbar"
-                                         style="width: {{ info.porcentaje }}%;" aria-valuenow="{{ info.porcentaje }}"
-                                         aria-valuemin="0" aria-valuemax="100">
-                                        {{ info.porcentaje|floatformat:0 }}%
-                                    </div>
+                                <div class="progress mb-3 d-flex align-items-center">
+                                <div
+                                    class="progress-bar bg-success d-flex justify-content-center"
+                                    role="progressbar"
+                                    style="width: {{ info.porcentaje|floatformat:0 }}%;"
+                                    aria-valuenow="{{ info.porcentaje }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                >
+                                    {{ info.porcentaje|floatformat:0 }}%
                                 </div>
+                                </div>
+
+
+
                                 {% if info.testers_por_region %}
                                     <p><strong>Testers por región:</strong></p>
                                     <div style="max-height: 10em; overflow-y: auto;">

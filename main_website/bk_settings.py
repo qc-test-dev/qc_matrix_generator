@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app.accounts',
     'app.matrix',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -100,7 +101,7 @@ DATABASES = {
         'NAME': 'qc_matrix',
         'USER': 'qc_admin',
         'PASSWORD': 'qc_admin_pass',
-        'HOST': 'db',
+        'HOST': 'localhost',  # Cambia esto si tu base de datos está en otro host
         'PORT': '5432',
     }
 }

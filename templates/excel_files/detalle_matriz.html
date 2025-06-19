@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load widget_tweaks %}
 
 {% block title %}
 {{ matriz.nombre }}
@@ -9,21 +10,20 @@
 {% include 'includes/header.html' %}
 <div class="container">
 
-    <!-- Título -->
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
 
     {% if alcances_lista %}
         <p>Filtros usados:</p>
         <ul>
         {% for alcance in alcances_lista %}
-        {% if alcance == "A" %}
-        Minimum Viable Product 
-        {% elif alcance == "B" %}
-            SMOKE TEST
-        {% elif alcance == "C" %}
-            No Afectacion
-        {% endif %}
-        <br>
+            {% if alcance == "A" %}
+                Minimum Viable Product 
+            {% elif alcance == "B" %}
+                SMOKE TEST
+            {% elif alcance == "C" %}
+                No Afectación
+            {% endif %}
+            <br>
         {% endfor %}
         </ul>
     {% else %}
@@ -47,55 +47,162 @@
 
     <p class="text-muted mt-3">Editar los estados y notas de los casos de prueba.</p>
 
-    <form id="form-casos" method="post">
-        {% csrf_token %}
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th class="col-fase">Fase</th>
-                    <th class="col-caso">Caso de Prueba</th>
-                    <th class="col-estado">Estado</th>
-                    <th class="col-criticidad">Criticidad</th>
-                    <th class="col-nota">Nota</th>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th class="col-fase">Fase</th>
+                <th class="col-caso">Caso de Prueba</th>
+                <th class="col-estado">Estado</th>
+                <th class="col-criticidad">Criticidad</th>
+                <th class="col-nota">Nota</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for caso, form in formularios_casos_de_prueba %}
+                <tr data-id="{{ caso.id }}">
+                    <td>{{ caso.fase }}</td>
+                    <td>{{ caso.caso_de_prueba }}</td>
+                    <td>{% render_field form.estado class="estado-input form-control" %}</td>
+                    <td>    
+                        {% if caso.criticidad|lower == "bloqueante" %}
+                            <span class="badge bg-danger">🔶 Bloqueante</span>
+                        {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
+                            <span class="badge bg-warning text-dark">🟡 Crítico</span>
+                        {% elif caso.criticidad|lower == "error" %}
+                            <span class="badge bg-danger">🔴 Error</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Sin clasificar</span>
+                        {% endif %}
+                    </td>
+                    <td>{% render_field form.nota class="nota-input form-control" %}</td>
                 </tr>
-            </thead>
-            <tbody>
-                {% for caso, form in formularios_casos_de_prueba %}
-                    <tr>
-                        <td>{{ caso.fase }}</td>
-                        <td>{{ caso.caso_de_prueba }}</td>
-                        <td>{{ form.estado }}</td>
-                        <td>    
-                            {% if caso.criticidad|lower == "bloqueante" %}
-                                <span class="badge bg-danger">🔶 Bloqueante</span>
-                            {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
-                                <span class="badge bg-warning text-dark">🟡 Crítico</span>
-                            {% elif caso.criticidad|lower == "error" %}
-                                <span class="badge bg-danger">🔴 Error</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Sin clasificar</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ form.nota }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </form>
-    
+            {% endfor %}
+        </tbody>
+    </table>
 
     <div class="sticky-action-bar">
-        <button type="submit" class="btn btn-success" form="form-casos">
-            💾 Guardar
-        </button>
-        <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">
-            ← Volver
-        </a>
+        <button type="button" class="btn btn-success" onclick="guardarCambios()">💾 Guardar</button>
+        <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 
     <div id="mensaje" class="alert alert-success d-none alert-position" role="alert">
         Cambios guardados correctamente.
     </div>
-
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // Aplica color visual según estado
+    function aplicarColorEstado(select) {
+        const valor = select.value.toLowerCase();
+        select.classList.remove("bg-success", "bg-warning", "bg-danger", "bg-secondary", "text-white", "text-dark");
+        if (valor === "completado" || valor.includes("funcio")) {
+            select.classList.add("bg-success", "text-white");
+        } else if (valor.includes("por") || valor.includes("pendient")) {
+            select.classList.add("bg-warning", "text-dark");
+        } else if (valor.includes("falla") || valor.includes("error")) {
+            select.classList.add("bg-danger", "text-white");
+        } else {
+            select.classList.add("bg-secondary", "text-white");
+        }
+    }
+
+    // Marcar dirty y aplicar colores
+    document.querySelectorAll('.estado-input, .nota-input').forEach(input => {
+        if (input.classList.contains('estado-input')) {
+            aplicarColorEstado(input);
+        }
+        input.addEventListener('change', function () {
+            const fila = this.closest('tr');
+            fila.dataset.dirty = "true";
+            if (this.classList.contains('estado-input')) {
+                aplicarColorEstado(this);
+            }
+            console.log("🟡 Fila marcada:", fila.dataset.id);
+        });
+    });
+
+    // Función para enviar cambios
+    window.guardarCambios = function () {
+        const filas = document.querySelectorAll("tr[data-dirty='true']");
+
+        // — Evitar envíos vacíos —
+        if (filas.length === 0) {
+            console.log("🔇 Sin cambios pendientes, no envío.");
+            return;
+        }
+
+        const cambios = [];
+        filas.forEach(fila => {
+            cambios.push({
+                id: fila.dataset.id,
+                estado: fila.querySelector(".estado-input").value,
+                nota: fila.querySelector(".nota-input").value
+            });
+        });
+
+        console.log("📤 Enviando cambios:", cambios);
+
+        fetch("/matrix/api/guardar-estado/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ registros: cambios })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.status === "ok") {
+                mostrarMensaje("Cambios guardados correctamente.", "success");
+                filas.forEach(f => delete f.dataset.dirty);
+            } else {
+                mostrarMensaje("Error al guardar: " + data.error, "danger");
+            }
+        })
+        .catch(err => {
+            console.error("💥 Error de red:", err);
+            mostrarMensaje("Error de red al guardar.", "danger");
+        });
+    };
+
+    // Auto-save cada 2 minutos
+    setInterval(guardarCambios, 2 * 60 * 2);
+
+    // Helpers
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            for (const cookie of document.cookie.split(';')) {
+                const trimmed = cookie.trim();
+                if (trimmed.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(trimmed.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function mostrarMensaje(texto, tipo) {
+        const mensaje = document.getElementById("mensaje");
+        mensaje.className = "alert alert-" + tipo + " alert-position";
+        mensaje.innerText = texto;
+        mensaje.classList.remove("d-none");
+        setTimeout(() => mensaje.classList.add("d-none"), 3000);
+    }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // —– Refresca toda la página cada 60 segundos —–
+    setInterval(function() {
+        console.log("⏰ Recargando la página para obtener cambios…");
+        window.location.reload();
+    }, 60 * 1000); // 60 000 ms = 1 minuto
+});
+</script>
+
 {% endblock content %}

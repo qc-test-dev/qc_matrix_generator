@@ -43,6 +43,7 @@ class CasoDePrueba(models.Model):
     nota = models.TextField(blank=True, null=True)
     tester=models.TextField(blank=True, null=True)
 
+
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):
