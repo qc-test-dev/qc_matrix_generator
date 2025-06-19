@@ -89,124 +89,95 @@
         Cambios guardados correctamente.
     </div>
 </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-
-    // Aplica color visual según estado
-    function aplicarColorEstado(select) {
-        const valor = select.value.toLowerCase();
-        select.classList.remove("bg-success", "bg-warning", "bg-danger", "bg-secondary", "text-white", "text-dark");
-        if (valor === "completado" || valor.includes("funcio")) {
-            select.classList.add("bg-success", "text-white");
-        } else if (valor.includes("por") || valor.includes("pendient")) {
-            select.classList.add("bg-warning", "text-dark");
-        } else if (valor.includes("falla") || valor.includes("error")) {
-            select.classList.add("bg-danger", "text-white");
-        } else {
-            select.classList.add("bg-secondary", "text-white");
+    // 1) Colorea el <select> según estado
+    function actualizarColor(select) {
+        const valor = select.value;
+        select.classList.remove(
+            'estado-funciona','estado-falla-nueva','estado-falla-persistente',
+            'estado-na','estado-pendiente','estado-por-ejecutar'
+        );
+        switch (valor) {
+            case 'funciona':           select.classList.add('estado-funciona'); break;
+            case 'falla_nueva':        select.classList.add('estado-falla-nueva'); break;
+            case 'falla_persistente':  select.classList.add('estado-falla-persistente'); break;
+            case 'na':                 select.classList.add('estado-na'); break;
+            case 'pendiente':          select.classList.add('estado-pendiente'); break;
+            case 'por_ejecutar':       select.classList.add('estado-por-ejecutar'); break;
         }
     }
 
-    // Marcar dirty y aplicar colores
-    document.querySelectorAll('.estado-input, .nota-input').forEach(input => {
-        if (input.classList.contains('estado-input')) {
-            aplicarColorEstado(input);
-        }
-        input.addEventListener('change', function () {
-            const fila = this.closest('tr');
-            fila.dataset.dirty = "true";
-            if (this.classList.contains('estado-input')) {
-                aplicarColorEstado(this);
-            }
-            console.log("🟡 Fila marcada:", fila.dataset.id);
+    // 2) Al cambiar un estado (o nota), marca dirty, recolorea, guarda y recarga
+    document.querySelectorAll('.validate-estado').forEach(select => {
+        actualizarColor(select);
+        select.addEventListener('change', function () {
+            const tr = this.closest('tr');
+            tr.dataset.dirty = "true";
+            actualizarColor(this);
+            console.log("🟡 Fila marcada y auto-guardando:", tr.dataset.id);
+            guardarValidates();           // dispara el POST
+            window.location.reload();     // recarga inmediata
         });
     });
 
-    // Función para enviar cambios
-    window.guardarCambios = function () {
-        const filas = document.querySelectorAll("tr[data-dirty='true']");
+    // 3) Función de guardado parcial
+    window.guardarValidates = async function () {
+        const filas = Array.from(document.querySelectorAll('tr[data-dirty="true"]'));
+        if (!filas.length) return;
 
-        // — Evitar envíos vacíos —
-        if (filas.length === 0) {
-            console.log("🔇 Sin cambios pendientes, no envío.");
-            return;
-        }
+        const cambios = filas.map(tr => ({
+            id: tr.dataset.id,
+            estado: tr.querySelector('.validate-estado').value
+        }));
 
-        const cambios = [];
-        filas.forEach(fila => {
-            cambios.push({
-                id: fila.dataset.id,
-                estado: fila.querySelector(".estado-input").value,
-                nota: fila.querySelector(".nota-input").value
+        console.log("📤 Enviando validates:", cambios);
+        try {
+            const resp = await fetch("/matrix/api/guardar-validates/", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ registros: cambios })
             });
-        });
-
-        console.log("📤 Enviando cambios:", cambios);
-
-        fetch("/matrix/api/guardar-estado/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken")
-            },
-            body: JSON.stringify({ registros: cambios })
-        })
-        .then(resp => resp.json())
-        .then(data => {
-            if (data.status === "ok") {
-                mostrarMensaje("Cambios guardados correctamente.", "success");
-                filas.forEach(f => delete f.dataset.dirty);
+            const data = await resp.json();
+            if (data.status === 'ok') {
+                filas.forEach(tr => delete tr.dataset.dirty);
+                const msg = document.getElementById('auto-save-msg');
+                msg.style.display = 'inline';
+                setTimeout(() => msg.style.display = 'none', 3000);
             } else {
-                mostrarMensaje("Error al guardar: " + data.error, "danger");
+                console.error('Error guardando:', data.error);
             }
-        })
-        .catch(err => {
-            console.error("💥 Error de red:", err);
-            mostrarMensaje("Error de red al guardar.", "danger");
-        });
-        setInterval(function() {
-        console.log("⏰ auto save…");
-        window.location.reload();
-    }, 60 * 1); // 60 000 ms = 1 minuto
+        } catch (e) {
+            console.error('Fetch error:', e);
+        }
     };
 
-    // Auto-save cada 2 minutos
-    setInterval(guardarCambios, 2 * 60 * 2);
+    // 4) Auto‐save cada 30 segundos
+    setInterval(guardarValidates, 30 * 1000);
 
-    // Helpers
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            for (const cookie of document.cookie.split(';')) {
-                const trimmed = cookie.trim();
-                if (trimmed.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(trimmed.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    function mostrarMensaje(texto, tipo) {
-        const mensaje = document.getElementById("mensaje");
-        mensaje.className = "alert alert-" + tipo + " alert-position";
-        mensaje.innerText = texto;
-        mensaje.classList.remove("d-none");
-        setTimeout(() => mensaje.classList.add("d-none"), 3000);
-    }
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    // —– Refresca toda la página cada 60 segundos —–
-    setInterval(function() {
-        console.log("⏰ Recargando la página para obtener cambios…");
+    // 5) (Opcional) Auto‐reload cada 60 segundos
+    setInterval(() => {
+        console.log("⏰ Recargando para captar cambios externos…");
         window.location.reload();
-    }, 60 * 500); // 60 000 ms = 1 minuto
+    }, 60 * 1000);
+
+    // — Helpers —
+    function getCookie(name) {
+        let value = null;
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) {
+                value = decodeURIComponent(c.split('=')[1]);
+            }
+        });
+        return value;
+    }
 });
 </script>
+
+
 
 {% endblock content %}

@@ -111,13 +111,14 @@ Validates – {{ super_matriz.nombre }}
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // 1) Aplica color inicial y marca dirty al cambiar
+    // 1) Función para colorear según estado
     function actualizarColor(select) {
+        const valor = select.value;
         select.classList.remove(
             'estado-funciona','estado-falla-nueva','estado-falla-persistente',
             'estado-na','estado-pendiente','estado-por-ejecutar'
         );
-        switch (select.value) {
+        switch (valor) {
             case 'funciona':           select.classList.add('estado-funciona'); break;
             case 'falla_nueva':        select.classList.add('estado-falla-nueva'); break;
             case 'falla_persistente':  select.classList.add('estado-falla-persistente'); break;
@@ -127,48 +128,32 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // 2) Al cambiar un estado: marcar dirty, recolorear, guardar y recargar
     document.querySelectorAll('.validate-estado').forEach(select => {
-        // color inicial
         actualizarColor(select);
-        // al cambiar
-        select.addEventListener('change', () => {
-            actualizarColor(select);
-            const tr = select.closest('tr');
-            tr.dataset.dirty = "true";
+        select.addEventListener('change', function () {
+            const tr = this.closest('tr');
+            tr.dataset.dirty = "true";            // 2.1
+            actualizarColor(this);                // 2.2
+            console.log("🟡 Fila marcada y auto-guardando:", tr.dataset.id);
+            guardarValidates();                   // 2.3
+            window.location.reload();             // 2.4
         });
     });
 
-    // 2) Filtrar filas por tester
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const rows = document.querySelectorAll('#validates-table tbody tr');
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const tester = btn.dataset.tester;
-            rows.forEach(row => {
-                row.style.display = (tester === 'all' || row.dataset.tester === tester) ? '' : 'none';
-            });
-        });
-    });
-
-    // 3) Función para guardar solo dirty rows
+    // 3) Función de guardado parcial
     window.guardarValidates = async function () {
         const filas = Array.from(document.querySelectorAll('tr[data-dirty="true"]'));
-        if (!filas.length) return;  // nada que guardar
-
+        if (!filas.length) return;
         const cambios = filas.map(tr => ({
-            id:     tr.dataset.id,
+            id: tr.dataset.id,
             estado: tr.querySelector('.validate-estado').value
         }));
-
-        console.log("📤 Enviando validates:", cambios);
-
         try {
             const resp = await fetch("/matrix/api/guardar-validates/", {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type':'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({ registros: cambios })
@@ -179,42 +164,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 const msg = document.getElementById('auto-save-msg');
                 msg.style.display = 'inline';
                 setTimeout(() => msg.style.display = 'none', 3000);
-            } else {
-                console.error('Error al guardar:', data.error);
             }
-        } catch (e) {
-            console.error('Fetch error:', e);
-        }
-            setInterval(function() {
-        console.log("⏰ Recargando para obtener cambios externos…");
-        window.location.reload();
-    }, 60 * 1);
+        } catch (e) { console.error(e) }
     };
 
-    // 4) Botón manual “Guardar cambios”
-    document.querySelector('button[onclick="guardarValidates()"]').addEventListener('click', e => {
-        e.preventDefault();
-        guardarValidates();
-    });
+    // 4) Auto-save cada 30 s
+    setInterval(guardarValidates, 30 * 1000);
 
-    // 5) Auto‐save cada 30 segundos
-    setInterval(guardarValidates, 30 * 5);
+    // 5) Auto-reload cada 60 s (opcional)
+    setInterval(() => window.location.reload(), 60 * 1000);
 
-    // 6) Auto‐reload cada 60 segundos para ver cambios de otros usuarios
-
-    // Helper: obtener CSRF token
-    function getCookie(name) {
-        let value = null;
-        document.cookie.split(';').forEach(c => {
-            c = c.trim();
-            if (c.startsWith(name + '=')) {
-                value = decodeURIComponent(c.split('=')[1]);
-            }
-        });
-        return value;
-    }
+    // Helpers…
+    function getCookie(name) { /*…*/ }
 });
 </script>
-sss
+
 {% endblock content %}
 
