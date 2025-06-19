@@ -258,31 +258,47 @@ def detalle_matriz(request, matriz_id):
 @login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-    validates = Validate.objects.filter(super_matriz=super_matriz)
+
+    # 1️⃣ Validates ordenados por ticket ascendente (para la tabla)
+    validates = Validate.objects.filter(
+        super_matriz=super_matriz
+    ).order_by('ticket')
 
     detalles_validate = getattr(super_matriz, 'detalles_validate', None)
 
+    # 2️⃣ Testers únicos sin repetir (para los botones de filtro)
+    testers = (
+        Validate.objects
+        .filter(super_matriz=super_matriz)
+        .values_list('tester', flat=True)
+        .distinct()
+    )
+
+    # Construcción de formularios
     formularios = []
-
-    # Extraemos testers únicos (sin repetir)
-    testers = validates.values_list('tester', flat=True).distinct()
-
     if request.method == 'POST':
         for validate in validates:
-            form = ValidateEstadoForm(request.POST, prefix=str(validate.id), instance=validate)
+            form = ValidateEstadoForm(
+                request.POST,
+                prefix=str(validate.id),
+                instance=validate
+            )
             if form.is_valid():
                 form.save()
         return redirect('matrix_app:editar_validates', super_matriz_id=super_matriz.id)
     else:
         for validate in validates:
-            form = ValidateEstadoForm(prefix=str(validate.id), instance=validate)
+            form = ValidateEstadoForm(
+                prefix=str(validate.id),
+                instance=validate
+            )
             formularios.append((validate, form))
 
     return render(request, 'excel_files/editar_validates.html', {
         'super_matriz': super_matriz,
         'formularios_validates': formularios,
         'detalles_validate': detalles_validate,
-        'testers': testers,  # <<< aquí está
+        'testers': testers,
     })
 
 @login_required

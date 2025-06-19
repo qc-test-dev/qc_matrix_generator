@@ -95,14 +95,17 @@ class ValidateEstadoForm(forms.ModelForm):
         model = Validate
         fields = ['estado']
         widgets = {
-            'estado': forms.Select(choices=[
-                ('funciona', 'Funciona'),
-                ('falla_nueva', 'Falla Nueva'),
-                ('falla_persistente', 'Falla Persistente'),
-                ('na', 'N/A'),
-                ('pendiente', 'Pendiente'),
-                ('por_ejecutar', 'Por Ejecutar')
-            ], attrs={'class': 'form-select estado-select'})
+            'estado': forms.Select(
+                choices=[
+                    ('funciona', 'Funciona'),
+                    ('falla_nueva', 'Falla Nueva'),
+                    ('falla_persistente', 'Falla Persistente'),
+                    ('na', 'N/A'),
+                    ('pendiente', 'Pendiente'),
+                    ('por_ejecutar', 'Por Ejecutar')
+                ],
+                attrs={'class': 'form-select validate-estado'}
+            ),
         }
 User = get_user_model()
 class DetallesValidateForm(forms.ModelForm): 

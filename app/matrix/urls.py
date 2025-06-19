@@ -1,5 +1,6 @@
 from django.urls import path
 from app.matrix.update_api import api_guardar_estado
+from app.matrix.update_validates_api import api_guardar_validates
 from . import views
 app_name='matrix_app'
 #matrix_app:dashboard_super_matrices
@@ -13,6 +14,8 @@ urlpatterns = [
     path('eliminar/<int:super_matriz_id>/', views.eliminar_super_matriz, name='eliminar_super_matriz'),
     path('eliminar_matriz/<int:matriz_id>/', views.eliminar_matriz, name='eliminar_matriz'),
     path("api/guardar-estado/", api_guardar_estado, name="api_guardar_estado"),
+    path("api/guardar-validates/", api_guardar_validates, name="api_guardar_validates"),
+
 
 ]   
 
