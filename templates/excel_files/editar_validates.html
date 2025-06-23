@@ -7,76 +7,77 @@ Validates – {{ super_matriz.nombre }}
 
 {% block content %}
 {% include 'includes/header.html' %}
+
 <div class="container py-3">
     {% if detalles_validate %}
-    <div class="mb-4 p-3 border rounded bg-light">
+    <div class="mb-4 p-3 border rounded bg-light shadow-sm">
         <h5 class="mb-2">📝 Detalles RN</h5>
         <p><strong>Filtro RN:</strong> {{ detalles_validate.filtro_RN }}</p>
         <p><strong>Comentario RN:</strong> {{ detalles_validate.comentario_RN }}</p>
     </div>
     {% endif %}
 
-    <!-- Barra sticky con botones -->
-    <div class="sticky-top d-flex justify-content-start align-items-center gap-2 p-2" 
-         style="z-index: 1100; width: 40%;">
+    <div class="sticky-top d-flex justify-content-start align-items-center gap-2 p-2 bg-white border-bottom shadow-sm" 
+         style="width: 7%;">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz.id %}" 
            class="btn btn-secondary btn-sm">⬅ Volver</a>
-        <!-- <button type="button" class="btn btn-success btn-sm" onclick="guardarValidates()"> 
-            💾 Guardar cambios-->
-        </button>
-        <span id="auto-save-msg" class="text-success small ms-3" style="display:none;">
-            Guardado automáticamente ✔️
-        </span>
     </div>
 
     <h1 class="mb-4 mt-3">Editar Validates</h1>
 
-    <!-- Botones de filtro por testers -->
     <div class="mb-4">
         <button class="btn btn-primary btn-sm filter-btn active me-1 mb-2" data-tester="all">
             Todos
         </button>
         {% for tester in testers %}
-          <button class="btn btn-outline-primary btn-sm filter-btn me-1 mb-2" 
-                  data-tester="{{ tester|escape }}">
+        <button class="btn btn-outline-primary btn-sm filter-btn me-1 mb-2" 
+                data-tester="{{ tester|escape }}">
             {{ tester }}
-          </button>
+        </button>
         {% empty %}
-          <p class="text-muted">No hay testers disponibles.</p>
+        <p class="text-muted">No hay testers disponibles.</p>
         {% endfor %}
     </div>
 
-    <form id="validates-form" method="post" 
-          action="{% url 'matrix_app:editar_validates' super_matriz.id %}">
+    <form id="validates-form" method="post">
         {% csrf_token %}
-        <div class="table-responsive">
+        <div class="table-responsive shadow-sm rounded">
             <table id="validates-table" 
-                   class="table table-bordered table-hover table-sm align-middle" 
-                   style="font-size:0.9rem;">
-                <thead class="table-light">
+                   class="table table-striped table-bordered table-hover align-middle"
+                   style="font-size:0.95rem; border-collapse: separate; border-spacing: 0 8px;">
+                <thead class="table-dark">
                     <tr>
                         <th style="width:20%;">Tester</th>
                         <th style="width:15%;">Ticket</th>
-                        <th style="width:30%;">Descripción</th>
-                        <th style="width:20%;">Prioridad</th>
+                        <th style="width:35%;">Descripción</th>
+                        <th style="width:15%;">Prioridad</th>
                         <th style="width:15%;">Estado</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for validate, form in formularios_validates %}
-                    <tr data-id="{{ validate.id }}" data-tester="{{ validate.tester|escape }}">
-                        <td style="width:20%;">{{ validate.tester }}</td>
-                        <td style="width:15%;">
+                    <tr data-id="{{ validate.id }}" data-tester="{{ validate.tester|escape }}" 
+                        class="shadow-sm rounded bg-white">
+                        <td class="align-middle">{{ validate.tester }}</td>
+                        <td class="align-middle">
                             <a href="https://dlatvarg.atlassian.net/browse/{{ validate.ticket }}" 
-                               target="_blank" class="text-decoration-none">
+                               target="_blank" class="text-decoration-none fw-semibold text-primary">
                                 {{ validate.ticket }}
                             </a>
                         </td>
-                        <td style="width:30%; white-space:pre-wrap;">
-                            {{ validate.descripcion }}
+                        <td class="align-middle" style="white-space:pre-wrap;">{{ validate.descripcion }}</td>
+                        <td class="align-middle text-center fw-semibold">
+                            {% if validate.prioridad|lower == "blocker" %}
+                                <span class="badge bg-danger">🔶 Bloqueante</span>
+                            {% elif validate.prioridad|lower == "critical" or validate.prioridad|lower == "crítico" %}
+                                <span class="badge bg-warning text-dark">🟡 Crítico</span>
+                            {% elif validate.prioridad|lower == "error" %}
+                                <span class="badge bg-danger">🔴 Error</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Sin clasificar</span>
+                            {% endif %}
                         </td>
-                        <td style="width:20%;">{{ validate.prioridad }}</td>
-                        <td style="width:15%;">{{ form.estado }}</td>
+                        <td class="align-middle text-center" id="estado-validate-{{ validate.id }}">{{ form.estado }}</td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -85,139 +86,247 @@ Validates – {{ super_matriz.nombre }}
     </form>
 </div>
 
-<style>
-/* Colores para los estados */
-.estado-funciona          { background-color:#d4edda!important; color:#155724!important; }
-.estado-falla-nueva       { background-color:#c82333!important; color:#fff!important; }
-.estado-falla-persistente { background-color:#f8d7da!important; color:#721c24!important; }
-.estado-na                { background-color:#e2e3e5!important; color:#004085!important; }
-.estado-pendiente         { background-color:#fd7e14!important; color:#fff!important; }
-.estado-por-ejecutar      { background-color:#ffeeba!important; color:#856404!important; }
-
-/* Botones filtro testers */
-.filter-btn.active {
-    background-color:#0d6efd!important;
-    color:#fff!important;
-    border-color:#0d6efd!important;
-}
-
-/* Tabla compacta */
-#validates-table tbody tr td select.form-select {
-    font-size:0.875rem;
-    padding:0.25rem 0.5rem;
-    height:28px;
-}
-</style>
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    // 1) Función para colorear selects según estado
-    function actualizarColor(select) {
-        const v = select.value.toLowerCase();
-        select.classList.remove(
-            'estado-funciona','estado-falla-nueva','estado-falla-persistente',
-            'estado-na','estado-pendiente','estado-por-ejecutar'
-        );
-        if (v === 'funciona')           select.classList.add('estado-funciona');
-        else if (v === 'falla_nueva')   select.classList.add('estado-falla-nueva');
-        else if (v === 'falla_persistente') select.classList.add('estado-falla-persistente');
-        else if (v === 'na')            select.classList.add('estado-na');
-        else if (v === 'pendiente')     select.classList.add('estado-pendiente');
-        else if (v === 'por_ejecutar')  select.classList.add('estado-por-ejecutar');
-    }
+const superMatrizId = "{{ super_matriz.id }}";
+const socket = new WebSocket("ws://" + window.location.host + "/ws/validates/" + superMatrizId + "/");
 
-    // 2) Al cambiar un select: marcar dirty, recolorear, auto‐guardar y recargar
-    document.querySelectorAll('.validate-estado').forEach(select => {
-        actualizarColor(select);
-        select.addEventListener('change', function () {
-            const tr = this.closest('tr');
-            tr.dataset.dirty = "true";
-            actualizarColor(this);
-            guardarValidates();       // guarda solo esta fila
-            window.location.reload(); // recarga para reflejar todo
-        });
-    });
-
-    // 3) Función de guardado parcial
-    window.guardarValidates = async function () {
-        const filas = Array.from(document.querySelectorAll('tr[data-dirty="true"]'));
-        if (!filas.length) return;
-        const cambios = filas.map(tr => ({
-            id: tr.dataset.id,
-            estado: tr.querySelector('.validate-estado').value
-        }));
-        try {
-            const resp = await fetch("/matrix/api/guardar-validates/", {
-                method: 'POST',
-                headers: {
-                    'Content-Type':'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ registros: cambios })
-            });
-            const data = await resp.json();
-            if (data.status === 'ok') {
-                filas.forEach(tr => delete tr.dataset.dirty);
-                const msg = document.getElementById('auto-save-msg');
-                msg.style.display = 'inline';
-                setTimeout(() => msg.style.display='none', 3000);
-            } else {
-                console.error('Error guardando:', data.error);
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    if (data.type === "estado_actualizado") {
+        const validateId = data.validate_id;
+        const nuevoEstado = data.nuevo_estado;
+        const celda = document.querySelector(`#estado-validate-${validateId}`);
+        if (celda) {
+            const select = celda.querySelector('select');
+            if (select && select.value !== nuevoEstado) {
+                select.value = nuevoEstado;
+                aplicarColorEstado(select);
+                select.classList.add("flash-update");
+                setTimeout(() => select.classList.remove("flash-update"), 1500);
             }
-        } catch (e) {
-            console.error('Fetch error:', e);
         }
-    };
+    }
+};
 
-    // 4) Auto‐save cada 30 s
-    setInterval(guardarValidates, 30 * 1000);
+document.querySelectorAll("select").forEach(select => {
+    select.classList.add("form-select", "form-select-sm", "estado-input");
+    aplicarColorEstado(select);
+    select.addEventListener("change", function() {
+        const tr = this.closest("tr");
+        const validateId = tr.dataset.id;
+        const nuevoEstado = this.value;
 
-    // 5) Auto‐reload cada 60 s
-    setInterval(() => {
-        console.log("⏰ Recargando para captar cambios externos…");
-        window.location.reload();
-    }, 60 * 1000);
+        fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: `validate_id=${validateId}&nuevo_estado=${nuevoEstado}`
+        });
 
-    // 6) Filtro por tester con persistencia en URL
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const rows = document.querySelectorAll('#validates-table tbody tr');
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterButtons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const tester = btn.dataset.tester;
-            rows.forEach(r => {
-                r.style.display = (tester==='all' || r.dataset.tester===tester) ? '' : 'none';
-            });
-            const url = new URL(window.location);
-            if (tester==='all') url.searchParams.delete('tester');
-            else url.searchParams.set('tester', tester);
-            history.replaceState(null, '', url);
+        aplicarColorEstado(this);
+    });
+});
+
+function aplicarColorEstado(select) {
+    const estado = select.value.toLowerCase().trim();
+    select.className = "form-select form-select-sm estado-input";
+
+    if (estado === "funciona") {
+        select.classList.add("bg-success", "text-white");
+    } else if (estado === "falla_nueva") {
+        select.classList.add("bg-danger", "text-white");
+    } else if (estado === "falla_persistente") {
+        select.style.backgroundColor = "#ef9a9a";
+        select.style.color = "#000";
+    } else if (estado === "n/a") {
+        select.classList.add("bg-secondary", "text-dark");
+    } else if (estado === "pendiente") {
+        select.style.backgroundColor = "#ffcc80";
+        select.style.color = "#000";
+    } else if (estado === "por_ejecutar") {
+        select.classList.add("bg-warning", "text-dark");
+    } else {
+        select.style.backgroundColor = "#90caf9";
+        select.style.color = "#000";
+    }
+
+    select.style.padding = "8px 14px";
+    select.style.height = "40px";
+    select.style.fontWeight = "bold";
+}
+
+// Filtro por tester
+document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tester = btn.dataset.tester;
+        document.querySelectorAll("#validates-table tbody tr").forEach(row => {
+            if (tester === "all" || row.dataset.tester === tester) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
         });
     });
-    // Al cargar, reaplicar filtro desde URL
-    (function reaplicarFiltro(){
-        const p = new URLSearchParams(window.location.search).get('tester');
-        if (p) {
-            const btn = document.querySelector(`.filter-btn[data-tester="${p}"]`);
-            if (btn) btn.click();
-        } else {
-            document.querySelector('.filter-btn[data-tester="all"]').click();
-        }
-    })();
-
-    // — Helpers —
-    function getCookie(name) {
-        let v = null;
-        document.cookie.split(';').forEach(c=>{
-            c = c.trim();
-            if (c.startsWith(name+'=')) v = decodeURIComponent(c.slice(name.length+1));
-        });
-        return v;
-    }
 });
 </script>
 
+<style>
+.flash-update {
+    animation: flashHighlight 1.5s ease;
+}
+@keyframes flashHighlight {
+    0% { background-color: #ffff99; }
+    100% { background-color: transparent; }
+}
 
-{% endblock content %}
+#validates-table tbody tr {
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
 
+#validates-table tbody tr:hover {
+    background-color: #f1f5f9;
+    cursor: pointer;
+}
+</style>
+
+{% endblock %}
+
+
+<!-- <style>
+    /* Colores para los estados */
+    .estado-funciona          { background-color:#d4edda!important; color:#155724!important; }
+    .estado-falla-nueva       { background-color:#c82333!important; color:#fff!important; }
+    .estado-falla-persistente { background-color:#f8d7da!important; color:#721c24!important; }
+    .estado-na                { background-color:#e2e3e5!important; color:#004085!important; }
+    .estado-pendiente         { background-color:#fd7e14!important; color:#fff!important; }
+    .estado-por-ejecutar      { background-color:#ffeeba!important; color:#856404!important; }
+    
+    /* Botones filtro testers */
+    .filter-btn.active {
+        background-color:#0d6efd!important;
+        color:#fff!important;
+        border-color:#0d6efd!important;
+    }
+    
+    /* Tabla compacta */
+    #validates-table tbody tr td select.form-select {
+        font-size:0.875rem;
+        padding:0.25rem 0.5rem;
+        height:28px;
+    }
+    </style>
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // 1) Función para colorear selects según estado
+        function actualizarColor(select) {
+            const v = select.value.toLowerCase();
+            select.classList.remove(
+                'estado-funciona','estado-falla-nueva','estado-falla-persistente',
+                'estado-na','estado-pendiente','estado-por-ejecutar'
+            );
+            if (v === 'funciona')           select.classList.add('estado-funciona');
+            else if (v === 'falla_nueva')   select.classList.add('estado-falla-nueva');
+            else if (v === 'falla_persistente') select.classList.add('estado-falla-persistente');
+            else if (v === 'na')            select.classList.add('estado-na');
+            else if (v === 'pendiente')     select.classList.add('estado-pendiente');
+            else if (v === 'por_ejecutar')  select.classList.add('estado-por-ejecutar');
+        }
+    
+        // 2) Al cambiar un select: marcar dirty, recolorear, auto‐guardar y recargar
+        document.querySelectorAll('.validate-estado').forEach(select => {
+            actualizarColor(select);
+            select.addEventListener('change', function () {
+                const tr = this.closest('tr');
+                tr.dataset.dirty = "true";
+                actualizarColor(this);
+                guardarValidates();       // guarda solo esta fila
+                window.location.reload(); // recarga para reflejar todo
+            });
+        });
+    
+        // 3) Función de guardado parcial
+        window.guardarValidates = async function () {
+            const filas = Array.from(document.querySelectorAll('tr[data-dirty="true"]'));
+            if (!filas.length) return;
+            const cambios = filas.map(tr => ({
+                id: tr.dataset.id,
+                estado: tr.querySelector('.validate-estado').value
+            }));
+            try {
+                const resp = await fetch("/matrix/api/guardar-validates/", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type':'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ registros: cambios })
+                });
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    filas.forEach(tr => delete tr.dataset.dirty);
+                    const msg = document.getElementById('auto-save-msg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display='none', 3000);
+                } else {
+                    console.error('Error guardando:', data.error);
+                }
+            } catch (e) {
+                console.error('Fetch error:', e);
+            }
+        };
+    
+        // 4) Auto‐save cada 30 s
+        setInterval(guardarValidates, 30 * 1000);
+    
+        // 5) Auto‐reload cada 60 s
+        setInterval(() => {
+            console.log("⏰ Recargando para captar cambios externos…");
+            window.location.reload();
+        }, 60 * 1000);
+    
+        // 6) Filtro por tester con persistencia en URL
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const rows = document.querySelectorAll('#validates-table tbody tr');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const tester = btn.dataset.tester;
+                rows.forEach(r => {
+                    r.style.display = (tester==='all' || r.dataset.tester===tester) ? '' : 'none';
+                });
+                const url = new URL(window.location);
+                if (tester==='all') url.searchParams.delete('tester');
+                else url.searchParams.set('tester', tester);
+                history.replaceState(null, '', url);
+            });
+        });
+        // Al cargar, reaplicar filtro desde URL
+        (function reaplicarFiltro(){
+            const p = new URLSearchParams(window.location.search).get('tester');
+            if (p) {
+                const btn = document.querySelector(`.filter-btn[data-tester="${p}"]`);
+                if (btn) btn.click();
+            } else {
+                document.querySelector('.filter-btn[data-tester="all"]').click();
+            }
+        })();
+    
+        // — Helpers —
+        function getCookie(name) {
+            let v = null;
+            document.cookie.split(';').forEach(c=>{
+                c = c.trim();
+                if (c.startsWith(name+'=')) v = decodeURIComponent(c.slice(name.length+1));
+            });
+            return v;
+        }
+    });
+    </script> -->
+    

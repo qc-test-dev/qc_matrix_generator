@@ -28,7 +28,7 @@ class MatrizAdmin(admin.ModelAdmin):
 
 # Validate Admin
 class ValidateAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tester', 'ticket', 'super_matriz', 'estado')
+    list_display = ('id', 'tester', 'ticket', 'super_matriz', 'estado',"prioridad")
     search_fields = ('tester', 'ticket', 'descripcion')
     list_filter = ('estado', 'super_matriz')
     ordering = ('id',)

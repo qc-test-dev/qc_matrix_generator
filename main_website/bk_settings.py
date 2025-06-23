@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'app.accounts',
     'app.matrix',
     'widget_tweaks',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware'
 ]
 
 ROOT_URLCONF = 'main_website.urls'
@@ -86,7 +88,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'main_website.wsgi.application'
-
+ASGI_APPLICATION = 'main_website.wsgi.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
@@ -104,6 +106,14 @@ DATABASES = {
         'HOST': 'localhost',  # Cambia esto si tu base de datos está en otro host
         'PORT': '5432',
     }
+}
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],  # Redis debe estar corriendo
+        },
+    },
 }
 
 
@@ -164,8 +174,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
 STATIC_URL = '/static/'
 
-STATIC_ROOT = '/vol/static'
-MEDIA_ROOT = '/vol/media'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# STATIC_ROOT = '/vol/static'
+# MEDIA_ROOT = '/vol/media'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),

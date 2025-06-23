@@ -17,6 +17,7 @@ class CasoDePruebaForm(forms.ModelForm):
         ('pendiente', 'Pendiente'),
         ('por_ejecutar', 'Por ejecutar'),
     ]
+    
 
     estado = forms.ChoiceField(
     choices=ESTADO_CHOICES,

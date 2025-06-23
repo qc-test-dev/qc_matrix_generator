@@ -25,11 +25,15 @@ import random
 import os
 from django.contrib import messages
 from django.conf import settings
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.http import JsonResponse
+from .models import CasoDePrueba
 
 from .models import SuperMatriz, Validate
 from .forms import MatrizForm, ValidateForm
 from .utils import importar_matriz_desde_excel  # Asegúrate de tener esta función
-
+from django.views.decorators.csrf import csrf_exempt
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -217,25 +221,19 @@ def detalle_super_matriz(request, super_matriz_id):
 #         'validates': validates,
 #         'es_lider': es_lider,
 #     })
-
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     super_matriz_id = matriz.super_matriz.id
 
-    # ✅ Obtener todos los testers disponibles antes de filtrar por tester
     testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
-
-    # ✅ Obtener todos los casos, aplicar filtro por tester si es necesario
     casos_de_prueba = matriz.casos.all()
     tester_filtrado = request.GET.get('tester')
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
-    # ✅ Orden fijo para que no se desordene la tabla
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
-    # Lista de filtros
     alcances_lista = []
     if matriz.alcances_utilizados:
         alcances_lista = matriz.alcances_utilizados.split(',')
@@ -247,14 +245,67 @@ def detalle_matriz(request, matriz_id):
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
-        'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'super_matriz_id': super_matriz_id,
         'alcances_lista': alcances_lista,
+        'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'testers_disponibles': testers_disponibles,
         'tester_filtrado': tester_filtrado,
     })
 
+@login_required
+def actualizar_estado_caso(request):
+    if request.method == "POST":
+        caso_id = request.POST.get("caso_id")
+        nuevo_estado = request.POST.get("nuevo_estado")
+        try:
+            caso = CasoDePrueba.objects.get(id=caso_id)
+            caso.estado = nuevo_estado
+            caso.save()
 
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"matriz_{caso.matriz.id}",
+                {
+                    "type": "estado_actualizado",
+                    "data": {
+                        "caso_id": caso.id,
+                        "valor": nuevo_estado,
+                        "tipo": "estado",
+                    },
+                }
+            )
+            return JsonResponse({"success": True})
+        except CasoDePrueba.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Caso no encontrado."})
+    return JsonResponse({"success": False, "error": "Método no permitido."})
+
+@csrf_exempt
+@login_required
+def actualizar_nota_caso(request):
+    if request.method == "POST":
+        caso_id = request.POST.get("caso_id")
+        nueva_nota = request.POST.get("nota")
+        try:
+            caso = CasoDePrueba.objects.get(id=caso_id)
+            caso.nota = nueva_nota
+            caso.save()
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"matriz_{caso.matriz.id}",
+                {
+                    "type": "nota_actualizada",
+                    "data": {
+                        "caso_id": caso.id,
+                        "valor": nueva_nota,
+                        "tipo": "nota",
+                    },
+                }
+            )
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Método no permitido."})
 @login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -331,6 +382,32 @@ def detalles_validate_modal(request, super_matriz_id):
         'super_matriz': super_matriz,
     })
 @login_required
+def actualizar_estado_validate(request):
+    if request.method == 'POST':
+        validate_id = request.POST.get('validate_id')
+        nuevo_estado = request.POST.get('nuevo_estado')
+
+        try:
+            validate = Validate.objects.get(id=validate_id)
+            validate.estado = nuevo_estado
+            validate.save()
+
+            # WebSocket: enviar actualización a todos los clientes del grupo
+            super_matriz = validate.super_matriz  # Asumiendo que tienes esta relación
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"validates_{super_matriz.id}",
+                {
+                    "type": "estado_actualizado",
+                    "validate_id": validate.id,
+                    "nuevo_estado": nuevo_estado,
+                }
+            )
+
+            return JsonResponse({"success": True})
+        except Validate.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Validate no encontrado"})
+    return JsonResponse({"success": False, "error": "Método no permitido"})
 def tickets_por_levantar_view(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)

@@ -8,8 +8,8 @@
 
 {% block content %}
 {% include 'includes/header.html' %}
-<div class="container">
 
+<div class="container">
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
 
     {% if alcances_lista %}
@@ -17,13 +17,12 @@
         <ul>
         {% for alcance in alcances_lista %}
             {% if alcance == "A" %}
-                Minimum Viable Product 
+                <li>Minimum Viable Product</li>
             {% elif alcance == "B" %}
-                SMOKE TEST
+                <li>SMOKE TEST</li>
             {% elif alcance == "C" %}
-                No Afectación
+                <li>No Afectación</li>
             {% endif %}
-            <br>
         {% endfor %}
         </ul>
     {% else %}
@@ -45,7 +44,7 @@
         {% endfor %}
     </ul>
 
-    <p class="text-muted mt-3">Editar los estados y notas de los casos de prueba.</p>
+    <p class="text-muted mt-3">Cambiar el estado o nota actualiza automáticamente para todos los usuarios conectados.</p>
 
     <table class="table table-bordered table-striped">
         <thead>
@@ -62,8 +61,10 @@
                 <tr data-id="{{ caso.id }}">
                     <td>{{ caso.fase }}</td>
                     <td>{{ caso.caso_de_prueba }}</td>
-                    <td>{% render_field form.estado class="estado-input form-control" %}</td>
-                    <td>    
+                    <td id="estado-caso-{{ caso.id }}">
+                        {% render_field form.estado class="estado-input form-control" %}
+                    </td>
+                    <td>
                         {% if caso.criticidad|lower == "bloqueante" %}
                             <span class="badge bg-danger">🔶 Bloqueante</span>
                         {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
@@ -74,23 +75,133 @@
                             <span class="badge bg-secondary">Sin clasificar</span>
                         {% endif %}
                     </td>
-                    <td>{% render_field form.nota class="nota-input form-control" %}</td>
+                    <td id="nota-caso-{{ caso.id }}">
+                        {% render_field form.nota class="nota-input form-control" %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <div class="sticky-action-bar">
-        <!--<button type="button" class="btn btn-success" onclick="guardarCambios()">💾 Guardar</button>-->
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
-    </div>
-
-    <div id="mensaje" class="alert alert-success d-none alert-position" role="alert">
-        Cambios guardados correctamente.
     </div>
 </div>
 
 <script>
+    const matrizId = "{{ matriz.id }}";
+    const socket = new WebSocket("ws://" + window.location.host + "/ws/matriz/" + matrizId + "/");
+
+    socket.onopen = () => console.log("WebSocket conectado.");
+    socket.onerror = e => console.error("WebSocket error:", e);
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const casoId = data.caso_id;
+
+        if (data.tipo === 'estado') {
+            const nuevoEstado = data.valor;
+            const celdaEstado = document.querySelector(`#estado-caso-${casoId}`);
+            if (celdaEstado) {
+                const select = celdaEstado.querySelector('select');
+                if (select && select.value !== nuevoEstado) {
+                    select.value = nuevoEstado;
+                    aplicarColorEstado(select);
+                    select.classList.add("flash-update");
+                    setTimeout(() => select.classList.remove("flash-update"), 1500);
+                }
+            }
+        }
+
+        if (data.tipo === 'nota') {
+            const nuevaNota = data.valor;
+            const celdaNota = document.querySelector(`#nota-caso-${casoId}`);
+            if (celdaNota) {
+                const input = celdaNota.querySelector('input');
+                if (input && input.value !== nuevaNota) {
+                    input.value = nuevaNota;
+                    input.classList.add("flash-update");
+                    setTimeout(() => input.classList.remove("flash-update"), 1500);
+                }
+            }
+        }
+    };
+
+    document.querySelectorAll('.estado-input').forEach(select => {
+        aplicarColorEstado(select);
+        select.addEventListener('change', function () {
+            const casoId = this.closest('tr').dataset.id;
+            const nuevoEstado = this.value;
+
+            fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${casoId}&nuevo_estado=${nuevoEstado}`
+            });
+
+            aplicarColorEstado(this);
+        });
+    });
+
+    document.querySelectorAll('.nota-input').forEach(input => {
+        input.addEventListener('blur', function () {
+            const casoId = this.closest('tr').dataset.id;
+            const nuevaNota = this.value;
+
+            fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${casoId}&nota=${encodeURIComponent(nuevaNota)}`
+            });
+        });
+    });
+
+    function aplicarColorEstado(select) {
+        const estado = select.value.toLowerCase().trim();
+        select.className = "estado-input form-control";
+
+        if (estado === "funciona") {
+            select.classList.add("bg-success", "text-white");
+        } else if (estado === "falla_nueva") {
+            select.classList.add("bg-danger", "text-white");
+        } else if (estado === "falla_persistente") {
+            select.style.backgroundColor = "#ef9a9a";
+            select.style.color = "#000";
+        } else if (estado === "n/a") {
+            select.classList.add("bg-secondary", "text-dark");
+        } else if (estado === "pendiente") {
+            select.style.backgroundColor = "#ffcc80";
+            select.style.color = "#000";
+        } else if (estado === "por_ejecutar") {
+            select.classList.add("bg-warning", "text-dark");
+        } else {
+            select.style.backgroundColor = "#90caf9";
+            select.style.color = "#000";
+        }
+
+        select.style.padding = "8px 14px";
+        select.style.height = "40px";
+        select.style.fontWeight = "bold";
+    }
+</script>
+
+<style>
+.flash-update {
+    background-color: #fff3cd !important;
+    transition: background-color 1s ease;
+}
+</style>
+
+
+{% endblock content %}
+
+<!-- <script>
 document.addEventListener("DOMContentLoaded", function () {
     // 1) Función para colorear según estado
     function aplicarColorEstado(select) {
@@ -188,7 +299,4 @@ document.addEventListener("DOMContentLoaded", function () {
         setTimeout(() => msg.classList.add("d-none"), 3000);
     }
 });
-</script>
-
-
-{% endblock content %}
+</script> -->

@@ -15,8 +15,9 @@ urlpatterns = [
     path('eliminar_matriz/<int:matriz_id>/', views.eliminar_matriz, name='eliminar_matriz'),
     path("api/guardar-estado/", api_guardar_estado, name="api_guardar_estado"),
     path("api/guardar-validates/", api_guardar_validates, name="api_guardar_validates"),
-
-
+    path('ajax/actualizar_estado/', views.actualizar_estado_caso, name='actualizar_estado_caso'),
+    path('ajax/actualizar_nota/', views.actualizar_nota_caso, name='actualizar_nota_caso'),
+    path('ajax/actualizar_estado_validate/', views.actualizar_estado_validate, name='actualizar_estado_validate'),
 ]   
 
 
