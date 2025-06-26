@@ -1,4 +1,3 @@
-<!-- templates/accounts/lista_usuarios.html -->
 {% extends 'base.html' %}
 {% block title %}Usuarios{% endblock %}
 
@@ -6,12 +5,30 @@
 {% include 'includes/header.html' %}
 <div class="container mt-4">
     <h3>Lista de Usuarios</h3>
+
+    <!-- Filtro por equipo -->
+    <form method="get" class="mb-3">
+        <div class="row g-2">
+            <div class="col-md-6">
+                <select name="equipo" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Todos los Equipos --</option>
+                    {% for value, label in equipos %}
+                        <option value="{{ value }}" {% if equipo_seleccionado == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </form>
+
     <table class="table table-striped mt-3">
         <thead>
             <tr>
                 <th>Usuario</th>
                 <th>Nombre</th>
-                <th>Email</th>
+                <th>Cargo</th>
+                <th>Equipo</th>
                 <th>Acción</th>
             </tr>
         </thead>
@@ -20,7 +37,8 @@
             <tr>
                 <td>{{ user.username }}</td>
                 <td>{{ user.nombre }} {{ user.apellido }}</td>
-                <td>{{ user.email }}</td>
+                <td>{{ user.cargo }}</td>
+                <td>{{ user.equipo }}</td>
                 <td>
                     <a href="{% url 'accounts_app:cambiar_contrasena_usuario' user.id %}" class="btn btn-sm btn-outline-primary">
                         Cambiar Contraseña

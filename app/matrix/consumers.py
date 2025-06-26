@@ -12,14 +12,18 @@ class MatrizConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def estado_actualizado(self, event):
-        await self.send(text_data=json.dumps(event["data"]))
+        await self.send(text_data=json.dumps({
+            "tipo": "estado",
+            "caso_id": event["data"]["caso_id"],
+            "valor": event["data"]["valor"],
+        }))
 
     async def nota_actualizada(self, event):
         await self.send(text_data=json.dumps({
-        "tipo": "nota",
-        "caso_id": event['data']['caso_id'],
-        "valor": event['data']['valor'],
-    }))
+            "tipo": "nota",
+            "caso_id": event["data"]["caso_id"],
+            "valor": event["data"]["valor"],
+        }))
 
 class ValidateConsumer(AsyncWebsocketConsumer):
     async def connect(self):

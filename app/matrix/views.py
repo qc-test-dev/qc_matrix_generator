@@ -279,33 +279,32 @@ def actualizar_estado_caso(request):
             return JsonResponse({"success": False, "error": "Caso no encontrado."})
     return JsonResponse({"success": False, "error": "Método no permitido."})
 
-@csrf_exempt
+@require_POST
 @login_required
 def actualizar_nota_caso(request):
-    if request.method == "POST":
-        caso_id = request.POST.get("caso_id")
-        nueva_nota = request.POST.get("nota")
-        try:
-            caso = CasoDePrueba.objects.get(id=caso_id)
-            caso.nota = nueva_nota
-            caso.save()
+    caso_id = request.POST.get('caso_id')
+    nueva_nota = request.POST.get('nota', '')
 
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"matriz_{caso.matriz.id}",
-                {
-                    "type": "nota_actualizada",
-                    "data": {
-                        "caso_id": caso.id,
-                        "valor": nueva_nota,
-                        "tipo": "nota",
-                    },
+    try:
+        caso = CasoDePrueba.objects.get(id=caso_id)
+        caso.nota = nueva_nota
+        caso.save()
+
+        # Emitir a WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"matriz_{caso.matriz.id}",
+            {
+                "type": "nota_actualizada",
+                "data": {
+                    "caso_id": caso.id,
+                    "valor": nueva_nota,
                 }
-            )
-            return JsonResponse({"success": True})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)})
-    return JsonResponse({"success": False, "error": "Método no permitido."})
+            }
+        )
+        return JsonResponse({"success": True})
+    except CasoDePrueba.DoesNotExist:
+        return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
 @login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)

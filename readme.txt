@@ -136,3 +136,33 @@ python manage_local.py collectstatic
 # Para ejecutar en servidor 
 daphne -e tcp:port=8081:interface=127.0.0.1 main_website.asgi:application
 
+
+# Agregar todos los usuarios de los equipos 24/06/2025
+se modifico en accounts y matrix 
+forms.py 
+EQUIPO_CHOICES=(
+    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
+    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
+    ('IPTV AOSP','IPTV AOSP'),
+    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
+    ('IOS - TvOS','IOS - TvOS'),
+    ('Android','Android'),
+    ('Smart TV AAF','Smart TV AAF')
+)
+y en models.py se modifico en accounts y matrix
+EQUIPO_CHOICES=(
+    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
+    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
+    ('IPTV AOSP','IPTV AOSP'),
+    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
+    ('IOS - TvOS','IOS - TvOS'),
+    ('Android','Android'),
+    ('Smart TV AAF','Smart TV AAF')
+)
+Se aplico un 
+python manage_local.py makemigrations
+python manage_local.py migrate
+
+### Se arreglo el ws 
+# desde aqui hare los cambios de los modelos 
+

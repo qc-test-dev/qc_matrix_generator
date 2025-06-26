@@ -11,7 +11,7 @@
         {% for user in users %}
         <tr>
             <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
+            <td>{{ user.nombre }}</td>
             <td>
                 <a href="/admin/auth/user/{{ user.id }}/change/">Editar</a>
                 <a href="/admin/auth/user/{{ user.id }}/delete/">Eliminar</a>

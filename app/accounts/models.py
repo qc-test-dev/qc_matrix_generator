@@ -9,7 +9,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     EQUIPO_CHOICES=(
     ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
     ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
-    ('IPTV  AOSP','IPTV  AOSP'),
+    ('IPTV AOSP','IPTV AOSP'),
     ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
     ('IOS - TvOS','IOS - TvOS'),
     ('Android','Android'),

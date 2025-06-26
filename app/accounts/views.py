@@ -75,5 +75,16 @@ def cambiar_contrasena_usuario(request, user_id):
 @login_required
 @user_passes_test(is_admin)
 def lista_usuarios(request):
-    usuarios = User.objects.all()
-    return render(request, 'accounts/lista_usuarios.html', {'usuarios': usuarios})
+    equipo_seleccionado = request.GET.get('equipo')
+    equipos = User.EQUIPO_CHOICES
+
+    if equipo_seleccionado:
+        usuarios = User.objects.filter(equipo=equipo_seleccionado)
+    else:
+        usuarios = User.objects.all()
+
+    return render(request, 'accounts/lista_usuarios.html', {
+        'usuarios': usuarios,
+        'equipos': equipos,
+        'equipo_seleccionado': equipo_seleccionado
+    })
