@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SuperMatriz, CasoDePrueba, Matriz, Validate, DetallesValidate, TicketPorLevantar
+from .models import SuperMatriz, CasoDePrueba, Matriz, Validate, DetallesValidate, TicketPorLevantar,Dispositivo
 
 # Inlines
 class MatrizInline(admin.TabularInline):
@@ -41,6 +41,10 @@ class TicketPorLevantarAdmin(admin.ModelAdmin):
     list_filter = ('prioridad', 'super_matriz')
     ordering = ('id',)
 
+class DispositivoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'equipo', 'matriz_base')
+    search_fields = ('nombre', 'matriz_base')
+    list_filter = ('equipo',)
 # Registro de modelos
 admin.site.register(SuperMatriz, SuperMatrizAdmin)
 admin.site.register(Matriz, MatrizAdmin)
@@ -48,3 +52,4 @@ admin.site.register(CasoDePrueba)
 admin.site.register(Validate, ValidateAdmin)
 admin.site.register(DetallesValidate)
 admin.site.register(TicketPorLevantar, TicketPorLevantarAdmin)
+admin.site.register(Dispositivo,DispositivoAdmin)

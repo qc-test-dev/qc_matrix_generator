@@ -1,5 +1,5 @@
 from django import forms
-from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate
+from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate,Dispositivo
 from django.contrib.auth import get_user_model
 from ..accounts.models import Equipo
 User = get_user_model()
@@ -49,17 +49,25 @@ class MatrizForm(forms.ModelForm):
         label="Regiones"
     )
 
+    dispositivo = forms.ModelChoiceField(
+        queryset=Dispositivo.objects.none(),
+        required=True,
+        label="Dispositivo",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Matriz
-        fields = ['nombre', 'alcance', 'testers', 'regiones']
+        fields = ['nombre', 'alcance', 'testers', 'regiones', 'dispositivo']
 
     def __init__(self, *args, **kwargs):
         equipo_nuevo = kwargs.pop('equipo_nuevo', None)
         super().__init__(*args, **kwargs)
         if equipo_nuevo:
             self.fields['testers'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)
+            self.fields['dispositivo'].queryset = Dispositivo.objects.filter(equipo=equipo_nuevo)
 
 
 class CasoDePruebaForm(forms.ModelForm):

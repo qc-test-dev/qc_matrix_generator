@@ -38,6 +38,10 @@
                     <label for="id_testers" class="form-label">Seleccionar Testers</label>
                     {{ form.testers }}
                 </div>
+                <div class="mb-3">
+                    {{ form.dispositivo.label_tag }}
+                    {{ form.dispositivo }}
+                </div>
 
                 <div class="mb-3">
                     <label class="form-label">Seleccionar Región</label>
@@ -58,6 +62,7 @@
                         {% endfor %}
                     </div>
                 </div>
+                
 
                 <button type="submit" class="btn btn-dark w-100">Agregar Matriz</button>
             </form>
@@ -76,7 +81,8 @@
                             <div class="card-header bg-success text-white">
                                 <h5 class="mb-0">{{ info.matriz.nombre }}</h5>
                             </div>
-                            <div class="card-body d-flex flex-column">
+                            <div class="card-body d-flex flex-column">      
+                                <p>Tipo de alcance: {{info.alcance}}</p>
                                 <p>Casos Totales: {{ info.total_casos }}</p>
                                 <p>Casos Completos: {{ info.casos_filtrados }}</p>
                                 <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>

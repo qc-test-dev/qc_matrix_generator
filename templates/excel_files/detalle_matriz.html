@@ -9,8 +9,10 @@
 
 <div class="container">
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
-
-    {% if alcances_lista %}
+    <h4>Filtro Usado</h4>
+    <p><strong>Alcance: {{alcance}}</strong></p>
+    
+    <!-- {% if alcances_lista %}
         <p>Filtros usados:</p>
         <ul>
             {% for alcance in alcances_lista %}
@@ -25,7 +27,7 @@
         </ul>
     {% else %}
         <p>No hay filtros aplicados.</p>
-    {% endif %}
+    {% endif %} -->
 
     <h4 class="mt-4">Filtrar por tester:</h4>
     <ul class="list-inline">

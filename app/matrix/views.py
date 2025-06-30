@@ -10,7 +10,7 @@ from .forms import (
     ValidateEstadoForm, DetallesValidateForm,
     TicketPorLevantarForm,ValidateForm
 )
-from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate
+from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -34,6 +34,8 @@ from .models import SuperMatriz, Validate
 from .forms import MatrizForm, ValidateForm
 from .utils import importar_matriz_desde_excel  # Asegúrate de tener esta función
 from django.views.decorators.csrf import csrf_exempt
+from app.matrix.models import SuperMatriz, Dispositivo  # Asegúrate de importar el nuevo modelo
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -41,26 +43,23 @@ def detalle_super_matriz(request, super_matriz_id):
     validates = super_matriz.validates.all()
     es_lider = request.user.cargo == 'Lider'
 
-    equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)  # Usa equipo_nuevo si existe
-
-    # Mapeo de equipos a archivos Excel (puedes actualizar si cambia algo)
-    RUTA_EXCEL_EQUIPOS = {
-        'Claro TV STB - IPTV - Roku - TATA': 'static/excel_files/matriz_base.xlsx',
-        'STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)': 'static/excel_files/matriz_base.xlsx',
-        'WIN - WEB - Fire TV': 'static/excel_files/matriz_base.xlsx',
-        'IOS - TvOS': 'static/excel_files/matriz_base.xlsx',
-        'Android': 'static/excel_files/matriz_base.xlsx',
-        'Smart TV AAF': 'static/excel_files/matriz_base.xlsx',
-    }
+    equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
     matrices_info = []
     for matriz in matrices:
         casos = matriz.casos.all()
         total_casos = casos.count()
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente',"na"]
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
-
+        
+        if matriz.alcances_utilizados=='A':
+            alcance="MVP (Minimum Viable Product:A)"
+        elif matriz.alcances_utilizados=='A,B':
+            alcance='Smoke Test (A,B)'
+        elif matriz.alcances_utilizados=='A,B,C':
+            alcance='No Afectacion (NA:A,B,C)'
+            
         testers_por_region = defaultdict(set)
         for caso in casos:
             if caso.tester:
@@ -77,9 +76,9 @@ def detalle_super_matriz(request, super_matriz_id):
             'casos_filtrados': casos_filtrados,
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
+            'alcance':alcance,
         })
 
-    # Aquí pasamos equipo_nuevo al formulario (antes pasabas super_matriz.equipo)
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
 
@@ -92,19 +91,18 @@ def detalle_super_matriz(request, super_matriz_id):
 
                 alcance_seleccionado = request.POST.get('alcance', '')
                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
-
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                ruta_excel_matriz = RUTA_EXCEL_EQUIPOS.get(equipo_nuevo)
-
-                if not ruta_excel_matriz:
-                    messages.error(request, f"No hay archivo Excel configurado para el equipo: {equipo_nuevo}")
+                # 📦 Obtener la ruta desde el Dispositivo seleccionado
+                dispositivo = form.cleaned_data.get('dispositivo')
+                if not dispositivo or not dispositivo.matriz_base:
+                    messages.error(request, f"El dispositivo no tiene archivo base asociado.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
-                ruta_absoluta = os.path.join(settings.BASE_DIR, ruta_excel_matriz)
-                if not os.path.exists(ruta_absoluta):
-                    messages.error(request, f"El archivo '{ruta_excel_matriz}' no existe en el servidor.")
+                ruta_excel_matriz = os.path.join(settings.BASE_DIR, 'static', 'excel_files', dispositivo.matriz_base)
+                if not os.path.exists(ruta_excel_matriz):
+                    messages.error(request, f"El archivo '{dispositivo.matriz_base}' no existe en el servidor.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
@@ -115,6 +113,7 @@ def detalle_super_matriz(request, super_matriz_id):
                 random.shuffle(regiones_seleccionados)
                 random.shuffle(testers_seleccionados)
                 random.shuffle(casos)
+
                 for idx, caso in enumerate(casos):
                     tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
                     region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
@@ -140,6 +139,7 @@ def detalle_super_matriz(request, super_matriz_id):
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
     })
+
 
 # @login_required
 # def detalle_super_matriz(request, super_matriz_id):
@@ -228,10 +228,15 @@ def detalle_super_matriz(request, super_matriz_id):
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     super_matriz_id = matriz.super_matriz.id
-
     testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
     casos_de_prueba = matriz.casos.all()
     tester_filtrado = request.GET.get('tester')
+    if matriz.alcances_utilizados=='A':
+            alcance="MVP (Minimum Viable Product:A)"
+    elif matriz.alcances_utilizados=='A,B':
+            alcance='Smoke Test (A,B)'
+    elif matriz.alcances_utilizados=='A,B,C':
+            alcance='No Afectacion (NA:A,B,C)'
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
@@ -253,6 +258,7 @@ def detalle_matriz(request, matriz_id):
         'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'testers_disponibles': testers_disponibles,
         'tester_filtrado': tester_filtrado,
+        'alcance':alcance
     })
 
 @login_required
@@ -358,7 +364,7 @@ def editar_validates(request, super_matriz_id):
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     detalles, _ = DetallesValidate.objects.get_or_create(super_matriz=super_matriz)
-    testers_del_equipo = User.objects.filter(equipo=super_matriz.equipo)
+    testers_del_equipo = User.objects.filter(equipo_nuevo=super_matriz.equipo_nuevo)
     if request.method == 'POST':
         form = DetallesValidateForm(request.POST, instance=detalles)
         form.fields['testers'].queryset = testers_del_equipo
