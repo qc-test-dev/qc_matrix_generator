@@ -5,7 +5,7 @@ from .models import User,Equipo
 class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'nombre', 'apellido', 'cargo', 'equipo','equipo_nuevo')
     search_fields = ('username', 'nombre', 'apellido')
-    list_filter = ('cargo', 'equipo')
+    list_filter = ('cargo', 'equipo',"equipo_nuevo")
 
 @admin.register(Equipo)
 class EquipoAdmin(admin.ModelAdmin):
