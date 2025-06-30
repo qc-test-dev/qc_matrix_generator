@@ -3,7 +3,11 @@ from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin,Abstrac
 from .manage import UserManager
 # class CustomUser(AbstractUser):
 #     pass
+class Equipo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
 
+    def __str__(self):
+        return self.nombre
 class User(AbstractBaseUser, PermissionsMixin):
     CARGO_CHOICES=(('Lider','LIDER'),('Tester','TESTER'))
     EQUIPO_CHOICES=(
@@ -21,6 +25,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     cargo=models.CharField('Cargo',choices=CARGO_CHOICES,default='Tester')
     equipo=models.CharField('Equipo',choices=EQUIPO_CHOICES,null=True,blank=True)
     is_staff = models.BooleanField(default=False)
+    equipo_nuevo = models.ForeignKey('Equipo', null=True, blank=True, on_delete=models.SET_NULL, related_name='usuarios')
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['nombre', 'apellido']
 

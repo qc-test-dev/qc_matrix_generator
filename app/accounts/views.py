@@ -2,23 +2,29 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy
-from .forms import UserCreateForm
 from django.contrib import messages
-from django.contrib.auth import get_user_model
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.utils.translation import activate
-from .forms import CustomPasswordChangeForm,AdminPasswordChangeForm
-User = get_user_model()  
+
+from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
+from .models import Equipo  # <-- Nuevo
+
+User = get_user_model()
+
+
 class CustomLoginView(LoginView):
     template_name = 'accounts/login.html'
     redirect_authenticated_user = True
     success_url = '/'
 
+
 class CustomLogoutView(LogoutView):
     next_page = reverse_lazy('accounts_app:login')
 
+
 def is_admin(user):
     return user.is_authenticated and user.is_staff
+
 
 @user_passes_test(is_admin)
 def crear_usuario(request):
@@ -38,8 +44,9 @@ def crear_usuario(request):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
-                    
     return redirect('home')
+
+
 @login_required
 def cambiar_contraseña(request):
     activate('es')
@@ -55,6 +62,7 @@ def cambiar_contraseña(request):
     else:
         form = CustomPasswordChangeForm(user=request.user)
     return render(request, 'accounts/cambiar_contrasena.html', {'form': form})
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -72,14 +80,15 @@ def cambiar_contrasena_usuario(request, user_id):
         form = AdminPasswordChangeForm(usuario)
     return render(request, 'accounts/cambiar_contraseña_usuario.html', {'form': form, 'usuario': usuario})
 
+
 @login_required
 @user_passes_test(is_admin)
 def lista_usuarios(request):
     equipo_seleccionado = request.GET.get('equipo')
-    equipos = User.EQUIPO_CHOICES
+    equipos = Equipo.objects.all()
 
     if equipo_seleccionado:
-        usuarios = User.objects.filter(equipo=equipo_seleccionado)
+        usuarios = User.objects.filter(equipo_nuevo__id=equipo_seleccionado)
     else:
         usuarios = User.objects.all()
 

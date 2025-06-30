@@ -21,9 +21,9 @@
       </div>
     {% endif %}
     {% if request.user.is_superuser %}
-                        <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
-                            <i class="fas fa-user-plus"></i> Crear Usuario
-                        </button>
+        <button type="button" class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
+            <i class="fas fa-user-plus"></i> Crear Usuario
+        </button>
     {% endif %}
     <div class="row">
         <div class="{% if es_lider %}col-lg-8 col-md-7 pe-4{% else %}col-12{% endif %}">
@@ -32,7 +32,6 @@
                     <h4 class="card-title mb-0 text-success">
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
-                    
                 </div>
 
                 <!-- Filtros -->
@@ -41,7 +40,9 @@
                         <strong class="me-2 mb-0">Filtrar por equipo:</strong>
                         <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
                         {% for eq in equipos %}
-                            <a href="?equipo={{ eq }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado == eq %}active{% endif %}">{{ eq }}</a>
+                            <a href="?equipo_nuevo={{ eq.id }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado|stringformat:"s" == eq.id|stringformat:"s" %}active{% endif %}">
+                                {{ eq.nombre }}
+                            </a>
                         {% endfor %}
                     </div>
                 </div>
@@ -54,7 +55,7 @@
                                 <div class="w-100">
                                     <h5 class="mb-1 text-success">{{ matriz.nombre }}</h5>
                                     <p class="mb-0 text-muted small">{{ matriz.descripcion|truncatechars:100 }}</p>
-                                    <p class="mb-0 text-muted small">{{ matriz.equipo }}</p>
+                                    <p class="mb-0 text-muted small">{{ matriz.equipo_nuevo.nombre }}</p>
                                     <div class="d-flex justify-content-between mt-2">
                                         <span class="badge bg-light text-dark small">
                                             <i class="far fa-calendar me-1"></i>
@@ -88,10 +89,10 @@
                                 <ul class="pagination justify-content-center mb-0">
                                     {% if page_obj.has_previous %}
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page=1">&laquo;&laquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page=1">&laquo;&laquo;</a>
                                         </li>
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
                                         </li>
                                     {% endif %}
 
@@ -102,17 +103,17 @@
                                             </li>
                                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                                             <li class="page-item">
-                                                <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ num }}">{{ num }}</a>
+                                                <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ num }}">{{ num }}</a>
                                             </li>
                                         {% endif %}
                                     {% endfor %}
 
                                     {% if page_obj.has_next %}
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
                                         </li>
                                         <li class="page-item">
-                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
+                                            <a class="page-link text-success" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
                                         </li>
                                     {% endif %}
                                 </ul>
@@ -147,8 +148,8 @@
                             {{ matriz_form.descripcion }}
                         </div>
                         <div class="mb-3">
-                            <label for="id_equipo" class="form-label small fw-bold">Dispositivo</label>
-                            {{ matriz_form.equipo }}
+                            <label for="id_equipo_nuevo" class="form-label small fw-bold">Dispositivo</label>
+                            {{ matriz_form.equipo_nuevo }}
                         </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-save me-1"></i>Crear
@@ -197,7 +198,7 @@
             </div>
             <div class="mb-3">
                 <label for="id_equipo" class="form-label">Equipo</label>
-                {{ usuario_form.equipo }}
+                {{ usuario_form.equipo_nuevo }}
             </div>
         </div>
         <div class="modal-footer">

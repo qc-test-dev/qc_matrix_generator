@@ -41,7 +41,9 @@ def detalle_super_matriz(request, super_matriz_id):
     validates = super_matriz.validates.all()
     es_lider = request.user.cargo == 'Lider'
 
-    # Mapeo de equipos a archivos Excel
+    equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)  # Usa equipo_nuevo si existe
+
+    # Mapeo de equipos a archivos Excel (puedes actualizar si cambia algo)
     RUTA_EXCEL_EQUIPOS = {
         'Claro TV STB - IPTV - Roku - TATA': 'static/excel_files/matriz_base.xlsx',
         'STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)': 'static/excel_files/matriz_base.xlsx',
@@ -77,12 +79,13 @@ def detalle_super_matriz(request, super_matriz_id):
             'testers_por_region': testers_por_region,
         })
 
-    form = MatrizForm(equipo=super_matriz.equipo)
+    # Aquí pasamos equipo_nuevo al formulario (antes pasabas super_matriz.equipo)
+    form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
 
     if request.method == 'POST':
         if 'crear_matriz' in request.POST:
-            form = MatrizForm(request.POST, equipo=super_matriz.equipo)
+            form = MatrizForm(request.POST, equipo_nuevo=equipo_nuevo)
             if form.is_valid():
                 nueva_matriz = form.save(commit=False)
                 nueva_matriz.super_matriz = super_matriz
@@ -93,11 +96,10 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                # Obtener la ruta del Excel correspondiente al equipo
-                ruta_excel_matriz = RUTA_EXCEL_EQUIPOS.get(super_matriz.equipo)
+                ruta_excel_matriz = RUTA_EXCEL_EQUIPOS.get(equipo_nuevo)
 
                 if not ruta_excel_matriz:
-                    messages.error(request, f"No hay archivo Excel configurado para el equipo: {super_matriz.equipo}")
+                    messages.error(request, f"No hay archivo Excel configurado para el equipo: {equipo_nuevo}")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
                 ruta_absoluta = os.path.join(settings.BASE_DIR, ruta_excel_matriz)
@@ -136,6 +138,7 @@ def detalle_super_matriz(request, super_matriz_id):
         'validate_form': validate_form,
         'validates': validates,
         'es_lider': es_lider,
+        'equipo_nuevo': equipo_nuevo,
     })
 
 # @login_required

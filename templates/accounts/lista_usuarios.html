@@ -12,9 +12,9 @@
             <div class="col-md-6">
                 <select name="equipo" class="form-select" onchange="this.form.submit()">
                     <option value="">-- Todos los Equipos --</option>
-                    {% for value, label in equipos %}
-                        <option value="{{ value }}" {% if equipo_seleccionado == value %}selected{% endif %}>
-                            {{ label }}
+                    {% for equipo in equipos %}
+                        <option value="{{ equipo.id }}" {% if equipo_seleccionado == equipo.id|stringformat:"s" %}selected{% endif %}>
+                            {{ equipo.nombre }}
                         </option>
                     {% endfor %}
                 </select>
@@ -38,7 +38,7 @@
                 <td>{{ user.username }}</td>
                 <td>{{ user.nombre }} {{ user.apellido }}</td>
                 <td>{{ user.cargo }}</td>
-                <td>{{ user.equipo }}</td>
+                <td>{{ user.equipo_nuevo.nombre }}</td>
                 <td>
                     <a href="{% url 'accounts_app:cambiar_contrasena_usuario' user.id %}" class="btn btn-sm btn-outline-primary">
                         Cambiar Contraseña

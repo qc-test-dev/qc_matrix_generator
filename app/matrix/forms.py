@@ -1,13 +1,67 @@
-# forms.py
 from django import forms
-from .models import SuperMatriz, Matriz, CasoDePrueba,Validate,TicketPorLevantar,DetallesValidate
+from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate
 from django.contrib.auth import get_user_model
+from ..accounts.models import Equipo
+User = get_user_model()
 
 class MatrizForm(forms.ModelForm):
+    ALCANCE_CHOICES = [
+        ('A', 'MVP (A)'),
+        ('A,B', 'SMOKE TEST (A,B)'),
+        ('A,B,C', 'NA (A,B,C)'),
+    ]
+
+    REGIONES = [
+        ('Mexico', 'Mexico'),
+        ('Dominicana','Dominicana'),
+        ('Colombia', 'Colombia'),
+        ('Ecuador', 'Ecuador'),
+        ('Peru', 'Peru'), 
+        ('Chile','Chile'),
+        ('Argentina','Argentina'),
+        ('Uruguay','Uruguay'),
+        ('Paraguay','Paraguay'),
+        ('Guatemala','Guatemala'),
+        ('Salvador','Salvador'),
+        ('Nicaragua','Nicaragua'),
+        ('Costa Rica','Costa Rica'),
+        ('Honduras','Honduras'),   
+    ]
+
+    alcance = forms.ChoiceField(
+        choices=ALCANCE_CHOICES,
+        widget=forms.RadioSelect,
+        label='Alcance Evaluación',
+        required=True
+    )
+
+    testers = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Testers"
+    )
+
+    regiones = forms.MultipleChoiceField(
+        choices=REGIONES,
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Regiones"
+    )
+
+    nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+
     class Meta:
         model = Matriz
-        fields = ['nombre']  # Incluye los campos que quieres que el usuario pueda llenar
-    nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+        fields = ['nombre', 'alcance', 'testers', 'regiones']
+
+    def __init__(self, *args, **kwargs):
+        equipo_nuevo = kwargs.pop('equipo_nuevo', None)
+        super().__init__(*args, **kwargs)
+        if equipo_nuevo:
+            self.fields['testers'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)
+
+
 class CasoDePruebaForm(forms.ModelForm):
     ESTADO_CHOICES = [
         ('funciona', 'Funciona'),
@@ -17,67 +71,47 @@ class CasoDePruebaForm(forms.ModelForm):
         ('pendiente', 'Pendiente'),
         ('por_ejecutar', 'Por ejecutar'),
     ]
-    
 
     estado = forms.ChoiceField(
-    choices=ESTADO_CHOICES,
-    widget=forms.Select(attrs={
-        'class': 'form-select estado-select'
-    })
-)
+        choices=ESTADO_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select estado-select'})
+    )
 
     nota = forms.CharField(
-        widget=forms.Textarea(attrs={
-            'class': 'form-control',
-            'rows': 3,
-            'style': 'resize: none;'
-        }),
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'style': 'resize: none;'}),
         required=False
     )
 
     class Meta:
         model = CasoDePrueba
         fields = ['estado', 'nota']
-        widgets = {
-            'estado': forms.Select(attrs={'class': 'estado-input form-control'}),
-            'nota': forms.TextInput(attrs={'class': 'nota-input form-control'}),
-        }
-class SuperMatrizForm(forms.ModelForm):
-    EQUIPO_CHOICES=(
-    ('Claro TV STB - IPTV - Roku - TATA','Claro TV STB - IPTV - Roku - TATA'),
-    ('STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)','STV (LG,Samsung,ADR), Kepler-FireTV, STV2(Hisense,Netrange)'),
-    ('IPTV AOSP','IPTV AOSP'),
-    ('WIN - WEB - Fire TV','WIN - WEB - Fire TV'),
-    ('IOS - TvOS','IOS - TvOS'),
-    ('Android','Android'),
-    ('Smart TV AAF','Smart TV AAF')
-    )
 
+
+class SuperMatrizForm(forms.ModelForm):
     nombre = forms.CharField(
         max_length=75,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'maxlength': '75'  
-        })
-    )
-    
-    descripcion = forms.CharField(
-        max_length=100,
-        widget=forms.Textarea(attrs={
-            'class': 'form-control',
-            'rows': 4,
-            'maxlength': '100' 
-        })
+        widget=forms.TextInput(attrs={'class': 'form-control', 'maxlength': '75'})
     )
 
-    equipo = forms.ChoiceField(
-        choices=EQUIPO_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
+    descripcion = forms.CharField(
+        max_length=100,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'maxlength': '100'})
+    )
+
+    equipo_nuevo = forms.ModelChoiceField(
+        queryset=None,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Equipo'
     )
 
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion', 'equipo']
+        fields = ['nombre', 'descripcion', 'equipo_nuevo']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['equipo_nuevo'].queryset = Equipo.objects.all()
+
 
 class ValidateForm(forms.ModelForm):
     class Meta:
@@ -85,11 +119,55 @@ class ValidateForm(forms.ModelForm):
         fields = '__all__'
         exclude = ['super_matriz']
 
+
 class TicketPorLevantarForm(forms.ModelForm):
+    PRIORIDAD_CHOICES = [
+        ('Bloqueante', 'Bloqueante'),
+        ('Crítico', 'Crítico'),
+    ]
+    REGIONES = [
+        ('Mexico', 'Mexico'),
+        ('Dominicana','Dominicana'),
+        ('Colombia', 'Colombia'),
+        ('Ecuador', 'Ecuador'),
+        ('Peru', 'Peru'), 
+        ('Chile','Chile'),
+        ('Argentina','Argentina'),
+        ('Uruguay','Uruguay'),
+        ('Paraguay','Paraguay'),
+        ('Guatemala','Guatemala'),
+        ('Salvador','Salvador'),
+        ('Nicaragua','Nicaragua'),
+        ('Costa Rica','Costa Rica'),
+        ('Honduras','Honduras'),   
+    ]
+
+    tester = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Tester"
+    )
+    Region = forms.ChoiceField(choices=REGIONES, widget=forms.Select(attrs={'class': 'form-select'}))
+    prioridad = forms.ChoiceField(choices=PRIORIDAD_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
     class Meta:
         model = TicketPorLevantar
-        fields = '__all__'
-        exclude = ['super_matriz']
+        fields = ['tester', 'ticket_SCT', 'BRF', 'Region', 'prioridad', 'desc', 'nota', 'url']
+        widgets = {
+            'ticket_SCT': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ticket SCT'}),
+            'BRF': forms.TextInput(attrs={'class': 'form-control'}),
+            'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'nota': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'url': forms.URLInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super_matriz = kwargs.pop('super_matriz', None)
+        super().__init__(*args, **kwargs)
+        if super_matriz:
+            equipo_nuevo = super_matriz.equipo_nuevo
+            self.fields['tester'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)
+
 
 class ValidateEstadoForm(forms.ModelForm):
     class Meta:
@@ -108,10 +186,11 @@ class ValidateEstadoForm(forms.ModelForm):
                 attrs={'class': 'form-select validate-estado'}
             ),
         }
-User = get_user_model()
-class DetallesValidateForm(forms.ModelForm): 
+
+
+class DetallesValidateForm(forms.ModelForm):
     testers = forms.ModelMultipleChoiceField(
-        queryset=User.objects.none(), 
+        queryset=User.objects.none(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Testers"
@@ -133,99 +212,8 @@ class DetallesValidateForm(forms.ModelForm):
             }),
         }
     def __init__(self, *args, **kwargs):
-        equipo = kwargs.pop('equipo', None)
+        equipo_nuevo = kwargs.pop('equipo_nuevo', None)
         super().__init__(*args, **kwargs)
         self.fields['filtro_RN'].required = False
-        
-        if equipo:
-            self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
-
-ALCANCE_CHOICES = [
-    ('A', 'MVP (A)'),
-    ('A,B', 'SMOKE TEST (A,B)'),
-    ('A,B,C', 'NA (A,B,C)'),
-]
-REGIONES = [
-    ('Mexico', 'Mexico'),
-    ('Dominicana','Dominicana'),
-    ('Colombia', 'Colombia'),
-    ('Ecuador', 'Ecuador'),
-    ('Peru', 'Peru'), 
-    ('Chile','Chile'),
-    ('Argentina','Argentina'),
-    ('Uruguay','Uruguay'),
-    ('Paraguay','Paraguay'),
-    ('Guatemala','Guatemala'),
-    ('Salvador','Salvador'),
-    ('Nicaragua','Nicaragua'),
-    ('Costa Rica','Costa Rica'),
-    ('Honduras','Honduras'),   
-]
-User = get_user_model()
-
-class MatrizForm(forms.ModelForm):
-    alcance = forms.ChoiceField(
-        choices=ALCANCE_CHOICES,
-        widget=forms.RadioSelect,
-        label='Alcance Evaluación',
-        required=True
-    )
-
-    testers = forms.ModelMultipleChoiceField(
-        queryset=User.objects.none(),  # Esto lo seteamos dinámicamente
-        widget=forms.CheckboxSelectMultiple,
-        required=True,
-        label="Testers"
-    )
-
-    regiones = forms.MultipleChoiceField(
-        choices=REGIONES,
-        widget=forms.CheckboxSelectMultiple,
-        required=True,
-        label="Regiones"
-    )
-
-    class Meta:
-        model = Matriz
-        fields = ['nombre', 'alcance', 'testers', 'regiones']
-
-    def __init__(self, *args, **kwargs):
-        equipo = kwargs.pop('equipo', None)
-        super().__init__(*args, **kwargs)
-        if equipo:
-            self.fields['testers'].queryset = User.objects.filter(equipo=equipo)
-
-
-    class Meta:
-        model = Matriz
-        fields = ['nombre', 'alcance']
-Prioridad_CHOICES = [
-    ('Bloqueante', 'Bloqueante'),
-    ('Crítico', 'Crítico'),
-]
-class TicketPorLevantarForm(forms.ModelForm):
-    tester = forms.ModelChoiceField(
-        queryset=User.objects.none(),  
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Tester"
-    )
-    Region = forms.ChoiceField(choices=REGIONES, widget=forms.Select(attrs={'class': 'form-select'}))
-    prioridad = forms.ChoiceField(choices=Prioridad_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
-
-    class Meta:
-        model = TicketPorLevantar
-        fields = ['tester', 'ticket_SCT', 'BRF', 'Region', 'prioridad', 'desc', 'nota', 'url']
-        widgets = {
-            'ticket_SCT': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ticket SCT'}),
-            'BRF': forms.TextInput(attrs={'class': 'form-control'}),
-            'desc': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'nota': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'url': forms.URLInput(attrs={'class': 'form-control'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super_matriz = kwargs.pop('super_matriz', None)
-        super().__init__(*args, **kwargs)
-        if super_matriz:
-            equipo = super_matriz.equipo
-            self.fields['tester'].queryset = User.objects.filter(equipo=equipo)
+        if equipo_nuevo:
+            self.fields['testers'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)

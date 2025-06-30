@@ -166,3 +166,9 @@ python manage_local.py migrate
 ### Se arreglo el ws 
 # desde aqui hare los cambios de los modelos 
 
+
+
+#Creacion y modificacion de equipos y generacion de nuevas matrices 
+pasos a relalizar 
+python manage_local.py makemigrations
+python manage_local.py migrate
