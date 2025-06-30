@@ -46,6 +46,7 @@ from datetime import datetime
 from django.utils.timezone import localtime
 import locale
 @login_required
+@login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
@@ -61,14 +62,16 @@ def detalle_super_matriz(request, super_matriz_id):
         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
-        
+
         if matriz.alcances_utilizados=='A':
             alcance="MVP (Minimum Viable Product:A)"
         elif matriz.alcances_utilizados=='A,B':
             alcance='Smoke Test (A,B)'
         elif matriz.alcances_utilizados=='A,B,C':
             alcance='No Afectacion (NA:A,B,C)'
-            
+        else:
+            alcance = 'No definido'
+
         testers_por_region = defaultdict(set)
         for caso in casos:
             if caso.tester:
@@ -85,7 +88,8 @@ def detalle_super_matriz(request, super_matriz_id):
             'casos_filtrados': casos_filtrados,
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
-            'alcance':alcance,
+            'alcance': alcance,
+            'dispositivo': matriz.dispositivo,  # <-- agregar dispositivo aquí
         })
 
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
@@ -103,7 +107,6 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                # 📦 Obtener la ruta desde el Dispositivo seleccionado
                 dispositivo = form.cleaned_data.get('dispositivo')
                 if not dispositivo or not dispositivo.matriz_base:
                     messages.error(request, f"El dispositivo no tiene archivo base asociado.")

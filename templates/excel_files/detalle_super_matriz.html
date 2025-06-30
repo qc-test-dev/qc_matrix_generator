@@ -91,7 +91,8 @@
                             <div class="card-header bg-success text-white">
                                 <h5 class="mb-0">{{ info.matriz.nombre }}</h5>
                             </div>
-                            <div class="card-body d-flex flex-column">      
+                            <div class="card-body d-flex flex-column"> 
+                                <p><strong>Dispositivo:</strong> {{ info.dispositivo.nombre }}</p>
                                 <p>Tipo de alcance: {{info.alcance}}</p>
                                 <p>Casos Totales: {{ info.total_casos }}</p>
                                 <p>Casos Completos: {{ info.casos_filtrados }}</p>

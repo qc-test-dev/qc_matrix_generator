@@ -1,6 +1,13 @@
 # models.py
 from django.db import models
 from ..accounts.models import Equipo
+class Dispositivo(models.Model):
+    nombre = models.CharField(max_length=75)
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
+    matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
+
+    def __str__(self):
+        return f"{self.nombre} ({self.equipo.nombre})"
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
     descripcion = models.TextField(blank=True, null=True, max_length=100)
@@ -13,7 +20,6 @@ class SuperMatriz(models.Model):
         blank=True,
         related_name='supermatrices'
     )
-
     def __str__(self):
         return self.nombre
 class Matriz(models.Model):
@@ -21,7 +27,13 @@ class Matriz(models.Model):
     nombre = models.CharField(max_length=255)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     alcances_utilizados = models.CharField(max_length=100, blank=True, null=True)
-
+    dispositivo = models.ForeignKey(
+        'Dispositivo',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matrices'
+    )
     def __str__(self):
         return self.nombre
 class CasoDePrueba(models.Model):
@@ -68,10 +80,3 @@ class DetallesValidate(models.Model):
     comentario_RN = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"Detalles de {self.super_matriz.nombre}"
-class Dispositivo(models.Model):
-    nombre = models.CharField(max_length=75)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
-    matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
-
-    def __str__(self):
-        return f"{self.nombre} ({self.equipo.nombre})"
