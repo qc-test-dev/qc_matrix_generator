@@ -32,10 +32,19 @@ from .models import CasoDePrueba
 
 from .models import SuperMatriz, Validate
 from .forms import MatrizForm, ValidateForm
-from .utils import importar_matriz_desde_excel  # Asegúrate de tener esta función
+from .utils import importar_matriz_desde_excel
 from django.views.decorators.csrf import csrf_exempt
-from app.matrix.models import SuperMatriz, Dispositivo  # Asegúrate de importar el nuevo modelo
-
+from app.matrix.models import SuperMatriz, Dispositivo
+from collections import defaultdict
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from collections import defaultdict
+from weasyprint import HTML
+from django.template.loader import render_to_string
+from datetime import datetime
+from django.utils.timezone import localtime
+import locale
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -467,3 +476,76 @@ def eliminar_matriz(request, matriz_id):
     super_matriz_id = matriz.super_matriz.id
     matriz.delete()
     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz_id)
+
+
+def generar_pdf_supermatriz(request, supermatriz_id):
+    super_matriz = get_object_or_404(SuperMatriz, id=supermatriz_id)
+    matrices = super_matriz.matrices.all()
+
+    matrices_info = []
+    paises = set()
+    total_global_casos = 0
+    total_global_completados = 0
+
+    for matriz in matrices:
+        casos = matriz.casos.all()
+        total_casos = casos.count()
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', 'na']
+        casos_filtrados = casos.filter(estado__in=estados_interes).count()
+        porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
+
+        total_global_casos += total_casos
+        total_global_completados += casos_filtrados
+
+        # Determinar el tipo de alcance
+        alcance = {
+            'A': "MVP (Minimum Viable Product:A)",
+            'A,B': 'Smoke Test (A,B)',
+            'A,B,C': 'No Afectación (NA:A,B,C)'
+        }.get(matriz.alcances_utilizados, 'No definido')
+
+        # Testers por región
+        testers_por_region = defaultdict(set)
+        for caso in casos:
+            if caso.tester:
+                partes = caso.tester.split('-')
+                if len(partes) == 2:
+                    nombre, region = partes
+                    testers_por_region[region.strip()].add(nombre.strip())
+                    paises.add(region.strip())
+
+        testers_por_region = {
+            region: sorted(nombres)
+            for region, nombres in testers_por_region.items()
+        }
+
+        matrices_info.append({
+            'matriz': matriz,
+            'total_casos': total_casos,
+            'casos_filtrados': casos_filtrados,
+            'porcentaje': round(porcentaje, 2),
+            'testers_por_region': testers_por_region,
+            'alcance': alcance,
+        })
+
+    porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
+    fecha_generacion = localtime().strftime('%d de %B de %Y')
+
+    # Renderizar HTML
+    template = get_template('pdf/reporte_supermatriz.html')
+    html_string = template.render({
+        'super_matriz': super_matriz,
+        'matrices_info': matrices_info,
+        'paises': sorted(paises),
+        'porcentaje_total': porcentaje_total,
+        'fecha_generacion': fecha_generacion,
+    })
+
+    # Generar el PDF con WeasyPrint
+    html = HTML(string=html_string)
+    result = html.write_pdf()
+
+    # Devolver el PDF como respuesta
+    response = HttpResponse(result, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
+    return response

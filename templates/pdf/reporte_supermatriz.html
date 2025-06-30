@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1, h3 {
+            text-align: center;
+            margin: 5px 0;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .col {
+            width: 47%;
+            margin-bottom: 15px;
+        }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .card-header {
+            background-color: #28a745;
+            color: white;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 8px;
+        }
+        p {
+            margin: 4px 0;
+        }
+        ul {
+            margin: 5px 0 0 15px;
+            padding: 0;
+        }
+        li.region {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        hr {
+            margin: 10px 0;
+            border: 0;
+            border-top: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reporte de avance</h1>
+        <h3>{{ super_matriz.nombre }}</h3>
+        <p>{{ super_matriz.descripcion }}</p>
+        <p><strong>Porcentaje total de avance:</strong> {{ porcentaje_total }}%</p>
+        <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
+        <hr>
+        {% if matrices_info %}
+        <div class="row">
+            {% for info in matrices_info %}
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">{{ info.matriz.nombre }}</div>
+                    <div class="card-body">
+                        <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
+                        <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
+                        <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
+                        <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
+                        {% if info.testers_por_region %}
+                            <p><strong>Países:</strong></p>
+                            <ul>
+                                {% for region, testers in info.testers_por_region.items %}
+                                    <li class="region">{{ region }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            <p>No hay matrices aún.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -18,6 +18,7 @@ urlpatterns = [
     path('ajax/actualizar_estado/', views.actualizar_estado_caso, name='actualizar_estado_caso'),
     path('ajax/actualizar_nota/', views.actualizar_nota_caso, name='actualizar_nota_caso'),
     path('ajax/actualizar_estado_validate/', views.actualizar_estado_validate, name='actualizar_estado_validate'),
+    path('supermatriz/<int:supermatriz_id>/reporte_pdf/', views.generar_pdf_supermatriz, name='reporte_pdf_supermatriz'),
 ]   
 
 
