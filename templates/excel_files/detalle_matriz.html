@@ -66,9 +66,9 @@
                     </td>
                     <td>
                         {% if caso.criticidad|lower == "bloqueante" %}
-                            <span class="badge bg-danger">🔶 Bloqueante</span>
+                            <span class="badge bg-danger">🛑 Bloqueante</span>
                         {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
-                            <span class="badge bg-secondary">Sin clasificar</span>
+                            <span class="badge bg-warning text-dark">⚠️ Critico</span>
                         {% endif %}
                     </td>
                     <td id="nota-caso-{{ caso.id }}">
