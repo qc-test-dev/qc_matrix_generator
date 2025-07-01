@@ -45,7 +45,7 @@ from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
 import locale
-@login_required
+locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)

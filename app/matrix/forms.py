@@ -56,7 +56,13 @@ class MatrizForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    nombre = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    nombre = forms.CharField(
+    max_length=70,
+    widget=forms.TextInput(attrs={
+        'class': 'form-control',
+        'maxlength': '75'
+    })
+)
 
     class Meta:
         model = Matriz
@@ -86,7 +92,7 @@ class CasoDePruebaForm(forms.ModelForm):
     )
 
     nota = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'style': 'resize: none;'}),
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'style': 'resize: none;',"maxlength":"80"}),
         required=False
     )
 
@@ -210,7 +216,8 @@ class DetallesValidateForm(forms.ModelForm):
         widgets = {
             'filtro_RN': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Escribe el filtro aplicado por RN...'
+                'placeholder': 'Escribe el filtro aplicado por RN...',
+                "maxlength80":"80",
             }),
             'comentario_RN': forms.Textarea(attrs={
                 'class': 'form-control',

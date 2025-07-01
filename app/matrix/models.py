@@ -24,7 +24,7 @@ class SuperMatriz(models.Model):
         return self.nombre
 class Matriz(models.Model):
     super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='matrices')
-    nombre = models.CharField(max_length=255)
+    nombre = models.CharField(max_length=70)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     alcances_utilizados = models.CharField(max_length=100, blank=True, null=True)
     dispositivo = models.ForeignKey(
@@ -47,7 +47,7 @@ class CasoDePrueba(models.Model):
     caso_de_prueba = models.TextField()
     estado = models.CharField(max_length=50, default="Por ejecutar")
     criticidad = models.CharField(max_length=15, choices=CRITICIDAD_CHOICES)
-    nota = models.TextField(blank=True, null=True)
+    nota = models.TextField(blank=True, null=True,max_length=80)
     tester = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
@@ -76,7 +76,7 @@ class TicketPorLevantar(models.Model):
         return f"{self.tester} - {self.ticket_SCT}"
 class DetallesValidate(models.Model):
     super_matriz = models.OneToOneField(SuperMatriz, on_delete=models.CASCADE, related_name='detalles_validate')   
-    filtro_RN = models.CharField(max_length=255, blank=True, null=True)
+    filtro_RN = models.CharField(max_length=100, blank=True, null=True)
     comentario_RN = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"Detalles de {self.super_matriz.nombre}"
