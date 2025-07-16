@@ -9,3 +9,4 @@ static/*.apk
 #db.sqlite3
 .env/
 app/matrix/*.env
+requerimiento_funcionales.txt

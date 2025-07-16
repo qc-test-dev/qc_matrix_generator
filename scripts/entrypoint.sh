@@ -1,11 +1,9 @@
-
 #!/bin/bash
 set -e
 
 echo "🚀 Starting Django application setup..."
 
-
-# Superusuario
+# 1) Superusuario (igual que antes)
 if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
     echo "👤 Checking/creating superuser..."
     python manage.py shell -c "
@@ -20,9 +18,12 @@ if not User.objects.filter(username=username).exists():
 "
 fi
 
-# Iniciar uWSGI
-echo "🚀 Starting uWSGI server..."
-exec uwsgi --socket :8000 \
-     --master \
-     --module main_website.wsgi \
-     --enable-threads
+# 2) Migraciones & static
+echo "🗄️  Applying migrations and collecting static files..."
+python manage.py makemigrations
+python manage.py migrate
+python manage.py collectstatic --noinput --clear
+
+# 3) Iniciar Daphne (ASGI) para HTTP + WebSocket
+echo "🚀 Starting Daphne ASGI server on port 8000..."
+exec daphne -b 0.0.0.0 -p 8000 main_website.asgi:application

@@ -4,8 +4,19 @@ CSRF_TRUSTED_ORIGINS = [
     'http://200.57.172.7',
     'http://200.57.172.7:80',
     'http://200.57.172.7:8080',
+    'http://0.0.0.0',
+    'http://0.0.0.0:80',
+    'http://localhost',
+    'http://localhost:80',
 ]
-allowed_hosts = ['200.57.172.7', 'localhost', '127.0.0.1','0.0.0.0','*']
+
+ALLOWED_HOSTS = [
+    '200.57.172.7',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+]
+
 
 DEBUG = False
 

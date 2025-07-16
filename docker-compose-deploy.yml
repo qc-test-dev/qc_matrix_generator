@@ -4,7 +4,20 @@ networks:
   qc_network:
     driver: bridge
 
+volumes:
+  postgres_data:
+  staticfiles-volume:
+
 services:
+
+  redis:
+    image: redis:6-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - qc_network
+
   db:
     image: postgres:14
     restart: always
@@ -24,7 +37,7 @@ services:
       context: .
     volumes:
       - ./:/app
-      - staticfiles-volume:/app/staticfiles
+      - staticfiles-volume:/vol/static
     environment:
       - DJANGO_SETTINGS_MODULE=main_website.settings.prod
       - DEBUG=0
@@ -33,19 +46,22 @@ services:
       - POSTGRES_PASSWORD=qc_admin_pass
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - JIRA_EMAIL=${JIRA_EMAIL}
       - JIRA_API_TOKEN=${JIRA_API_TOKEN}
     depends_on:
       - db
+      - redis
     command: >
       sh -c "
-        
         python manage.py makemigrations &&
-        python manage.py makemigrations matrix &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --clear &&
-        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission; fi &&
-        uwsgi --socket :8000 --master --module main_website.wsgi --enable-threads
+        if [ -f /app/initialdata.json ]; then
+          python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission;
+        fi &&
+        exec daphne -b 0.0.0.0 -p 8000 main_website.asgi:application
       "
     networks:
       - qc_network
@@ -61,7 +77,3 @@ services:
       - app
     networks:
       - qc_network
-
-volumes:
-  postgres_data:
-  staticfiles-volume:

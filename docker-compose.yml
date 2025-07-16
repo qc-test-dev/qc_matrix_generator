@@ -5,6 +5,16 @@ networks:
     driver: bridge
 
 services:
+  # 1) Servicio de Redis para Channels
+  redis:
+    image: redis:6-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - qc_network
+
+  # 2) Base de datos Postgres
   db:
     image: postgres:14
     restart: always
@@ -13,43 +23,59 @@ services:
       POSTGRES_PASSWORD: qc_admin_pass
       POSTGRES_DB: qc_matrix
     ports:
-      - "5433:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - qc_network
 
+  # 3) App Django — ahora levantará Daphne en lugar de uWSGI
   app:
     build:
       context: .
-    ports:
-      - "8080:8000"  # Cambié a 8081 para no chocar con prod
     volumes:
       - ./:/app
       - staticfiles-volume:/app/staticfiles
     environment:
-      - DJANGO_SETTINGS_MODULE=main_website.settings.uat
-      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=main_website.settings.uat  
+      - DEBUG=0
       - POSTGRES_DB=qc_matrix
       - POSTGRES_USER=qc_admin
       - POSTGRES_PASSWORD=qc_admin_pass
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - JIRA_EMAIL=${JIRA_EMAIL}
       - JIRA_API_TOKEN=${JIRA_API_TOKEN}
     depends_on:
       - db
-    command: > 
+      - redis
+    command: >
       sh -c "
         python manage.py makemigrations &&
-        python manage.py makemigrations matrix &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --clear &&
-        if [ -f /app/initialdata.json ]; then python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission; fi &&
-
-
-        python manage.py runserver 0.0.0.0:8000
+        # Leemos initialdata si existe…
+        if [ -f /app/initialdata.json ]; then
+          python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission;
+        fi
+        # Arrancamos Daphne para HTTP+WebSocket
+        exec daphne -b 0.0.0.0 -p 8000 main_website.asgi:application
       "
+    networks:
+      - qc_network
+
+  # 4) Proxy / nginx
+  proxy:
+    build:
+      context: ./proxy
+    ports:
+      - "8081:8080"
+    volumes:
+      - staticfiles-volume:/vol/static
+    depends_on:
+      - app
     networks:
       - qc_network
 

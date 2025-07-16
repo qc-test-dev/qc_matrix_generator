@@ -8,9 +8,8 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')
 
-DEBUG = bool(int(os.environ.get('DEBUG', 0)))
 
-ALLOWED_HOSTS = ['*']
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -28,6 +27,7 @@ INSTALLED_APPS = [
     'app.accounts',
     'app.matrix',
     'widget_tweaks',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -38,6 +38,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'main_website.urls'
@@ -102,3 +103,15 @@ AUTH_USER_MODEL = 'accounts.User'
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+ASGI_APPLICATION = 'main_website.wsgi.asgi.application'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            # El host 'redis' es el nombre del servicio en Docker Compose
+            "hosts": [(os.environ.get('REDIS_HOST', 'redis'), 6379)],
+        },
+    },
+}
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
