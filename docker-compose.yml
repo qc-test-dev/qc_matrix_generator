@@ -4,8 +4,12 @@ networks:
   qc_network:
     driver: bridge
 
+volumes:
+  postgres_data:
+  staticfiles-volume:
+
 services:
-  # 1) Servicio de Redis para Channels
+
   redis:
     image: redis:6-alpine
     restart: always
@@ -14,7 +18,6 @@ services:
     networks:
       - qc_network
 
-  # 2) Base de datos Postgres
   db:
     image: postgres:14
     restart: always
@@ -23,21 +26,20 @@ services:
       POSTGRES_PASSWORD: qc_admin_pass
       POSTGRES_DB: qc_matrix
     ports:
-      - "5435:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - qc_network
 
-  # 3) App Django — ahora levantará Daphne en lugar de uWSGI
   app:
     build:
       context: .
     volumes:
       - ./:/app
-      - staticfiles-volume:/app/staticfiles
+      - staticfiles-volume:/vol/static
     environment:
-      - DJANGO_SETTINGS_MODULE=main_website.settings.uat  
+      - DJANGO_SETTINGS_MODULE=main_website.settings.uat
       - DEBUG=0
       - POSTGRES_DB=qc_matrix
       - POSTGRES_USER=qc_admin
@@ -56,29 +58,22 @@ services:
         python manage.py makemigrations &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --clear &&
-        # Leemos initialdata si existe…
         if [ -f /app/initialdata.json ]; then
           python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission;
-        fi
-        # Arrancamos Daphne para HTTP+WebSocket
+        fi &&
         exec daphne -b 0.0.0.0 -p 8000 main_website.asgi:application
       "
     networks:
       - qc_network
 
-  # 4) Proxy / nginx
   proxy:
     build:
-      context: ./proxy
+      context: ./proxy_uat
     ports:
-      - "8081:8080"
+      - "8080:8080"
     volumes:
       - staticfiles-volume:/vol/static
     depends_on:
       - app
     networks:
       - qc_network
-
-volumes:
-  postgres_data:
-  staticfiles-volume:

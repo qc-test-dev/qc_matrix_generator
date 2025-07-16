@@ -6,8 +6,10 @@ CSRF_TRUSTED_ORIGINS = [
     'http://200.57.172.7:8080',
     'http://0.0.0.0',
     'http://0.0.0.0:80',
+    'http://0.0.0.0:8080',
     'http://localhost',
     'http://localhost:80',
+    'http://localhost:8080',
 ]
 DEBUG = True
 

@@ -262,6 +262,18 @@
     </div>
     <h1>Plataforma de Seguimiento QC</h1>
     <div class="sub">Accede para gestionar matrices de pruebas, validates y tickets</div>
+        {% if form.errors %}
+      <div class="alert alert-danger">
+        {{ form.errors }}
+      </div>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-warning">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
 
     <form method="post" novalidate autocomplete="off">
       {% csrf_token %}
