@@ -73,6 +73,8 @@ Validates – {{ super_matriz.nombre }}
                                 <span class="badge bg-warning text-dark">🟡 Crítico</span>
                             {% elif validate.prioridad|lower == "error" %}
                                 <span class="badge bg-danger">🔴 Error</span>
+                            {% elif validate.prioridad|lower == "major" %}
+                                <span class="badge bg-primary">🔧 Importante</span>
                             {% else %}
                                 <span class="badge bg-secondary">Sin clasificar</span>
                             {% endif %}

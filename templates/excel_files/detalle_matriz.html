@@ -7,7 +7,7 @@
 {% block content %}
 {% include 'includes/header.html' %}
 
-<div class="container">
+<div class="container-fluid p-5">
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
     <h4>Filtro Usado</h4>
     <p><strong>Alcance: {{alcance}}</strong></p>
@@ -43,9 +43,6 @@
             </li>
         {% endfor %}
     </ul>
-
-    <p class="text-muted mt-3">Cambiar el estado o nota actualiza automáticamente para todos los usuarios conectados.</p>
-
     <table class="table table-bordered table-striped">
         <thead>
             <tr>

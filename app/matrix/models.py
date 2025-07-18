@@ -7,7 +7,7 @@ class Dispositivo(models.Model):
     matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
 
     def __str__(self):
-        return f"{self.nombre} ({self.equipo.nombre})"
+        return f"{self.nombre}"
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
     descripcion = models.TextField(blank=True, null=True, max_length=100)

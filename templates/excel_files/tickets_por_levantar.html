@@ -9,10 +9,10 @@ Tickets por Levantar - {{ super_matriz.nombre }}
 {% include 'includes/header.html' %}
 <div class="container-lg">
 
-    <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz.id %}"
-        class="d-inline-flex align-items-center text-decoration-none btn btn-primary mb-3 mt-3">
-        Volver
-    </a>
+    <div class="sticky-top d-flex justify-content-start align-items-center p-2">
+        <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz.id %}" 
+           class="btn btn-secondary btn-sm">⬅ Volver</a>
+    </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="fw-semibold mb-0">{{ super_matriz.nombre }}</h2>
