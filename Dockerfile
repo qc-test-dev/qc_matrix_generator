@@ -28,6 +28,7 @@ RUN apt-get install -y --no-install-recommends \
       libharfbuzz0b libfribidi0 \
       libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev \
       libxml2-dev libxslt1-dev fontconfig-config zlib1g-dev libjpeg-dev \
+      netcat-traditional \
       libharfbuzz-dev libfribidi-dev && \
     pip install --upgrade pip && \
     pip install --no-cache-dir -r /requirements.txt \
