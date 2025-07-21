@@ -118,9 +118,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # Al final de tu settings.py de producción
+# Al final de tu settings.py de producción
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
-# Desactivar otros headers de seguridad que pueden causar problemas con HTTP
+# Configuración correcta de X-Frame-Options
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Otros headers de seguridad (opcional)
 SECURE_BROWSER_XSS_FILTER = False
 SECURE_CONTENT_TYPE_NOSNIFF = False
-X_FRAME_OPTIONS = None
+SECURE_HSTS = False
+SECURE_HSTS_PRELOAD = False
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
