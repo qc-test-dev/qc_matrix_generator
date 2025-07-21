@@ -93,7 +93,7 @@ services:
 
   proxy:
     build:
-      context: ./proxy
+      context: ./proxy_uat
     restart: unless-stopped
     ports:
       - "8080:8080"

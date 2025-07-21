@@ -115,3 +115,10 @@ CHANNEL_LAYERS = {
     },
 }
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+
+# También puedes probar desactivar otros headers de seguridad
+SECURE_BROWSER_XSS_FILTER = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
