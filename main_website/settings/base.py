@@ -117,8 +117,10 @@ CHANNEL_LAYERS = {
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
+# Al final de tu settings.py de producción
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 
-# También puedes probar desactivar otros headers de seguridad
+# Desactivar otros headers de seguridad que pueden causar problemas con HTTP
 SECURE_BROWSER_XSS_FILTER = False
 SECURE_CONTENT_TYPE_NOSNIFF = False
+X_FRAME_OPTIONS = None
