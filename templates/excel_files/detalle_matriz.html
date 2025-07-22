@@ -67,75 +67,135 @@
 </div>
 <script>
 const matrizId = "{{ matriz.id }}";
+// Variables globales (mantén las que ya tienes)
 let socket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
-const reconnectDelayBase = 2000; // 2 segundos base
+const reconnectDelayBase = 2000;
 let heartbeatInterval;
+let isConnecting = false; // NUEVA variable para evitar conexiones múltiples
 
 function createWebSocketConnection() {
-    if (socket) {
+    // Evitar múltiples intentos de conexión simultáneos
+    if (isConnecting) {
+        console.log("⏳ Ya hay un intento de conexión en proceso");
+        return;
+    }
+    
+    // Si el socket ya está abierto, no hacer nada
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log("✅ WebSocket ya está conectado");
+        return;
+    }
+    
+    // Si está conectando, esperar
+    if (socket && socket.readyState === WebSocket.CONNECTING) {
+        console.log("⏳ WebSocket está conectando...");
+        return;
+    }
+    
+    // Marcar que estamos intentando conectar
+    isConnecting = true;
+    
+    // Solo cerrar si el socket existe y no está cerrado
+    if (socket && socket.readyState !== WebSocket.CLOSED) {
+        console.log("🔄 Cerrando conexión anterior");
         socket.close();
         clearInterval(heartbeatInterval);
     }
-
+    
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${window.location.host}/ws/matriz/${matrizId}/`;
     console.log("🔗 Conectando WebSocket a:", wsUrl);
     
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = function() {
-        console.log("✅ WebSocket conectado correctamente");
-        reconnectAttempts = 0;
-
-        heartbeatInterval = setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({type: 'heartbeat'}));
-                console.debug("❤️ Heartbeat enviado");
-            }
-        }, 25000);
-    };
-
-    socket.onmessage = function(event) {
-        console.log("📨 Mensaje recibido:", event.data);
+    try {
+        socket = new WebSocket(wsUrl);
         
-        try {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'connected') {
-                console.log("🎯 Confirmación de conexión recibida");
-                return;
+        socket.onopen = function() {
+            console.log("✅ WebSocket conectado correctamente");
+            isConnecting = false;
+            reconnectAttempts = 0;
+            
+            // Iniciar heartbeat si lo usas
+            // heartbeatInterval = setInterval(() => {
+            //     if (socket.readyState === WebSocket.OPEN) {
+            //         socket.send(JSON.stringify({type: 'ping'}));
+            //     }
+            // }, 30000);
+        };
+        
+        socket.onmessage = function(event) {
+            console.log("📨 WebSocket recibido:", event.data);
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'connected') {
+                    console.log("🎯 Confirmación de conexión recibida");
+                    return;
+                }
+                
+                if (data.tipo === 'estado') {
+                    const casoId = data.caso_id;
+                    const nuevoEstado = data.valor;
+                    
+                    const celdaEstado = document.querySelector(`#estado-caso-${casoId}`);
+                    if (celdaEstado) {
+                        const select = celdaEstado.querySelector('select');
+                        if (select && select.value !== nuevoEstado) {
+                            select.value = nuevoEstado;
+                            aplicarColorEstado(select);
+                            select.classList.add("flash-update");
+                            setTimeout(() => select.classList.remove("flash-update"), 1500);
+                            console.log(`✅ Estado actualizado: caso ${casoId} → ${nuevoEstado}`);
+                        }
+                    }
+                }
+                
+                if (data.tipo === 'nota') {
+                    const casoId = data.caso_id;
+                    const nuevaNota = data.valor;
+                    
+                    const celdaNota = document.querySelector(`#nota-caso-${casoId}`);
+                    if (celdaNota) {
+                        const input = celdaNota.querySelector('input, textarea');
+                        if (input && input.value !== nuevaNota) {
+                            input.value = nuevaNota;
+                            input.classList.add("flash-update");
+                            setTimeout(() => input.classList.remove("flash-update"), 1500);
+                            console.log(`✅ Nota actualizada: caso ${casoId}`);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("❌ Error procesando mensaje:", error);
             }
-
-            if (data.type === 'estado') {
-                updateCaseState(data.caso_id, data.valor);
+        };
+        
+        socket.onerror = function(error) {
+            console.error("❌ Error en WebSocket:", error);
+            isConnecting = false;
+        };
+        
+        socket.onclose = function(event) {
+            console.log("❌ WebSocket cerrado:", event.code, event.reason);
+            isConnecting = false;
+            clearInterval(heartbeatInterval);
+            
+            // Solo intentar reconectar si no fue un cierre limpio
+            if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                const delay = reconnectDelayBase * Math.pow(2, reconnectAttempts);
+                reconnectAttempts++;
+                console.log(`🔄 Reconectando en ${delay}ms (Intento ${reconnectAttempts}/${maxReconnectAttempts})`);
+                setTimeout(createWebSocketConnection, delay);
             }
-
-            if (data.type === 'nota') {
-                updateCaseNote(data.caso_id, data.valor);
-            }
-        } catch (error) {
-            console.error("❌ Error procesando mensaje:", error);
-        }
-    };
-
-    socket.onerror = function(error) {
-        console.error("❌ Error en WebSocket:", error);
-    };
-
-    socket.onclose = function(event) {
-        console.log(`🔴 Conexión cerrada. Código: ${event.code}, Razón: ${event.reason}`);
-        clearInterval(heartbeatInterval);
-
-        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
-            const delay = reconnectDelayBase * Math.pow(2, reconnectAttempts);
-            reconnectAttempts++;
-            console.log(`🔄 Reconectando en ${delay}ms (Intento ${reconnectAttempts}/${maxReconnectAttempts})`);
-            setTimeout(createWebSocketConnection, delay);
-        }
-    };
+        };
+        
+    } catch (error) {
+        console.error("❌ Error creando WebSocket:", error);
+        isConnecting = false;
+    }
 }
+
 
 function updateCaseState(caseId, newState) {
     const stateCell = document.querySelector(`#estado-caso-${caseId}`);
@@ -287,10 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(() => {
         if (!socket || socket.readyState === WebSocket.CLOSED) {
-            console.log("🔄 Verificando conexión...");
+            console.log("🔄 Verificación periódica - reconectando...");
             createWebSocketConnection();
         }
-    }, 30000);
+    }, 60000);
 });
 
 window.addEventListener('beforeunload', function() {
