@@ -2,14 +2,13 @@ from django.urls import path
 from app.matrix.update_api import api_guardar_estado
 from app.matrix.update_validates_api import api_guardar_validates
 from . import views
-
 app_name='matrix_app'
-
+#matrix_app:dashboard_super_matrices
 urlpatterns = [
     path('supermatriz/<int:super_matriz_id>/', views.detalle_super_matriz, name='detalle_super_matriz'),
     path('matriz/<int:matriz_id>/', views.detalle_matriz, name='detalle_matriz'),
     path('editar_validates/<int:super_matriz_id>/', views.editar_validates, name='editar_validates'),
-    path('detalles_validate_modal/<int:super_matriz_id>/', views.detalles_validate_modal, name='detalles_validate_modal'),
+    path('detalles_validate_modal/<int:super_matriz_id>/', views.detalles_validate_modal, name='detalles_validate_modal'),# Esta es la URL para detalle_matriz
     path('super_matriz/<int:super_matriz_id>/tickets/', views.tickets_por_levantar_view, name='tickets_por_levantar'),
     path('editar_ticket/<int:ticket_id>/', views.editar_ticket, name='editar_ticket'),
     path('eliminar/<int:super_matriz_id>/', views.eliminar_super_matriz, name='eliminar_super_matriz'),
@@ -20,8 +19,6 @@ urlpatterns = [
     path('ajax/actualizar_nota/', views.actualizar_nota_caso, name='actualizar_nota_caso'),
     path('ajax/actualizar_estado_validate/', views.actualizar_estado_validate, name='actualizar_estado_validate'),
     path('supermatriz/<int:supermatriz_id>/reporte_pdf/', views.generar_pdf_supermatriz, name='reporte_pdf_supermatriz'),
-    
-    # ✅ AGREGAR ESTAS 2 LÍNEAS NUEVAS:
-    path('matriz/<int:matriz_id>/sse/', views.matriz_sse, name='matriz_sse'),
-    path('validates/<int:super_matriz_id>/sse/', views.validates_sse, name='validates_sse'),
-]
+]   
+
+

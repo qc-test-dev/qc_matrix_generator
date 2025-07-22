@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'app.accounts',
     'app.matrix',
     'widget_tweaks',
-    #'channels',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -60,7 +60,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'main_website.wsgi.application'
-#ASGI_APPLICATION = 'main_website.asgi.application'
+ASGI_APPLICATION = 'main_website.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -104,7 +104,7 @@ AUTH_USER_MODEL = 'accounts.User'
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
 
-'''
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -114,7 +114,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
-'''
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 

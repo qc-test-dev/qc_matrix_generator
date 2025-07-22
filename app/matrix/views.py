@@ -1,6 +1,6 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import random
@@ -22,9 +22,10 @@ from weasyprint import HTML
 from datetime import datetime
 from django.utils.timezone import localtime
 import locale
-import json
-import redis
-import time
+
+# ✅ IMPORTS PARA WEBSOCKET
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 # Configurar locale para fechas en español
 try:
@@ -374,63 +375,7 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     return response
 
 # ========================================
-# ✅ FUNCIONES SSE NUEVAS
-# ========================================
-
-def matriz_sse(request, matriz_id):
-    """Stream de eventos SSE para matriz"""
-    def event_stream():
-        r = redis.Redis(host='redis', port=6379, db=0)
-        pubsub = r.pubsub()
-        pubsub.subscribe(f'matriz_updates_{matriz_id}')
-        
-        # Enviar confirmación de conexión
-        yield f"data: {json.dumps({'type': 'connected', 'matriz_id': matriz_id})}\n\n"
-        
-        try:
-            for message in pubsub.listen():
-                if message['type'] == 'message':
-                    yield f"data: {message['data'].decode()}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-        finally:
-            pubsub.close()
-    
-    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-    response['Cache-Control'] = 'no-cache'
-    response['Connection'] = 'keep-alive'
-    response['X-Accel-Buffering'] = 'no'
-    response['Access-Control-Allow-Origin'] = '*'
-    return response
-
-def validates_sse(request, super_matriz_id):
-    """Stream de eventos SSE para validates"""
-    def event_stream():
-        r = redis.Redis(host='redis', port=6379, db=0)
-        pubsub = r.pubsub()
-        pubsub.subscribe(f'validates_updates_{super_matriz_id}')
-        
-        # Enviar confirmación de conexión
-        yield f"data: {json.dumps({'type': 'connected', 'super_matriz_id': super_matriz_id})}\n\n"
-        
-        try:
-            for message in pubsub.listen():
-                if message['type'] == 'message':
-                    yield f"data: {message['data'].decode()}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-        finally:
-            pubsub.close()
-    
-    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
-    response['Cache-Control'] = 'no-cache'
-    response['Connection'] = 'keep-alive'
-    response['X-Accel-Buffering'] = 'no'
-    response['Access-Control-Allow-Origin'] = '*'
-    return response
-
-# ========================================
-# ✅ FUNCIONES AJAX MODIFICADAS PARA SSE
+# ✅ FUNCIONES WEBSOCKET - AJAX MODIFICADAS
 # ========================================
 
 @login_required
@@ -444,18 +389,23 @@ def actualizar_estado_caso(request):
             caso.estado = nuevo_estado
             caso.save()
 
-            # ✅ SSE: Enviar evento vía Redis
-            r = redis.Redis(host='redis', port=6379, db=0)
-            message = json.dumps({
-                "tipo": "estado",
-                "caso_id": int(caso_id),
-                "valor": nuevo_estado,
-            })
-            r.publish(f'matriz_updates_{caso.matriz.id}', message)
-            
+            # ✅ WebSocket: Enviar evento
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"matriz_{caso.matriz.id}",
+                {
+                    "type": "estado_actualizado",
+                    "data": {
+                        "caso_id": caso.id,
+                        "valor": nuevo_estado,
+                    },
+                }
+            )
             return JsonResponse({"success": True})
         except CasoDePrueba.DoesNotExist:
             return JsonResponse({"success": False, "error": "Caso no encontrado."})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
     return JsonResponse({"success": False, "error": "Método no permitido."})
 
 @require_POST
@@ -469,18 +419,23 @@ def actualizar_nota_caso(request):
         caso.nota = nueva_nota
         caso.save()
 
-        # ✅ SSE: Enviar evento vía Redis
-        r = redis.Redis(host='redis', port=6379, db=0)
-        message = json.dumps({
-            "tipo": "nota",
-            "caso_id": int(caso_id),
-            "valor": nueva_nota,
-        })
-        r.publish(f'matriz_updates_{caso.matriz.id}', message)
-        
+        # ✅ WebSocket: Enviar evento
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"matriz_{caso.matriz.id}",
+            {
+                "type": "nota_actualizada",
+                "data": {
+                    "caso_id": caso.id,
+                    "valor": nueva_nota,
+                }
+            }
+        )
         return JsonResponse({"success": True})
     except CasoDePrueba.DoesNotExist:
         return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 @login_required
 def actualizar_estado_validate(request):
@@ -493,16 +448,21 @@ def actualizar_estado_validate(request):
             validate.estado = nuevo_estado
             validate.save()
 
-            # ✅ SSE: Enviar evento vía Redis
-            r = redis.Redis(host='redis', port=6379, db=0)
-            message = json.dumps({
-                "type": "estado_actualizado",
-                "validate_id": int(validate_id),
-                "nuevo_estado": nuevo_estado,
-            })
-            r.publish(f'validates_updates_{validate.super_matriz.id}', message)
+            # ✅ WebSocket: Enviar evento
+            super_matriz = validate.super_matriz
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"validates_{super_matriz.id}",
+                {
+                    "type": "estado_actualizado",
+                    "validate_id": validate.id,
+                    "nuevo_estado": nuevo_estado,
+                }
+            )
 
             return JsonResponse({"success": True})
         except Validate.DoesNotExist:
             return JsonResponse({"success": False, "error": "Validate no encontrado"})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
     return JsonResponse({"success": False, "error": "Método no permitido"})

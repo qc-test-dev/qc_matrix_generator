@@ -6,7 +6,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}[INICIO] Iniciando aplicación Django PRODUCCIÓN con SSE...${NC}"
+echo -e "${GREEN}[INICIO] Iniciando aplicación Django con WebSocket...${NC}"
 
 # Función para esperar que la base de datos esté lista
 wait_for_db() {
@@ -74,17 +74,6 @@ else
     echo -e "${YELLOW}[SETUP] No se encontró initialdata.json${NC}"
 fi
 
-# ✅ PRODUCCIÓN: Usar Gunicorn con WSGI
-echo -e "${GREEN}[SERVER] Iniciando servidor Gunicorn PRODUCCIÓN...${NC}"
-exec gunicorn main_website.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 4 \
-    --worker-class sync \
-    --worker-connections 1000 \
-    --max-requests 1000 \
-    --max-requests-jitter 50 \
-    --timeout 30 \
-    --keep-alive 2 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info
+# ✅ WEBSOCKET: Usar Daphne con ASGI
+echo -e "${GREEN}[SERVER] Iniciando servidor Daphne con WebSocket...${NC}"
+exec daphne -b 0.0.0.0 -p 8000 --access-log - --proxy-headers main_website.asgi:application
