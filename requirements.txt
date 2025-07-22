@@ -92,3 +92,4 @@ xhtml2pdf
 zope.interface
 zopfli
 gunicorn
+twisted[http2,tls]
