@@ -3,10 +3,11 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
 LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')  # ajusta tu secret key
 
 
 
@@ -28,13 +29,14 @@ INSTALLED_APPS = [
     'app.matrix',
     'widget_tweaks',
     'channels',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -100,20 +102,18 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
-
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
-
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            # El host 'redis' es el nombre del servicio en Docker Compose
-            "hosts": [(os.environ.get('REDIS_HOST', 'redis'), 6379)],
+if 'REDIS_HOST' in os.environ:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [(os.environ['REDIS_HOST'], 6379)],
+            },
         },
-    },
-}
+    }
+
+
+
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

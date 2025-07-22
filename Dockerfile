@@ -31,8 +31,7 @@ RUN apt-get install -y --no-install-recommends \
       netcat-traditional \
       libharfbuzz-dev libfribidi-dev && \
     pip install --upgrade pip && \
-    pip install --no-cache-dir -r /requirements.txt \
-                          daphne channels channels_redis whitenoise && \
+    pip install --no-cache-dir -r /requirements.txt && \
     apt-get remove -y \
       gcc libpq-dev libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev \
       libffi-dev libxml2-dev libxslt1-dev libjpeg-dev libharfbuzz-dev libfribidi-dev && \
