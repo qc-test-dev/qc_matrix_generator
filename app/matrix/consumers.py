@@ -1,6 +1,8 @@
 # app/matrix/consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer  # ← Agrega WebsocketConsumer
+from channels.consumer import SyncConsumer
 
 class MatrizConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -103,3 +105,20 @@ class ValidatesConsumer(AsyncWebsocketConsumer):
         print(f"🎯🎯🎯 ENVIANDO VALIDATE A BROWSER: {mensaje}")
         
         await self.send(text_data=json.dumps(mensaje))
+
+class TestConsumer(WebsocketConsumer):  # Síncrono
+    def connect(self):
+        print("🟢 TEST WEBSOCKET CONECTADO")
+        self.accept()
+        self.send(text_data=json.dumps({
+            'message': 'Test WebSocket conectado exitosamente!'
+        }))
+    
+    def disconnect(self, close_code):
+        print(f"🔴 TEST WEBSOCKET DESCONECTADO: {close_code}")
+    
+    def receive(self, text_data):
+        print(f"📨 TEST RECIBIDO: {text_data}")
+        self.send(text_data=json.dumps({
+            'echo': text_data
+        }))
