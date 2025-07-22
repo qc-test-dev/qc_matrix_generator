@@ -76,4 +76,4 @@ fi
 
 # ✅ WEBSOCKET: Usar Daphne con ASGI
 echo -e "${GREEN}[SERVER] Iniciando servidor Daphne con WebSocket...${NC}"
-exec daphne -b 0.0.0.0 -p 8000 --access-log - --proxy-headers main_website.asgi:application
+exec daphne -b 0.0.0.0 -p 8000  main_website.asgi:application

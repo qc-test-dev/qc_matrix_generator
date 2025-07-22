@@ -80,7 +80,7 @@ services:
           python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission;
         fi &&
         echo 'Iniciando servidor Daphne...' &&
-        exec daphne -b 0.0.0.0 -p 8000 --access-log - --proxy-headers main_website.asgi:application
+        
       "
     networks:
       - qc_network
