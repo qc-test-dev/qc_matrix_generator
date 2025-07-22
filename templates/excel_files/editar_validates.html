@@ -90,7 +90,11 @@ Validates – {{ super_matriz.nombre }}
 
 <script>
 const superMatrizId = "{{ super_matriz.id }}";
-const socket = new WebSocket("ws://" + window.location.host + "/ws/validates/" + superMatrizId + "/");
+const socket = new WebSocket(
+    (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + 
+    '//' + window.location.host + 
+    '/ws/validates/' + superMatrizId + '/'
+);
 
 socket.onmessage = function(event) {
     const data = JSON.parse(event.data);
