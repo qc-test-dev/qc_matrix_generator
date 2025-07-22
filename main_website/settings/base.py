@@ -19,7 +19,7 @@ REST_FRAMEWORK = {
 }
 
 INSTALLED_APPS = [
-    'daphne',
+    
     'channels',
     'channels_redis',
 
