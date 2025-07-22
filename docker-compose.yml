@@ -50,7 +50,7 @@ services:
       - ./:/app
       - staticfiles-volume:/vol/static
     environment:
-      - DJANGO_SETTINGS_MODULE=main_website.settings.prod
+      - DJANGO_SETTINGS_MODULE=main_website.settings.uat
       - DEBUG=0
       - POSTGRES_DB=qc_matrix
       - POSTGRES_USER=qc_admin
