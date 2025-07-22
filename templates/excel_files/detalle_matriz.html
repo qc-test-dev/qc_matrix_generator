@@ -88,15 +88,15 @@ const matrizId = "{{ matriz.id }}";
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/ws/matriz/${matrizId}/`;
 
-// Variable global para el socket
+// ⚡ VARIABLE GLOBAL - UNA SOLA CONEXIÓN
 let globalSocket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 
 function createWebSocketConnection() {
-    // Si ya hay una conexión abierta, no crear otra
+    // 🛡️ Si ya hay una conexión abierta, NO crear otra
     if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
-        console.log("🔄 WebSocket ya está conectado");
+        console.log("🔄 WebSocket ya está conectado - reutilizando");
         return globalSocket;
     }
 
@@ -106,7 +106,7 @@ function createWebSocketConnection() {
 
     globalSocket.onopen = function(event) {
         console.log("✅ WebSocket de matriz conectado correctamente");
-        reconnectAttempts = 0; // Reset contador de reconexiones
+        reconnectAttempts = 0;
     };
 
     globalSocket.onerror = function(error) {
@@ -116,13 +116,13 @@ function createWebSocketConnection() {
     globalSocket.onclose = function(event) {
         console.log(`🔌 WebSocket de matriz cerrado. Código: ${event.code}, Razón: ${event.reason}`);
         
-        // Solo reconectar si no fue un cierre limpio y no hemos excedido intentos
+        // Solo reconectar si no fue un cierre limpio
         if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             console.log(`⚠️ Reconectando... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
             setTimeout(() => {
                 createWebSocketConnection();
-            }, 2000 * reconnectAttempts); // Backoff exponencial
+            }, 2000 * reconnectAttempts);
         }
     };
 
@@ -173,14 +173,14 @@ function createWebSocketConnection() {
     return globalSocket;
 }
 
-// Esperar a que el DOM esté listo ANTES de crear WebSocket
+// 🚀 ESPERAR DOM ANTES DE CONECTAR
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 DOM cargado, configurando event listeners...");
     
-    // Crear WebSocket DESPUÉS de que DOM esté listo
+    // ⚡ CREAR WEBSOCKET UNA SOLA VEZ
     createWebSocketConnection();
     
-    // Cambios de estado (envía al backend y aplica color)
+    // Configurar event listeners SIN crear nuevas conexiones
     const estadoSelects = document.querySelectorAll('.estado-input');
     console.log(`📊 Encontrados ${estadoSelects.length} selects de estado`);
     
@@ -197,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`🔄 Cambiando estado del caso ${casoId} a: ${nuevoEstado}`);
 
+            // 🛡️ SOLO FETCH - NO CREAR NUEVA CONEXIÓN WEBSOCKET
             fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
                 method: "POST",
                 headers: {
@@ -221,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Cambios de nota (envía al backend al salir del input)
+    // Configurar inputs de nota
     const notaInputs = document.querySelectorAll('.nota-input');
     console.log(`📝 Encontrados ${notaInputs.length} inputs de nota`);
     
@@ -237,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`📝 Actualizando nota del caso ${casoId}`);
 
+            // 🛡️ SOLO FETCH - NO CREAR NUEVA CONEXIÓN WEBSOCKET
             fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
                 method: "POST",
                 headers: {
@@ -260,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Verificar conexión cada 30 segundos y reconectar si es necesario
+// 🔄 Verificar conexión cada 30 segundos
 setInterval(() => {
     if (!globalSocket || globalSocket.readyState === WebSocket.CLOSED) {
         console.log("🔄 Verificando conexión WebSocket...");
@@ -271,7 +273,6 @@ setInterval(() => {
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
     
-    // Resetear clases
     select.className = "estado-input form-control";
     select.style.backgroundColor = "";
     select.style.color = "";
@@ -308,7 +309,7 @@ function aplicarColorEstado(select) {
     select.style.fontWeight = "bold";
 }
 
-// CSS para el efecto flash
+// CSS para animaciones
 const style = document.createElement('style');
 style.textContent = `
     .flash-update {
@@ -322,7 +323,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Cleanup al cerrar la página
+// 🧹 Cleanup al cerrar página
 window.addEventListener('beforeunload', function() {
     if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
         globalSocket.close(1000, 'Página cerrándose');
