@@ -379,17 +379,26 @@ def generar_pdf_supermatriz(request, supermatriz_id):
 # ========================================
 
 @login_required
+@login_required
 def actualizar_estado_caso(request):
+    print(f"🔥🔥🔥 VISTA EJECUTADA - Método: {request.method}")
+    
     if request.method == "POST":
         caso_id = request.POST.get("caso_id")
         nuevo_estado = request.POST.get("nuevo_estado")
         
+        print(f"🔥🔥🔥 DATOS: caso_id={caso_id}, estado={nuevo_estado}")
+        
         try:
             caso = CasoDePrueba.objects.get(id=caso_id)
+            print(f"🔥🔥🔥 CASO ENCONTRADO: {caso.id}")
+            
             caso.estado = nuevo_estado
             caso.save()
+            
+            print(f"🔥🔥🔥 CASO GUARDADO, ENVIANDO WEBSOCKET...")
 
-            # ✅ WebSocket: Enviar evento
+            # WebSocket
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"matriz_{caso.matriz.id}",
@@ -401,23 +410,37 @@ def actualizar_estado_caso(request):
                     },
                 }
             )
+            
+            print(f"🔥🔥🔥 WEBSOCKET ENVIADO A: matriz_{caso.matriz.id}")
             return JsonResponse({"success": True})
-        except CasoDePrueba.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Caso no encontrado."})
+            
         except Exception as e:
+            print(f"❌❌❌ ERROR EN VISTA: {e}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)})
+    
+    print(f"🔥🔥🔥 MÉTODO NO ES POST: {request.method}")
     return JsonResponse({"success": False, "error": "Método no permitido."})
 
 @require_POST
 @login_required
 def actualizar_nota_caso(request):
+    print(f"📝📝📝 NOTA VISTA EJECUTADA")
+    
     caso_id = request.POST.get('caso_id')
     nueva_nota = request.POST.get('nota', '')
+    
+    print(f"📝📝📝 DATOS NOTA: caso_id={caso_id}, nota='{nueva_nota}'")
 
     try:
         caso = CasoDePrueba.objects.get(id=caso_id)
+        print(f"📝📝📝 CASO ENCONTRADO: {caso.id}")
+        
         caso.nota = nueva_nota
         caso.save()
+        
+        print(f"📝📝📝 NOTA GUARDADA, ENVIANDO WEBSOCKET...")
 
         # ✅ WebSocket: Enviar evento
         channel_layer = get_channel_layer()
@@ -431,22 +454,37 @@ def actualizar_nota_caso(request):
                 }
             }
         )
+        
+        print(f"📝📝📝 WEBSOCKET NOTA ENVIADO A: matriz_{caso.matriz.id}")
         return JsonResponse({"success": True})
+        
     except CasoDePrueba.DoesNotExist:
+        print(f"❌❌❌ CASO NO ENCONTRADO: {caso_id}")
         return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
     except Exception as e:
+        print(f"❌❌❌ ERROR EN NOTA: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({"success": False, "error": str(e)})
-
+    
 @login_required
 def actualizar_estado_validate(request):
+    print(f"✅✅✅ VALIDATE VISTA EJECUTADA - Método: {request.method}")
+    
     if request.method == 'POST':
         validate_id = request.POST.get('validate_id')
         nuevo_estado = request.POST.get('nuevo_estado')
+        
+        print(f"✅✅✅ DATOS VALIDATE: validate_id={validate_id}, estado={nuevo_estado}")
 
         try:
             validate = Validate.objects.get(id=validate_id)
+            print(f"✅✅✅ VALIDATE ENCONTRADO: {validate.id}")
+            
             validate.estado = nuevo_estado
             validate.save()
+            
+            print(f"✅✅✅ VALIDATE GUARDADO, ENVIANDO WEBSOCKET...")
 
             # ✅ WebSocket: Enviar evento
             super_matriz = validate.super_matriz
@@ -460,9 +498,17 @@ def actualizar_estado_validate(request):
                 }
             )
 
+            print(f"✅✅✅ WEBSOCKET VALIDATE ENVIADO A: validates_{super_matriz.id}")
             return JsonResponse({"success": True})
+            
         except Validate.DoesNotExist:
+            print(f"❌❌❌ VALIDATE NO ENCONTRADO: {validate_id}")
             return JsonResponse({"success": False, "error": "Validate no encontrado"})
         except Exception as e:
+            print(f"❌❌❌ ERROR EN VALIDATE: {e}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({"success": False, "error": str(e)})
+    
+    print(f"✅✅✅ MÉTODO NO ES POST: {request.method}")
     return JsonResponse({"success": False, "error": "Método no permitido"})

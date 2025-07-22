@@ -33,15 +33,20 @@ class MatrizConsumer(AsyncWebsocketConsumer):
         pass  # No necesitamos recibir mensajes del cliente
 
     # Receive message from room group
+    # En consumers.py, método estado_actualizado:
     async def estado_actualizado(self, event):
+        print(f"🚀🚀🚀 CONSUMER RECIBIÓ: {event}")
         data = event['data']
         
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
+        mensaje = {
             'tipo': 'estado',
             'caso_id': data['caso_id'],
             'valor': data['valor']
-        }))
+        }
+        print(f"🚀🚀🚀 ENVIANDO A BROWSER: {mensaje}")
+        
+        await self.send(text_data=json.dumps(mensaje))
+    
 
     async def nota_actualizada(self, event):
         data = event['data']
@@ -52,6 +57,7 @@ class MatrizConsumer(AsyncWebsocketConsumer):
             'caso_id': data['caso_id'],
             'valor': data['valor']
         }))
+    
 
 
 class ValidatesConsumer(AsyncWebsocketConsumer):
@@ -85,10 +91,15 @@ class ValidatesConsumer(AsyncWebsocketConsumer):
         pass  # No necesitamos recibir mensajes del cliente
 
     # Receive message from room group
+# En consumers.py, clase ValidatesConsumer:
     async def estado_actualizado(self, event):
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
+        print(f"🎯🎯🎯 VALIDATES CONSUMER RECIBIÓ: {event}")
+        
+        mensaje = {
             'type': 'estado_actualizado',
             'validate_id': event['validate_id'],
             'nuevo_estado': event['nuevo_estado']
-        }))
+        }
+        print(f"🎯🎯🎯 ENVIANDO VALIDATE A BROWSER: {mensaje}")
+        
+        await self.send(text_data=json.dumps(mensaje))
