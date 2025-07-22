@@ -50,6 +50,7 @@ services:
       - ./:/app
       - staticfiles-volume:/vol/static
     environment:
+      - WEBSOCKET_URL=/ws/
       - DJANGO_SETTINGS_MODULE=main_website.settings.prod
       - DEBUG=0
       - POSTGRES_DB=qc_matrix
@@ -61,6 +62,7 @@ services:
       - REDIS_PORT=6379
       - JIRA_EMAIL=${JIRA_EMAIL}
       - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - CHANNEL_LAYER_REDIS_URL=redis://redis:6379/0
     depends_on:
       db:
         condition: service_healthy

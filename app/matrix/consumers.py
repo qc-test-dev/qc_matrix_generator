@@ -14,75 +14,58 @@ class TestConsumer(AsyncWebsocketConsumer):
     
     async def receive(self, text_data):
         print(f"📨 TEST RECIBIDO: {text_data}")
-        # Enviar echo simple
-        await self.send(text_data="echo: " + text_data)
+        if text_data['type'] == 'init':
+            await self.send(json.dumps({'type': 'connected'}))
+        elif text_data['type'] == 'estado_update':
+            # Procesar actualización y difundir al grupo
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'estado_actualizado',
+                    'validate_id': text_data['validate_id'],
+                    'nuevo_estado': text_data['nuevo_estado']
+                }
+            )
+        elif text_data['type'] == 'heartbeat':
+            pass  # Solo mantener conexión activa
 
 class MatrizConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
-            print(f"🔵 MATRIZ CONNECT INICIADO")
-            print(f"🔍 HEADERS: {dict(self.scope.get('headers', []))}")
-            
             self.matriz_id = self.scope['url_route']['kwargs']['matriz_id']
             self.room_group_name = f'matriz_{self.matriz_id}'
             
+            # Aceptar conexión primero
+            await self.accept()
+            
+            # Verificar permisos/autenticación aquí si es necesario
+            
+            # Unirse al grupo
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name
             )
             
-            await self.accept()
-            print(f"🟢 WebSocket ACEPTADO")
-            
-            # Por ahora NO enviar mensaje
-            print(f"🟢 NO ENVIANDO MENSAJE DE CONFIRMACIÓN")
+            # Enviar mensaje de confirmación
+            await self.send(text_data=json.dumps({
+                'type': 'connection_established',
+                'message': 'Conexión WebSocket establecida',
+                'matriz_id': self.matriz_id
+            }))
             
         except Exception as e:
-            print(f"❌ ERROR EN MATRIZ CONNECT: {e}")
-            traceback.print_exc()
+            print(f"Error en connect: {str(e)}")
+            await self.close(code=4001)  # Código personalizado para errores
 
     async def disconnect(self, close_code):
-        print(f"🔴 MATRIZ DISCONNECT - código: {close_code}")
+        # Limpieza consistente
         try:
             await self.channel_layer.group_discard(
                 self.room_group_name,
                 self.channel_name
             )
-        except Exception as e:
-            print(f"❌ ERROR EN DISCONNECT: {e}")
-
-    async def receive(self, text_data):
-        print(f"📨 MATRIZ RECIBIÓ: {text_data}")
-
-    async def estado_actualizado(self, event):
-        try:
-            print(f"🚀🚀🚀 CONSUMER RECIBIÓ: {event}")
-            data = event['data']
-            
-            mensaje = {
-                'tipo': 'estado',
-                'caso_id': data['caso_id'],
-                'valor': data['valor']
-            }
-            print(f"🚀🚀🚀 ENVIANDO A BROWSER: {mensaje}")
-            
-            await self.send(text_data=json.dumps(mensaje, ensure_ascii=True))
-        except Exception as e:
-            print(f"❌ ERROR EN estado_actualizado: {e}")
-            traceback.print_exc()
-
-    async def nota_actualizada(self, event):
-        try:
-            data = event['data']
-            
-            await self.send(text_data=json.dumps({
-                'tipo': 'nota',
-                'caso_id': data['caso_id'],
-                'valor': data['valor']
-            }, ensure_ascii=True))
-        except Exception as e:
-            print(f"❌ ERROR EN nota_actualizada: {e}")
-            traceback.print_exc()
+        except:
+            pass
 
 class ValidatesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -114,7 +97,21 @@ class ValidatesConsumer(AsyncWebsocketConsumer):
             print(f"❌ ERROR EN DISCONNECT: {e}")
 
     async def receive(self, text_data):
-        print(f"📨 VALIDATES RECIBIÓ: {text_data}")
+        print(f"📨 TEST RECIBIDO: {text_data}")
+        if text_data['type'] == 'init':
+            await self.send(json.dumps({'type': 'connected'}))
+        elif text_data['type'] == 'estado_update':
+            # Procesar actualización y difundir al grupo
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'estado_actualizado',
+                    'validate_id': text_data['validate_id'],
+                    'nuevo_estado': text_data['nuevo_estado']
+                }
+            )
+        elif text_data['type'] == 'heartbeat':
+            pass  # Solo mantener conexión activa
 
     async def estado_actualizado(self, event):
         try:

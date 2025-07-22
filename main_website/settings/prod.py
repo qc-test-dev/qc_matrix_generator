@@ -35,13 +35,19 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(REDIS_HOST, 6379)],
-            "capacity": 1500,
-            "expiry": 10,
+            "hosts": [(os.environ.get('REDIS_HOST', 'redis'), 6379)],  # Usar nombre de servicio Docker
+            "channel_capacity": {
+                "http.request": 200,
+                "websocket.send": 1500,
+            },
+            "symmetric_encryption_keys": [SECRET_KEY[:32]],  # Añadir encriptación
         },
-    },
+    }
 }
 
+# Configuración mejorada para WebSockets
+WEBSOCKET_URL = '/ws/'  # Ruta base para WebSockets
+ASGI_APPLICATION = 'main_website.asgi.application'
 # Configuración para WebSockets con proxy reverso
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
