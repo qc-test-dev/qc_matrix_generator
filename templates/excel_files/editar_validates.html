@@ -93,68 +93,90 @@ Validates – {{ super_matriz.nombre }}
 console.log("superMatrizId:", "{{ super_matriz.id }}");
 
 const superMatrizId = "{{ super_matriz.id }}";
-
-// ✅ WebSocket con detección de protocolo
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/ws/validates/${superMatrizId}/`;
 
-console.log("🔗 Intentando conectar WebSocket a:", wsUrl);
+// Variable global para el socket
+let globalSocket = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
 
-const socket = new WebSocket(wsUrl);
-
-socket.onopen = function(event) {
-    console.log("✅ WebSocket de validates conectado correctamente");
-};
-
-socket.onerror = function(error) {
-    console.error("❌ Error en WebSocket de validates:", error);
-    console.log("🔍 Verifica que el consumer ValidateConsumer esté funcionando");
-};
-
-socket.onclose = function(event) {
-    console.log(`🔌 WebSocket de validates cerrado. Código: ${event.code}, Razón: ${event.reason}`);
-    if (event.code !== 1000) {
-        console.log("⚠️ Reconexión podría ser necesaria");
+function createWebSocketConnection() {
+    // Si ya hay una conexión abierta, no crear otra
+    if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
+        console.log("🔄 WebSocket validates ya está conectado");
+        return globalSocket;
     }
-};
 
-socket.onmessage = function(event) {
-    console.log("📨 Mensaje WebSocket recibido:", event.data);
+    console.log("🔗 Intentando conectar WebSocket validates a:", wsUrl);
     
-    try {
-        const data = JSON.parse(event.data);
-        if (data.type === "estado_actualizado") {
-            const validateId = data.validate_id;
-            const nuevoEstado = data.nuevo_estado;
-            
-            console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
-            
-            const celda = document.querySelector(`#estado-validate-${validateId}`);
-            if (celda) {
-                const select = celda.querySelector('select');
-                if (select && select.value !== nuevoEstado) {
-                    select.value = nuevoEstado;
-                    aplicarColorEstado(select);
-                    select.classList.add("flash-update");
-                    setTimeout(() => select.classList.remove("flash-update"), 1500);
-                    console.log(`✅ Validate ${validateId} actualizado correctamente`);
-                }
-            } else {
-                console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
-            }
-        }
-    } catch (error) {
-        console.error("❌ Error procesando mensaje WebSocket:", error);
-    }
-};
+    globalSocket = new WebSocket(wsUrl);
 
-// Esperar a que el DOM esté listo
+    globalSocket.onopen = function(event) {
+        console.log("✅ WebSocket de validates conectado correctamente");
+        reconnectAttempts = 0; // Reset contador de reconexiones
+    };
+
+    globalSocket.onerror = function(error) {
+        console.error("❌ Error en WebSocket de validates:", error);
+    };
+
+    globalSocket.onclose = function(event) {
+        console.log(`🔌 WebSocket de validates cerrado. Código: ${event.code}, Razón: ${event.reason}`);
+        
+        // Solo reconectar si no fue un cierre limpio y no hemos excedido intentos
+        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            console.log(`⚠️ Reconectando validates... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
+            setTimeout(() => {
+                createWebSocketConnection();
+            }, 2000 * reconnectAttempts); // Backoff exponencial
+        }
+    };
+
+    globalSocket.onmessage = function(event) {
+        console.log("📨 Mensaje WebSocket validates recibido:", event.data);
+        
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === "estado_actualizado") {
+                const validateId = data.validate_id;
+                const nuevoEstado = data.nuevo_estado;
+                
+                console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
+                
+                const celda = document.querySelector(`#estado-validate-${validateId}`);
+                if (celda) {
+                    const select = celda.querySelector('select');
+                    if (select && select.value !== nuevoEstado) {
+                        select.value = nuevoEstado;
+                        aplicarColorEstado(select);
+                        select.classList.add("flash-update");
+                        setTimeout(() => select.classList.remove("flash-update"), 1500);
+                        console.log(`✅ Validate ${validateId} actualizado correctamente`);
+                    }
+                } else {
+                    console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
+                }
+            }
+        } catch (error) {
+            console.error("❌ Error procesando mensaje WebSocket validates:", error);
+        }
+    };
+
+    return globalSocket;
+}
+
+// Esperar a que el DOM esté listo ANTES de crear WebSocket
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🔧 DOM cargado, configurando event listeners...");
+    console.log("🔧 DOM cargado, configurando event listeners validates...");
+    
+    // Crear WebSocket DESPUÉS de que DOM esté listo
+    createWebSocketConnection();
     
     // Configurar todos los selects
     const selects = document.querySelectorAll("select");
-    console.log(`📊 Encontrados ${selects.length} selects`);
+    console.log(`📊 Encontrados ${selects.length} selects validates`);
     
     selects.forEach((select, index) => {
         if (!select) {
@@ -225,6 +247,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Verificar conexión cada 30 segundos y reconectar si es necesario
+setInterval(() => {
+    if (!globalSocket || globalSocket.readyState === WebSocket.CLOSED) {
+        console.log("🔄 Verificando conexión WebSocket validates...");
+        createWebSocketConnection();
+    }
+}, 30000);
+
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
     
@@ -270,8 +300,14 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-</script>
 
+// Cleanup al cerrar la página
+window.addEventListener('beforeunload', function() {
+    if (globalSocket && globalSocket.readyState === WebSocket.OPEN) {
+        globalSocket.close(1000, 'Página cerrándose');
+    }
+});
+</script>
 <style>
 .flash-update {
     animation: flashHighlight 1.5s ease;
