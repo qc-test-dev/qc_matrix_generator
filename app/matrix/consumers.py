@@ -1,37 +1,45 @@
-# app/matrix/consumers.py
 import json
 import traceback
 from channels.generic.websocket import AsyncWebsocketConsumer
+
+class TestConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        print("🟢 TEST: Aceptando...")
+        await self.accept()
+        print("🟢 TEST: Aceptado - SIN ENVIAR NADA")
+        # NO enviar nada por ahora
+    
+    async def disconnect(self, close_code):
+        print(f"🔴 TEST DISCONNECT: {close_code}")
+    
+    async def receive(self, text_data):
+        print(f"📨 TEST RECIBIDO: {text_data}")
+        # Enviar echo simple
+        await self.send(text_data="echo: " + text_data)
 
 class MatrizConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
             print(f"🔵 MATRIZ CONNECT INICIADO")
+            print(f"🔍 HEADERS: {dict(self.scope.get('headers', []))}")
+            
             self.matriz_id = self.scope['url_route']['kwargs']['matriz_id']
             self.room_group_name = f'matriz_{self.matriz_id}'
-            print(f"🔵 matriz_id: {self.matriz_id}, grupo: {self.room_group_name}")
-
-            # Join room group
+            
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name
             )
-            print(f"🔵 Agregado al grupo exitosamente")
-
+            
             await self.accept()
             print(f"🟢 WebSocket ACEPTADO")
             
-            # Enviar confirmación de conexión
-            await self.send(text_data=json.dumps({
-                'type': 'connected',
-                'matriz_id': self.matriz_id
-            }))
-            print(f"🟢 Mensaje de confirmación enviado")
+            # Por ahora NO enviar mensaje
+            print(f"🟢 NO ENVIANDO MENSAJE DE CONFIRMACIÓN")
             
         except Exception as e:
             print(f"❌ ERROR EN MATRIZ CONNECT: {e}")
             traceback.print_exc()
-            await self.close()
 
     async def disconnect(self, close_code):
         print(f"🔴 MATRIZ DISCONNECT - código: {close_code}")
@@ -58,7 +66,7 @@ class MatrizConsumer(AsyncWebsocketConsumer):
             }
             print(f"🚀🚀🚀 ENVIANDO A BROWSER: {mensaje}")
             
-            await self.send(text_data=json.dumps(mensaje))
+            await self.send(text_data=json.dumps(mensaje, ensure_ascii=True))
         except Exception as e:
             print(f"❌ ERROR EN estado_actualizado: {e}")
             traceback.print_exc()
@@ -71,11 +79,10 @@ class MatrizConsumer(AsyncWebsocketConsumer):
                 'tipo': 'nota',
                 'caso_id': data['caso_id'],
                 'valor': data['valor']
-            }))
+            }, ensure_ascii=True))
         except Exception as e:
             print(f"❌ ERROR EN nota_actualizada: {e}")
             traceback.print_exc()
-
 
 class ValidatesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -90,17 +97,11 @@ class ValidatesConsumer(AsyncWebsocketConsumer):
             )
 
             await self.accept()
-            
-            await self.send(text_data=json.dumps({
-                'type': 'connected',
-                'super_matriz_id': self.super_matriz_id
-            }))
-            print(f"🟢 VALIDATES CONECTADO - grupo: {self.room_group_name}")
+            print(f"🟢 VALIDATES CONECTADO - NO ENVIANDO MENSAJE")
             
         except Exception as e:
             print(f"❌ ERROR EN VALIDATES CONNECT: {e}")
             traceback.print_exc()
-            await self.close()
 
     async def disconnect(self, close_code):
         print(f"🔴 VALIDATES DISCONNECT - código: {close_code}")
@@ -124,36 +125,8 @@ class ValidatesConsumer(AsyncWebsocketConsumer):
                 'validate_id': event['validate_id'],
                 'nuevo_estado': event['nuevo_estado']
             }
-            print(f"🎯🎯🎯 ENVIANDO VALIDATE A BROWSER: {mensaje}")
             
-            await self.send(text_data=json.dumps(mensaje))
+            await self.send(text_data=json.dumps(mensaje, ensure_ascii=True))
         except Exception as e:
             print(f"❌ ERROR EN estado_actualizado: {e}")
             traceback.print_exc()
-
-
-# Cambié TestConsumer a async para consistencia
-class TestConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        try:
-            print("🟢 TEST WEBSOCKET CONECTANDO...")
-            await self.accept()
-            print("🟢 TEST WEBSOCKET ACEPTADO")
-            
-            await self.send(text_data=json.dumps({
-                'message': 'Test WebSocket conectado exitosamente!'
-            }))
-            print("🟢 TEST MENSAJE ENVIADO")
-            
-        except Exception as e:
-            print(f"❌ ERROR EN TEST CONNECT: {e}")
-            traceback.print_exc()
-    
-    async def disconnect(self, close_code):
-        print(f"🔴 TEST WEBSOCKET DESCONECTADO: {close_code}")
-    
-    async def receive(self, text_data):
-        print(f"📨 TEST RECIBIDO: {text_data}")
-        await self.send(text_data=json.dumps({
-            'echo': text_data
-        }))

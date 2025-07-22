@@ -76,7 +76,7 @@ tinycss2
 tinyhtml5
 tomli
 tomlkit
-Twisted
+twisted
 txaio
 typing_extensions
 tzdata
