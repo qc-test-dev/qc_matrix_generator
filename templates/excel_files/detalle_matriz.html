@@ -81,8 +81,6 @@
     </div>
 </div>
 <script>
-     
-const csrfToken = "{{ csrf_token }}";
 const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
@@ -94,10 +92,9 @@ function createWebSocketConnection() {
         return;
     }
 
-    // Detectar protocolo automáticamente
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/matriz/${matrizId}/?csrf=${csrfToken}`;
+    const wsUrl = `ws://${window.location.host}/ws/matriz/${matrizId}/`;
     console.log("🔗 Conectando WebSocket a:", wsUrl);
+    
     socket = new WebSocket(wsUrl);
 
     socket.onopen = function() {

@@ -87,38 +87,41 @@ Validates – {{ super_matriz.nombre }}
         </div>
     </form>
 </div>
+
 <script>
+console.log("superMatrizId:", "{{ super_matriz.id }}");
+
 const superMatrizId = "{{ super_matriz.id }}";
-let socket = null;
+
+// ⚡ SSE - Server-Sent Events
+let eventSource = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 
-function createWebSocketConnection() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log("🔄 WebSocket validates ya está conectado");
+function createSSEConnection() {
+    if (eventSource && eventSource.readyState === EventSource.OPEN) {
+        console.log("🔄 SSE validates ya está conectado");
         return;
     }
 
-    // Detectar protocolo automáticamente
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/validates/${superMatrizId}/`;
-    console.log("🔗 Conectando WebSocket validates a:", wsUrl);
+    const sseUrl = `/matrix/validates/${superMatrizId}/sse/`;
+    console.log("🔗 Conectando SSE validates a:", sseUrl);
     
-    socket = new WebSocket(wsUrl);
+    eventSource = new EventSource(sseUrl);
 
-    socket.onopen = function() {
-        console.log("✅ WebSocket validates conectado correctamente");
+    eventSource.onopen = function() {
+        console.log("✅ SSE validates conectado correctamente");
         reconnectAttempts = 0;
     };
 
-    socket.onmessage = function(event) {
-        console.log("📨 WebSocket validates recibido:", event.data);
+    eventSource.onmessage = function(event) {
+        console.log("📨 SSE validates recibido:", event.data);
         
         try {
             const data = JSON.parse(event.data);
             
             if (data.type === 'connected') {
-                console.log("🎯 WebSocket validates confirmación de conexión");
+                console.log("🎯 SSE validates confirmación de conexión");
                 return;
             }
 
@@ -143,31 +146,29 @@ function createWebSocketConnection() {
                 }
             }
         } catch (error) {
-            console.error("❌ Error procesando mensaje WebSocket validates:", error);
+            console.error("❌ Error procesando mensaje SSE validates:", error);
         }
     };
 
-    socket.onerror = function(error) {
-        console.error("❌ Error en WebSocket validates:", error);
-    };
-
-    socket.onclose = function(event) {
-        console.log("❌ WebSocket validates cerrado:", event.code, event.reason);
+    eventSource.onerror = function(error) {
+        console.error("❌ Error en SSE validates:", error);
         
-        if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            console.log(`⚠️ Reconectando WebSocket validates... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
-            setTimeout(createWebSocketConnection, 2000 * reconnectAttempts);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                console.log(`⚠️ Reconectando SSE validates... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
+                setTimeout(createSSEConnection, 2000 * reconnectAttempts);
+            }
         }
     };
 }
 
 // Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🔧 DOM cargado, configurando WebSocket validates...");
+    console.log("🔧 DOM cargado, configurando event listeners validates...");
     
-    // ⚡ CREAR WEBSOCKET
-    createWebSocketConnection();
+    // ⚡ CREAR SSE
+    createSSEConnection();
     
     // Configurar selects
     const selects = document.querySelectorAll("select");
@@ -244,9 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Verificar conexión cada 30 segundos
 setInterval(() => {
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
-        console.log("🔄 Verificando conexión WebSocket validates...");
-        createWebSocketConnection();
+    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+        console.log("🔄 Verificando conexión SSE validates...");
+        createSSEConnection();
     }
 }, 30000);
 
@@ -297,8 +298,8 @@ document.head.appendChild(style);
 
 // Cleanup al cerrar página
 window.addEventListener('beforeunload', function() {
-    if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close();
+    if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+        eventSource.close();
     }
 });
 </script>
