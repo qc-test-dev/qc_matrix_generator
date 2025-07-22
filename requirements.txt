@@ -90,3 +90,4 @@ whitenoise
 xhtml2pdf
 zope.interface
 zopfli
+gunicorn

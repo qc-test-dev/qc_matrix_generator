@@ -1,6 +1,6 @@
 import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import random
@@ -8,44 +8,32 @@ from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm
+    TicketPorLevantarForm, ValidateForm
 )
-from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo
-from .utils import importar_matriz_desde_excel,importar_validates
+from .models import SuperMatriz, Matriz, Validate, TicketPorLevantar, DetallesValidate, Dispositivo, CasoDePrueba
+from .utils import importar_matriz_desde_excel, importar_validates
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
 from app.accounts.models import User
 from collections import defaultdict
-Usuario = get_user_model()
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from collections import defaultdict
-import random
-import os
-from django.contrib import messages
-from django.conf import settings
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from django.http import JsonResponse
-from .models import CasoDePrueba
-
-from .models import SuperMatriz, Validate
-from .forms import MatrizForm, ValidateForm
-from .utils import importar_matriz_desde_excel
-from django.views.decorators.csrf import csrf_exempt
-from app.matrix.models import SuperMatriz, Dispositivo
-from collections import defaultdict
-from django.http import HttpResponse
 from django.template.loader import get_template
-from xhtml2pdf import pisa
-from collections import defaultdict
 from weasyprint import HTML
-from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
 import locale
-locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
+import json
+import redis
+import time
+
+# Configurar locale para fechas en español
+try:
+    locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
+except:
+    pass
+
+Usuario = get_user_model()
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -63,12 +51,12 @@ def detalle_super_matriz(request, super_matriz_id):
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
 
-        if matriz.alcances_utilizados=='A':
-            alcance="MVP (Minimum Viable Product:A)"
-        elif matriz.alcances_utilizados=='A,B':
-            alcance='Smoke Test (A,B)'
-        elif matriz.alcances_utilizados=='A,B,C':
-            alcance='No Afectacion (NA:A,B,C)'
+        if matriz.alcances_utilizados == 'A':
+            alcance = "MVP (Minimum Viable Product:A)"
+        elif matriz.alcances_utilizados == 'A,B':
+            alcance = 'Smoke Test (A,B)'
+        elif matriz.alcances_utilizados == 'A,B,C':
+            alcance = 'No Afectacion (NA:A,B,C)'
         else:
             alcance = 'No definido'
 
@@ -89,7 +77,7 @@ def detalle_super_matriz(request, super_matriz_id):
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
             'alcance': alcance,
-            'dispositivo': matriz.dispositivo,  # <-- agregar dispositivo aquí
+            'dispositivo': matriz.dispositivo,
         })
 
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
@@ -152,90 +140,6 @@ def detalle_super_matriz(request, super_matriz_id):
         'equipo_nuevo': equipo_nuevo,
     })
 
-
-# @login_required
-# def detalle_super_matriz(request, super_matriz_id):
-#     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-#     matrices = super_matriz.matrices.all()
-#     validates = super_matriz.validates.all()
-#     es_lider = request.user.cargo=='Lider'
-    
-#     matrices_info = []
-#     for matriz in matrices:
-#         casos = matriz.casos.all()
-#         total_casos = casos.count()
-#         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente']
-#         casos_filtrados = casos.filter(estado__in=estados_interes).count()
-#         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
-
-#         testers_por_region = defaultdict(set)
-#         for caso in casos:
-#             if caso.tester:
-#                 partes = caso.tester.split('-')
-#                 if len(partes) == 2:
-#                     nombre, region = partes
-#                     testers_por_region[region.strip()].add(nombre.strip())
-
-#         # Convertir sets a listas ordenadas
-#         testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
-
-#         matrices_info.append({
-#             'matriz': matriz,
-#             'total_casos': total_casos,
-#             'casos_filtrados': casos_filtrados,
-#             'porcentaje': round(porcentaje, 2),
-#             'testers_por_region': testers_por_region,
-#         })
-#     # Formulario vacío al principio
-#     form = MatrizForm(equipo=super_matriz.equipo)
-#     validate_form = ValidateForm()
-
-#     if request.method == 'POST':
-#         if 'crear_matriz' in request.POST:
-#             form = MatrizForm(request.POST, equipo=super_matriz.equipo)
-#             if form.is_valid():
-#                 nueva_matriz = form.save(commit=False)
-#                 nueva_matriz.super_matriz = super_matriz
-
-#                 alcance_seleccionado = request.POST.get('alcance', '')
-#                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
-
-#                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
-#                 nueva_matriz.save()
-
-#                 ruta_excel_matriz = os.path.join('static', 'excel_files', 'matriz_base.xlsx')
-#                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
-
-#                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
-#                 regiones_seleccionados = form.cleaned_data.get('regiones', [])
-#                 casos = list(nueva_matriz.casos.all())
-#                 random.shuffle(regiones_seleccionados)
-#                 random.shuffle(testers_seleccionados)
-#                 random.shuffle(casos)
-#                 for idx, caso in enumerate(casos):
-#                     tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
-#                     region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
-#                     caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
-#                     caso.save()
-
-#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
-
-#         elif 'crear_validate' in request.POST:
-#             validate_form = ValidateForm(request.POST)
-#             if validate_form.is_valid():
-#                 validate = validate_form.save(commit=False)
-#                 validate.super_matriz = super_matriz
-#                 validate.save()
-#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
-
-#     return render(request, 'excel_files/detalle_super_matriz.html', {
-#         'super_matriz': super_matriz,
-#         'matrices_info': matrices_info,
-#         'form': form,
-#         'validate_form': validate_form,
-#         'validates': validates,
-#         'es_lider': es_lider,
-#     })
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -243,12 +147,16 @@ def detalle_matriz(request, matriz_id):
     testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
     casos_de_prueba = matriz.casos.all()
     tester_filtrado = request.GET.get('tester')
-    if matriz.alcances_utilizados=='A':
-            alcance="MVP (Minimum Viable Product:A)"
-    elif matriz.alcances_utilizados=='A,B':
-            alcance='Smoke Test (A,B)'
-    elif matriz.alcances_utilizados=='A,B,C':
-            alcance='No Afectacion (NA:A,B,C)'
+    
+    if matriz.alcances_utilizados == 'A':
+        alcance = "MVP (Minimum Viable Product:A)"
+    elif matriz.alcances_utilizados == 'A,B':
+        alcance = 'Smoke Test (A,B)'
+    elif matriz.alcances_utilizados == 'A,B,C':
+        alcance = 'No Afectacion (NA:A,B,C)'
+    else:
+        alcance = 'No definido'
+        
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
@@ -270,76 +178,19 @@ def detalle_matriz(request, matriz_id):
         'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'testers_disponibles': testers_disponibles,
         'tester_filtrado': tester_filtrado,
-        'alcance':alcance
+        'alcance': alcance
     })
-
-@login_required
-def actualizar_estado_caso(request):
-    if request.method == "POST":
-        caso_id = request.POST.get("caso_id")
-        nuevo_estado = request.POST.get("nuevo_estado")
-        try:
-            caso = CasoDePrueba.objects.get(id=caso_id)
-            caso.estado = nuevo_estado
-            caso.save()
-
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"matriz_{caso.matriz.id}",
-                {
-                    "type": "estado_actualizado",  # ✅ Nombre del método en consumer
-                    "data": {  # ✅ Mantener estructura "data"
-                        "caso_id": caso.id,
-                        "valor": nuevo_estado,
-                    },
-                }
-            )
-            return JsonResponse({"success": True})
-        except CasoDePrueba.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Caso no encontrado."})
-    return JsonResponse({"success": False, "error": "Método no permitido."})
-
-
-@require_POST
-@login_required
-def actualizar_nota_caso(request):
-    caso_id = request.POST.get('caso_id')
-    nueva_nota = request.POST.get('nota', '')
-
-    try:
-        caso = CasoDePrueba.objects.get(id=caso_id)
-        caso.nota = nueva_nota
-        caso.save()
-
-        # Emitir a WebSocket
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            f"matriz_{caso.matriz.id}",
-            {
-                "type": "nota_actualizada",  # ✅ Nombre del método en consumer
-                "data": {  # ✅ Mantener estructura "data"
-                    "caso_id": caso.id,
-                    "valor": nueva_nota,
-                }
-            }
-        )
-        return JsonResponse({"success": True})
-    except CasoDePrueba.DoesNotExist:
-        return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
-
 
 @login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
 
-    # 1️⃣ Validates ordenados por ticket ascendente (para la tabla)
     validates = Validate.objects.filter(
         super_matriz=super_matriz
     ).order_by('ticket')
 
     detalles_validate = getattr(super_matriz, 'detalles_validate', None)
 
-    # 2️⃣ Testers únicos sin repetir (para los botones de filtro)
     testers = (
         Validate.objects
         .filter(super_matriz=super_matriz)
@@ -347,7 +198,6 @@ def editar_validates(request, super_matriz_id):
         .distinct()
     )
 
-    # Construcción de formularios
     formularios = []
     if request.method == 'POST':
         for validate in validates:
@@ -379,6 +229,7 @@ def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     detalles, _ = DetallesValidate.objects.get_or_create(super_matriz=super_matriz)
     testers_del_equipo = User.objects.filter(equipo_nuevo=super_matriz.equipo_nuevo)
+    
     if request.method == 'POST':
         form = DetallesValidateForm(request.POST, instance=detalles)
         form.fields['testers'].queryset = testers_del_equipo
@@ -403,33 +254,7 @@ def detalles_validate_modal(request, super_matriz_id):
         'form': form,
         'super_matriz': super_matriz,
     })
-@login_required
-def actualizar_estado_validate(request):
-    if request.method == 'POST':
-        validate_id = request.POST.get('validate_id')
-        nuevo_estado = request.POST.get('nuevo_estado')
 
-        try:
-            validate = Validate.objects.get(id=validate_id)
-            validate.estado = nuevo_estado
-            validate.save()
-
-            # WebSocket: enviar actualización a todos los clientes del grupo
-            super_matriz = validate.super_matriz
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"validates_{super_matriz.id}",
-                {
-                    "type": "estado_actualizado",  # ✅ Nombre del método en consumer
-                    "validate_id": validate.id,    # ✅ Pasar directamente, no en "data"
-                    "nuevo_estado": nuevo_estado,  # ✅ Pasar directamente, no en "data"
-                }
-            )
-
-            return JsonResponse({"success": True})
-        except Validate.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Validate no encontrado"})
-    return JsonResponse({"success": False, "error": "Método no permitido"})
 def tickets_por_levantar_view(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)
@@ -449,6 +274,7 @@ def tickets_por_levantar_view(request, super_matriz_id):
         'tickets': tickets,
         'form': form,
     })
+
 @login_required
 def editar_ticket(request, ticket_id):
     ticket = get_object_or_404(TicketPorLevantar, id=ticket_id)
@@ -461,7 +287,6 @@ def editar_ticket(request, ticket_id):
         ticket.url = request.POST.get('url', '').strip()
         ticket.save()
         
-        # Redirige a la página de lista de tickets de la supermatriz
         return redirect('matrix_app:tickets_por_levantar', super_matriz_id=ticket.super_matriz.id)
 
 @login_required
@@ -473,7 +298,6 @@ def eliminar_super_matriz(request, super_matriz_id):
         return redirect('home') 
     return render(request, 'home.html', {'matriz': matriz})
 
-
 @login_required
 @require_POST
 def eliminar_matriz(request, matriz_id):
@@ -481,7 +305,6 @@ def eliminar_matriz(request, matriz_id):
     super_matriz_id = matriz.super_matriz.id
     matriz.delete()
     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz_id)
-
 
 def generar_pdf_supermatriz(request, supermatriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=supermatriz_id)
@@ -502,14 +325,12 @@ def generar_pdf_supermatriz(request, supermatriz_id):
         total_global_casos += total_casos
         total_global_completados += casos_filtrados
 
-        # Determinar el tipo de alcance
         alcance = {
             'A': "MVP (Minimum Viable Product:A)",
             'A,B': 'Smoke Test (A,B)',
             'A,B,C': 'No Afectación (NA:A,B,C)'
         }.get(matriz.alcances_utilizados, 'No definido')
 
-        # Testers por región
         testers_por_region = defaultdict(set)
         for caso in casos:
             if caso.tester:
@@ -536,7 +357,6 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
     fecha_generacion = localtime().strftime('%d de %B de %Y')
 
-    # Renderizar HTML
     template = get_template('pdf/reporte_supermatriz.html')
     html_string = template.render({
         'super_matriz': super_matriz,
@@ -546,11 +366,143 @@ def generar_pdf_supermatriz(request, supermatriz_id):
         'fecha_generacion': fecha_generacion,
     })
 
-    # Generar el PDF con WeasyPrint
     html = HTML(string=html_string)
     result = html.write_pdf()
 
-    # Devolver el PDF como respuesta
     response = HttpResponse(result, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
     return response
+
+# ========================================
+# ✅ FUNCIONES SSE NUEVAS
+# ========================================
+
+def matriz_sse(request, matriz_id):
+    """Stream de eventos SSE para matriz"""
+    def event_stream():
+        r = redis.Redis(host='redis', port=6379, db=0)
+        pubsub = r.pubsub()
+        pubsub.subscribe(f'matriz_updates_{matriz_id}')
+        
+        # Enviar confirmación de conexión
+        yield f"data: {json.dumps({'type': 'connected', 'matriz_id': matriz_id})}\n\n"
+        
+        try:
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    yield f"data: {message['data'].decode()}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        finally:
+            pubsub.close()
+    
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['Connection'] = 'keep-alive'
+    response['X-Accel-Buffering'] = 'no'
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
+
+def validates_sse(request, super_matriz_id):
+    """Stream de eventos SSE para validates"""
+    def event_stream():
+        r = redis.Redis(host='redis', port=6379, db=0)
+        pubsub = r.pubsub()
+        pubsub.subscribe(f'validates_updates_{super_matriz_id}')
+        
+        # Enviar confirmación de conexión
+        yield f"data: {json.dumps({'type': 'connected', 'super_matriz_id': super_matriz_id})}\n\n"
+        
+        try:
+            for message in pubsub.listen():
+                if message['type'] == 'message':
+                    yield f"data: {message['data'].decode()}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        finally:
+            pubsub.close()
+    
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['Connection'] = 'keep-alive'
+    response['X-Accel-Buffering'] = 'no'
+    response['Access-Control-Allow-Origin'] = '*'
+    return response
+
+# ========================================
+# ✅ FUNCIONES AJAX MODIFICADAS PARA SSE
+# ========================================
+
+@login_required
+def actualizar_estado_caso(request):
+    if request.method == "POST":
+        caso_id = request.POST.get("caso_id")
+        nuevo_estado = request.POST.get("nuevo_estado")
+        
+        try:
+            caso = CasoDePrueba.objects.get(id=caso_id)
+            caso.estado = nuevo_estado
+            caso.save()
+
+            # ✅ SSE: Enviar evento vía Redis
+            r = redis.Redis(host='redis', port=6379, db=0)
+            message = json.dumps({
+                "tipo": "estado",
+                "caso_id": int(caso_id),
+                "valor": nuevo_estado,
+            })
+            r.publish(f'matriz_updates_{caso.matriz.id}', message)
+            
+            return JsonResponse({"success": True})
+        except CasoDePrueba.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Caso no encontrado."})
+    return JsonResponse({"success": False, "error": "Método no permitido."})
+
+@require_POST
+@login_required
+def actualizar_nota_caso(request):
+    caso_id = request.POST.get('caso_id')
+    nueva_nota = request.POST.get('nota', '')
+
+    try:
+        caso = CasoDePrueba.objects.get(id=caso_id)
+        caso.nota = nueva_nota
+        caso.save()
+
+        # ✅ SSE: Enviar evento vía Redis
+        r = redis.Redis(host='redis', port=6379, db=0)
+        message = json.dumps({
+            "tipo": "nota",
+            "caso_id": int(caso_id),
+            "valor": nueva_nota,
+        })
+        r.publish(f'matriz_updates_{caso.matriz.id}', message)
+        
+        return JsonResponse({"success": True})
+    except CasoDePrueba.DoesNotExist:
+        return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
+
+@login_required
+def actualizar_estado_validate(request):
+    if request.method == 'POST':
+        validate_id = request.POST.get('validate_id')
+        nuevo_estado = request.POST.get('nuevo_estado')
+
+        try:
+            validate = Validate.objects.get(id=validate_id)
+            validate.estado = nuevo_estado
+            validate.save()
+
+            # ✅ SSE: Enviar evento vía Redis
+            r = redis.Redis(host='redis', port=6379, db=0)
+            message = json.dumps({
+                "type": "estado_actualizado",
+                "validate_id": int(validate_id),
+                "nuevo_estado": nuevo_estado,
+            })
+            r.publish(f'validates_updates_{validate.super_matriz.id}', message)
+
+            return JsonResponse({"success": True})
+        except Validate.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Validate no encontrado"})
+    return JsonResponse({"success": False, "error": "Método no permitido"})
