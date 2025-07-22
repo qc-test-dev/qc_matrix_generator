@@ -29,5 +29,11 @@ python manage.py migrate --noinput
 echo -e "\033[1;33m[SETUP] Recolectando archivos estáticos...\033[0m"
 python manage.py collectstatic --noinput --clear
 
-echo -e "\033[1;32m[SERVER] Iniciando Daphne en 0.0.0.0:8000...\033[0m"
-exec daphne -b 0.0.0.0 -p 8000 -v 2 main_website.asgi:application
+
+echo -e "\033[1;32m[SERVER] Iniciando Gunicorn en 0.0.0.0:8000...\033[0m"
+gunicorn main_website.wsgi:application -b 0.0.0.0:8000 &
+
+echo -e "\033[1;32m[SERVER] Iniciando Daphne en 0.0.0.0:8180...\033[0m"
+daphne -b 0.0.0.0 -p 8180 -v 2 main_website.asgi:application &
+
+wait

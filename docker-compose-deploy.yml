@@ -45,12 +45,15 @@ services:
     build:
       context: .
     restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8180:8180"
     volumes:
       - ./:/app
       - staticfiles-volume:/vol/static
     environment:
       - WEBSOCKET_URL=/ws/
-      - DAPHNE_PORT=8000
+      - DAPHNE_PORT=8180
       - DJANGO_SETTINGS_MODULE=main_website.settings.prod
       - DEBUG=0
       - POSTGRES_DB=qc_matrix

@@ -36,6 +36,7 @@ WORKDIR /app
 RUN chmod +x /app/scripts/entrypoint.sh && chown -R usr_admin:usr_admin /app
 
 USER usr_admin
-
+EXPOSE 8000
+EXPOSE 8180
 # Entrypoint ejecuta script que espera servicios, migra, collectstatic y lanza Daphne
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
