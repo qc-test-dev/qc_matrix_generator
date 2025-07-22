@@ -11,23 +11,7 @@
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
     <h4>Filtro Usado</h4>
     <p><strong>Alcance: {{alcance}}</strong></p>
-    <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}  </strong></p>
-    <!-- {% if alcances_lista %}
-        <p>Filtros usados:</p>
-        <ul>
-            {% for alcance in alcances_lista %}
-                {% if alcance == "A" %}
-                    <li>Minimum Viable Product</li>
-                {% elif alcance == "B" %}
-                    <li>SMOKE TEST</li>
-                {% elif alcance == "C" %}
-                    <li>No Afectación</li>
-                {% endif %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No hay filtros aplicados.</p>
-    {% endif %} -->
+    <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
 
     <h4 class="mt-4">Filtrar por tester:</h4>
     <ul class="list-inline">
@@ -43,6 +27,7 @@
             </li>
         {% endfor %}
     </ul>
+
     <table class="table table-bordered table-striped">
         <thead>
             <tr>
@@ -85,14 +70,17 @@ const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
+const reconnectDelayBase = 2000; // 2 segundos base
+let heartbeatInterval;
 
 function createWebSocketConnection() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        console.log("🔄 WebSocket ya está conectado");
-        return;
+    if (socket) {
+        socket.close();
+        clearInterval(heartbeatInterval);
     }
 
-    const wsUrl = `ws://${window.location.host}/ws/matriz/${matrizId}/`;
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const wsUrl = `${protocol}${window.location.host}/ws/matriz/${matrizId}/`;
     console.log("🔗 Conectando WebSocket a:", wsUrl);
     
     socket = new WebSocket(wsUrl);
@@ -100,57 +88,35 @@ function createWebSocketConnection() {
     socket.onopen = function() {
         console.log("✅ WebSocket conectado correctamente");
         reconnectAttempts = 0;
+
+        heartbeatInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({type: 'heartbeat'}));
+                console.debug("❤️ Heartbeat enviado");
+            }
+        }, 25000);
     };
 
     socket.onmessage = function(event) {
-        console.log("📨 WebSocket recibido:", event.data);
+        console.log("📨 Mensaje recibido:", event.data);
         
         try {
             const data = JSON.parse(event.data);
-            
+
             if (data.type === 'connected') {
-                console.log("🎯 WebSocket confirmación de conexión");
+                console.log("🎯 Confirmación de conexión recibida");
                 return;
             }
 
-            if (data.tipo === 'estado') {
-                const casoId = data.caso_id;
-                const nuevoEstado = data.valor;
-                
-                const celdaEstado = document.querySelector(`#estado-caso-${casoId}`);
-                if (celdaEstado) {
-                    const select = celdaEstado.querySelector('select');
-                    if (select && select.value !== nuevoEstado) {
-                        select.value = nuevoEstado;
-                        aplicarColorEstado(select);
-                        select.classList.add("flash-update");
-                        setTimeout(() => select.classList.remove("flash-update"), 1500);
-                        console.log(`✅ Estado actualizado: caso ${casoId} → ${nuevoEstado}`);
-                    }
-                } else {
-                    console.warn(`❌ No se encontró celda de estado para ID: ${casoId}`);
-                }
+            if (data.type === 'estado') {
+                updateCaseState(data.caso_id, data.valor);
             }
 
-            if (data.tipo === 'nota') {
-                const casoId = data.caso_id;
-                const nuevaNota = data.valor;
-                
-                const celdaNota = document.querySelector(`#nota-caso-${casoId}`);
-                if (celdaNota) {
-                    const input = celdaNota.querySelector('input, textarea');
-                    if (input && input.value !== nuevaNota) {
-                        input.value = nuevaNota;
-                        input.classList.add("flash-update");
-                        setTimeout(() => input.classList.remove("flash-update"), 1500);
-                        console.log(`✅ Nota actualizada: caso ${casoId}`);
-                    }
-                } else {
-                    console.warn(`❌ No se encontró celda de nota para ID: ${casoId}`);
-                }
+            if (data.type === 'nota') {
+                updateCaseNote(data.caso_id, data.valor);
             }
         } catch (error) {
-            console.error("❌ Error procesando mensaje WebSocket:", error);
+            console.error("❌ Error procesando mensaje:", error);
         }
     };
 
@@ -159,143 +125,74 @@ function createWebSocketConnection() {
     };
 
     socket.onclose = function(event) {
-        console.log("❌ WebSocket cerrado:", event.code, event.reason);
-        
-        if (reconnectAttempts < maxReconnectAttempts) {
+        console.log(`🔴 Conexión cerrada. Código: ${event.code}, Razón: ${event.reason}`);
+        clearInterval(heartbeatInterval);
+
+        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            const delay = reconnectDelayBase * Math.pow(2, reconnectAttempts);
             reconnectAttempts++;
-            console.log(`⚠️ Reconectando WebSocket... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
-            setTimeout(createWebSocketConnection, 2000 * reconnectAttempts);
+            console.log(`🔄 Reconectando en ${delay}ms (Intento ${reconnectAttempts}/${maxReconnectAttempts})`);
+            setTimeout(createWebSocketConnection, delay);
         }
     };
 }
 
-// Esperar a que el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("🔧 DOM cargado, configurando WebSocket...");
-    
-    // ⚡ CREAR WEBSOCKET
-    createWebSocketConnection();
-    
-    // Configurar selects de estado
-    const estadoSelects = document.querySelectorAll('.estado-input');
-    console.log(`📊 Encontrados ${estadoSelects.length} selects de estado`);
-    
-    estadoSelects.forEach((select, index) => {
-        if (!select) {
-            console.warn(`❌ Select ${index} es null`);
-            return;
-        }
-        
-        aplicarColorEstado(select);
-        select.addEventListener('change', function () {
-            const casoId = this.closest('tr').dataset.id;
-            const nuevoEstado = this.value;
-            
-            console.log(`🔄 Cambiando estado del caso ${casoId} a: ${nuevoEstado}`);
-
-            fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: `caso_id=${casoId}&nuevo_estado=${nuevoEstado}`
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.error("❌ Error en la respuesta del servidor:", response.status);
-                } else {
-                    console.log(`✅ Estado enviado correctamente al servidor`);
-                }
-                return response;
-            })
-            .catch(error => {
-                console.error("❌ Error enviando cambio de estado:", error);
-            });
-
-            aplicarColorEstado(this);
-        });
-    });
-
-    // Configurar inputs de nota
-    const notaInputs = document.querySelectorAll('.nota-input');
-    console.log(`📝 Encontrados ${notaInputs.length} inputs de nota`);
-    
-    notaInputs.forEach((input, index) => {
-        if (!input) {
-            console.warn(`❌ Input ${index} es null`);
-            return;
-        }
-        
-        input.addEventListener('blur', function () {
-            const casoId = this.closest('tr').dataset.id;
-            const nuevaNota = this.value;
-            
-            console.log(`📝 Actualizando nota del caso ${casoId}`);
-
-            fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token }}",
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: `caso_id=${casoId}&nota=${encodeURIComponent(nuevaNota)}`
-            })
-            .then(response => {
-                if (!response.ok) {
-                    console.error("❌ Error en la respuesta del servidor:", response.status);
-                } else {
-                    console.log(`✅ Nota enviada correctamente al servidor`);
-                }
-                return response;
-            })
-            .catch(error => {
-                console.error("❌ Error enviando cambio de nota:", error);
-            });
-        });
-    });
-});
-
-// Verificar conexión cada 30 segundos
-setInterval(() => {
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
-        console.log("🔄 Verificando conexión WebSocket...");
-        createWebSocketConnection();
+function updateCaseState(caseId, newState) {
+    const stateCell = document.querySelector(`#estado-caso-${caseId}`);
+    if (!stateCell) {
+        console.warn(`❌ Celda no encontrada para caso ${caseId}`);
+        return;
     }
-}, 30000);
 
-function aplicarColorEstado(select) {
-    const estado = select.value.toLowerCase().trim();
-    
+    const select = stateCell.querySelector('select');
+    if (select && select.value !== newState) {
+        select.value = newState;
+        applyStateColor(select);
+        flashElement(select);
+        console.log(`✅ Estado actualizado: caso ${caseId} → ${newState}`);
+    }
+}
+
+function updateCaseNote(caseId, newNote) {
+    const noteCell = document.querySelector(`#nota-caso-${caseId}`);
+    if (!noteCell) {
+        console.warn(`❌ Celda de nota no encontrada para caso ${caseId}`);
+        return;
+    }
+
+    const input = noteCell.querySelector('input, textarea');
+    if (input && input.value !== newNote) {
+        input.value = newNote;
+        flashElement(input);
+        console.log(`✅ Nota actualizada: caso ${caseId}`);
+    }
+}
+
+function applyStateColor(select) {
+    const state = select.value.toLowerCase().trim();
+
+    // Reset clases
     select.className = "estado-input form-control";
     select.style.backgroundColor = "";
     select.style.color = "";
 
-    switch (estado) {
-        case "funciona":
-            select.classList.add("bg-success", "text-white");
-            break;
-        case "falla_nueva":
-            select.classList.add("bg-danger", "text-white");
-            break;
-        case "falla_persistente":
-            select.style.backgroundColor = "#ef9a9a";
-            select.style.color = "#000";
-            break;
-        case "n/a":
-            select.classList.add("bg-secondary", "text-dark");
-            break;
-        case "pendiente":
-            select.style.backgroundColor = "#ffcc80";
-            select.style.color = "#000";
-            break;
-        case "por_ejecutar":
-            select.classList.add("bg-warning", "text-dark");
-            break;
-        default:
-            select.style.backgroundColor = "#90caf9";
-            select.style.color = "#000";
-            break;
+    const stateStyles = {
+        "funciona": ["bg-success", "text-white"],
+        "falla_nueva": ["bg-danger", "text-white"],
+        "falla_persistente": {bg: "#ef9a9a", text: "#000"},
+        "n/a": ["bg-secondary", "text-dark"],
+        "pendiente": {bg: "#ffcc80", text: "#000"},
+        "por_ejecutar": ["bg-warning", "text-dark"],
+        "default": {bg: "#90caf9", text: "#000"}
+    };
+
+    const style = stateStyles[state] || stateStyles.default;
+
+    if (Array.isArray(style)) {
+        select.classList.add(...style);
+    } else {
+        select.style.backgroundColor = style.bg;
+        select.style.color = style.text;
     }
 
     select.style.padding = "8px 14px";
@@ -303,27 +200,107 @@ function aplicarColorEstado(select) {
     select.style.fontWeight = "bold";
 }
 
-// CSS para animaciones
-const style = document.createElement('style');
-style.textContent = `
-    .flash-update {
-        animation: flash 1.5s ease-in-out;
-    }
-    
-    @keyframes flash {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.3; transform: scale(1.02); }
-    }
-`;
-document.head.appendChild(style);
+function flashElement(element) {
+    element.classList.add("flash-update");
+    setTimeout(() => element.classList.remove("flash-update"), 1500);
+}
 
-// Cleanup al cerrar página
+function setupEventListeners() {
+    // Estado selects
+    document.querySelectorAll('.estado-input').forEach(select => {
+        if (!select) return;
+
+        applyStateColor(select);
+        select.addEventListener('change', function() {
+            const caseId = this.closest('tr').dataset.id;
+            const newState = this.value;
+
+            // Enviar por WebSocket
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'estado_update',
+                    validate_id: caseId,
+                    nuevo_estado: newState
+                }));
+            }
+
+            fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${caseId}&nuevo_estado=${newState}`
+            }).catch(console.error);
+
+            applyStateColor(this);
+        });
+    });
+
+    // Nota inputs
+    document.querySelectorAll('.nota-input').forEach(input => {
+        if (!input) return;
+
+        input.addEventListener('blur', function() {
+            const caseId = this.closest('tr').dataset.id;
+            const newNote = this.value;
+
+            // Enviar por WebSocket
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'nota_update',
+                    validate_id: caseId,
+                    nueva_nota: newNote
+                }));
+            }
+
+            fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${caseId}&nota=${encodeURIComponent(newNote)}`
+            }).catch(console.error);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔧 Inicializando aplicación...");
+
+    // Añadir estilos flash
+    const style = document.createElement('style');
+    style.textContent = `
+        .flash-update {
+            animation: flash 1.5s ease-in-out;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; transform: scale(1.02); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    createWebSocketConnection();
+    setupEventListeners();
+
+    setInterval(() => {
+        if (!socket || socket.readyState === WebSocket.CLOSED) {
+            console.log("🔄 Verificando conexión...");
+            createWebSocketConnection();
+        }
+    }, 30000);
+});
+
 window.addEventListener('beforeunload', function() {
-    if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close();
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close(1000, "Usuario cerró la página");
     }
+    clearInterval(heartbeatInterval);
 });
 </script>
+
 <style>
 .flash-update {
     background-color: #fff3cd !important;
@@ -332,104 +309,3 @@ window.addEventListener('beforeunload', function() {
 </style>
 
 {% endblock content %}
-
-
-<!-- <script>
-document.addEventListener("DOMContentLoaded", function () {
-    // 1) Función para colorear según estado
-    function aplicarColorEstado(select) {
-        const valor = select.value.toLowerCase();
-        select.classList.remove("bg-success","bg-warning","bg-danger","bg-secondary","text-white","text-dark");
-        if (valor === "completado" || valor.includes("funcio")) {
-            select.classList.add("bg-success","text-white");
-        } else if (valor.includes("por") || valor.includes("pendient")) {
-            select.classList.add("bg-warning","text-dark");
-        } else if (valor.includes("falla") || valor.includes("error")) {
-            select.classList.add("bg-danger","text-white");
-        } else {
-            select.classList.add("bg-secondary","text-white");
-        }
-    }
-
-    // 2) Cuando cambie estado o nota: marcar dirty, recolorear y guardar
-    document.querySelectorAll('.estado-input, .nota-input').forEach(input => {
-        if (input.classList.contains('estado-input')) {
-            aplicarColorEstado(input);
-        }
-        input.addEventListener('change', function () {
-            const tr = this.closest('tr');
-            tr.dataset.dirty = "true";
-            if (this.classList.contains('estado-input')) {
-                aplicarColorEstado(this);
-            }
-            console.log("🟡 Fila marcada y auto-guardando:", tr.dataset.id);
-            guardarCambios();
-            window.location.reload();
-            
-        });
-    });
-
-    // 3) Función de guardado parcial
-    window.guardarCambios = function () {
-        const filas = Array.from(document.querySelectorAll("tr[data-dirty='true']"));
-        if (!filas.length) return;  // nada que enviar
-
-        const cambios = filas.map(tr => ({
-            id: tr.dataset.id,
-            estado: tr.querySelector(".estado-input").value,
-            nota: tr.querySelector(".nota-input").value
-        }));
-        console.log("📤 Enviando cambios:", cambios);
-
-        fetch("/matrix/api/guardar-estado/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCookie("csrftoken")
-            },
-            body: JSON.stringify({ registros: cambios })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === "ok") {
-                filas.forEach(tr => delete tr.dataset.dirty);
-                mostrarMensaje("Cambios guardados correctamente.", "success");
-            } else {
-                mostrarMensaje("Error al guardar: " + data.error, "danger");
-            }
-        })
-        .catch(err => {
-            console.error("💥 Error de red:", err);
-            mostrarMensaje("Error de red al guardar.", "danger");
-        });
-    };
-
-    // 4) Auto-save cada 2 minutos (120 000 ms)
-    setInterval(guardarCambios, 2 * 60 * 1000);
-
-    // 5) Auto-reload cada 1 minuto (60 000 ms)
-    setInterval(() => {
-        console.log("⏰ Recargando la página para obtener cambios…");
-        window.location.reload();
-    }, 60 * 1000);
-
-    // — Helpers —
-    function getCookie(name) {
-        let v = null;
-        document.cookie.split(';').forEach(c => {
-            c = c.trim();
-            if (c.startsWith(name + '=')) {
-                v = decodeURIComponent(c.split('=')[1]);
-            }
-        });
-        return v;
-    }
-    function mostrarMensaje(texto, tipo) {
-        const msg = document.getElementById("mensaje");
-        msg.className = `alert alert-${tipo} alert-position`;
-        msg.innerText = texto;
-        msg.classList.remove("d-none");
-        setTimeout(() => msg.classList.add("d-none"), 3000);
-    }
-});
-</script> -->

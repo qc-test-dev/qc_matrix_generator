@@ -49,7 +49,7 @@ CHANNEL_LAYERS = {
 WEBSOCKET_URL = '/ws/'  # Ruta base para WebSockets
 ASGI_APPLICATION = 'main_website.asgi.application'
 # Configuración para WebSockets con proxy reverso
-USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_HOST = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Si usas Nginx, estas son importantes

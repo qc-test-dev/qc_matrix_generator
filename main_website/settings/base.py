@@ -19,6 +19,10 @@ REST_FRAMEWORK = {
 }
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
+    'channels_redis',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,8 +32,9 @@ INSTALLED_APPS = [
     'app.accounts',
     'app.matrix',
     'widget_tweaks',
-    'channels',
+
     'rest_framework',
+    
 ]
 
 MIDDLEWARE = [

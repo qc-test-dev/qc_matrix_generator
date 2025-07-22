@@ -51,6 +51,7 @@ services:
       - staticfiles-volume:/vol/static
     environment:
       - WEBSOCKET_URL=/ws/
+      - DAPHNE_PORT=8000
       - DJANGO_SETTINGS_MODULE=main_website.settings.prod
       - DEBUG=0
       - POSTGRES_DB=qc_matrix

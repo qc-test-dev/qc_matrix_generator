@@ -96,6 +96,7 @@ let socket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 const reconnectDelayBase = 2000; // 2 segundos base
+let heartbeatInterval;
 
 function setupWebSocket() {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
@@ -117,6 +118,15 @@ function setupWebSocket() {
             type: 'init',
             matriz_id: superMatrizId
         }));
+
+        // Iniciar heartbeat para mantener vivo el socket
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({type: 'heartbeat'}));
+                console.log("❤️ Enviando heartbeat");
+            }
+        }, 25000);
     };
 
     socket.onmessage = function(event) {
@@ -130,9 +140,9 @@ function setupWebSocket() {
                 return;
             }
 
-            if (data.type === "estado_actualizado") {
-                const validateId = data.validate_id;
-                const nuevoEstado = data.nuevo_estado;
+            if (data.type === "estado") {  // Ajuste: evento enviado por consumer es 'estado'
+                const validateId = data.caso_id || data.validate_id;
+                const nuevoEstado = data.valor || data.nuevo_estado;
                 
                 console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
                 
@@ -149,7 +159,9 @@ function setupWebSocket() {
 
     socket.onclose = function(event) {
         console.log(`🔴 WebSocket cerrado. Código: ${event.code}, Razón: ${event.reason}`);
-        
+
+        clearInterval(heartbeatInterval);
+
         if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) { // 1000 = cierre normal
             const delay = reconnectDelayBase * Math.pow(2, reconnectAttempts);
             reconnectAttempts++;
@@ -175,26 +187,14 @@ function updateSelectState(validateId, nuevoEstado) {
     }
 }
 
-// Heartbeat para mantener conexión activa
-function setupHeartbeat() {
-    setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({type: 'heartbeat'}));
-            console.log("❤️ Enviando heartbeat");
-        }
-    }, 25000); // 25 segundos
-}
-
-// Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 DOM cargado, configurando event listeners validates...");
-    
+
     // ⚡ CREAR WebSocket
     setupWebSocket();
-    setupHeartbeat();
-    
+
     // Configurar selects
-    const selects = document.querySelectorAll("select");
+    const selects = document.querySelectorAll("select.estado-input");
     console.log(`📊 Encontrados ${selects.length} selects validates`);
     
     selects.forEach((select, index) => {
@@ -203,7 +203,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        select.classList.add("form-select", "form-select-sm", "estado-input");
         aplicarColorEstado(select);
         
         select.addEventListener("change", function() {
@@ -330,8 +329,10 @@ window.addEventListener('beforeunload', function() {
     if (socket && socket.readyState !== WebSocket.CLOSED) {
         socket.close(1000, "Página cerrada"); // 1000 = cierre normal
     }
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
 });
 </script>
+
 <style>
 .flash-update {
     animation: flashHighlight 1.5s ease;

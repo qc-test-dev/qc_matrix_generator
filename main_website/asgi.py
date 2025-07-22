@@ -1,19 +1,15 @@
 import os
 from django.core.asgi import get_asgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'main_website.settings.prod')
-django_asgi_app = get_asgi_application()
-
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-from app.matrix import routing
+from app.matrix.routing import websocket_urlpatterns
 
-# TEMPORALMENTE sin AllowedHostsOriginValidator
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'main_website.settings')
+
 application = ProtocolTypeRouter({
-    "http": django_asgi_app,
+    "http": get_asgi_application(),  # <- importante agregar esto para HTTP normal
     "websocket": AuthMiddlewareStack(
-        URLRouter(
-            routing.websocket_urlpatterns
-        )
+        URLRouter(websocket_urlpatterns)
     ),
 })
+    
