@@ -89,55 +89,130 @@ Validates – {{ super_matriz.nombre }}
 </div>
 
 <script>
-const superMatrizId = "{{ super_matriz.id }}";
-const socket = new WebSocket(
-    (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + 
-    '//' + window.location.host + 
-    '/ws/validates/' + superMatrizId + '/'
-);
+// ✅ Verificar que la variable esté definida
+console.log("superMatrizId:", "{{ super_matriz.id }}");
 
-socket.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    if (data.type === "estado_actualizado") {
-        const validateId = data.validate_id;
-        const nuevoEstado = data.nuevo_estado;
-        const celda = document.querySelector(`#estado-validate-${validateId}`);
-        if (celda) {
-            const select = celda.querySelector('select');
-            if (select && select.value !== nuevoEstado) {
-                select.value = nuevoEstado;
-                aplicarColorEstado(select);
-                select.classList.add("flash-update");
-                setTimeout(() => select.classList.remove("flash-update"), 1500);
-            }
-        }
+const superMatrizId = "{{ super_matriz.id }}";
+
+// ✅ WebSocket con detección de protocolo
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsUrl = `${wsProtocol}//${window.location.host}/ws/validates/${superMatrizId}/`;
+
+console.log("🔗 Intentando conectar WebSocket a:", wsUrl);
+
+const socket = new WebSocket(wsUrl);
+
+socket.onopen = function(event) {
+    console.log("✅ WebSocket de validates conectado correctamente");
+};
+
+socket.onerror = function(error) {
+    console.error("❌ Error en WebSocket de validates:", error);
+    console.log("🔍 Verifica que el consumer ValidateConsumer esté funcionando");
+};
+
+socket.onclose = function(event) {
+    console.log(`🔌 WebSocket de validates cerrado. Código: ${event.code}, Razón: ${event.reason}`);
+    if (event.code !== 1000) {
+        console.log("⚠️ Reconexión podría ser necesaria");
     }
 };
 
-document.querySelectorAll("select").forEach(select => {
-    select.classList.add("form-select", "form-select-sm", "estado-input");
-    aplicarColorEstado(select);
-    select.addEventListener("change", function() {
-        const tr = this.closest("tr");
-        const validateId = tr.dataset.id;
-        const nuevoEstado = this.value;
+socket.onmessage = function(event) {
+    console.log("📨 Mensaje WebSocket recibido:", event.data);
+    
+    try {
+        const data = JSON.parse(event.data);
+        if (data.type === "estado_actualizado") {
+            const validateId = data.validate_id;
+            const nuevoEstado = data.nuevo_estado;
+            
+            console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
+            
+            const celda = document.querySelector(`#estado-validate-${validateId}`);
+            if (celda) {
+                const select = celda.querySelector('select');
+                if (select && select.value !== nuevoEstado) {
+                    select.value = nuevoEstado;
+                    aplicarColorEstado(select);
+                    select.classList.add("flash-update");
+                    setTimeout(() => select.classList.remove("flash-update"), 1500);
+                    console.log(`✅ Validate ${validateId} actualizado correctamente`);
+                }
+            } else {
+                console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
+            }
+        }
+    } catch (error) {
+        console.error("❌ Error procesando mensaje WebSocket:", error);
+    }
+};
 
-        fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: `validate_id=${validateId}&nuevo_estado=${nuevoEstado}`
+// Esperar a que el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar todos los selects
+    document.querySelectorAll("select").forEach(select => {
+        select.classList.add("form-select", "form-select-sm", "estado-input");
+        aplicarColorEstado(select);
+        
+        select.addEventListener("change", function() {
+            const tr = this.closest("tr");
+            const validateId = tr.dataset.id;
+            const nuevoEstado = this.value;
+            
+            console.log(`🔄 Cambiando estado del validate ${validateId} a: ${nuevoEstado}`);
+
+            fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `validate_id=${validateId}&nuevo_estado=${nuevoEstado}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("❌ Error en la respuesta del servidor:", response.status);
+                } else {
+                    console.log(`✅ Estado del validate ${validateId} enviado correctamente`);
+                }
+                return response;
+            })
+            .catch(error => {
+                console.error("❌ Error enviando cambio de estado:", error);
+            });
+
+            aplicarColorEstado(this);
         });
+    });
 
-        aplicarColorEstado(this);
+    // Filtro por tester
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const tester = btn.dataset.tester;
+            
+            console.log(`🔍 Filtrando por tester: ${tester}`);
+            
+            document.querySelectorAll("#validates-table tbody tr").forEach(row => {
+                if (tester === "all" || row.dataset.tester === tester) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
     });
 });
 
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
+    
+    // Resetear clases
     select.className = "form-select form-select-sm estado-input";
+    select.style.backgroundColor = "";
+    select.style.color = "";
 
     if (estado === "funciona") {
         select.classList.add("bg-success", "text-white");
@@ -163,21 +238,19 @@ function aplicarColorEstado(select) {
     select.style.fontWeight = "bold";
 }
 
-// Filtro por tester
-document.querySelectorAll(".filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const tester = btn.dataset.tester;
-        document.querySelectorAll("#validates-table tbody tr").forEach(row => {
-            if (tester === "all" || row.dataset.tester === tester) {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
-            }
-        });
-    });
-});
+// CSS para el efecto flash
+const style = document.createElement('style');
+style.textContent = `
+    .flash-update {
+        animation: flash 1.5s ease-in-out;
+    }
+    
+    @keyframes flash {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; transform: scale(1.02); }
+    }
+`;
+document.head.appendChild(style);
 </script>
 
 <style>

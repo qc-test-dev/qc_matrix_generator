@@ -80,96 +80,147 @@
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
-
 <script>
+// ✅ Verificar que la variable esté definida
+console.log("matrizId:", "{{ matriz.id }}");
+
 const matrizId = "{{ matriz.id }}";
-const socket = new WebSocket(
-    (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + 
-    '//' + window.location.host + 
-    '/ws/validates/' + superMatrizId + '/'
-);
 
-socket.onopen = () => console.log("WebSocket conectado.");
-socket.onerror = e => console.error("WebSocket error:", e);
+// ✅ URL corregida según tu routing
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsUrl = `${wsProtocol}//${window.location.host}/ws/matriz/${matrizId}/`;
 
-socket.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    console.log("Mensaje WebSocket recibido:", data);
+console.log("🔗 Intentando conectar WebSocket a:", wsUrl);
 
-    const casoId = data.caso_id;
+const socket = new WebSocket(wsUrl);
 
-    if (data.tipo === 'estado') {
-        const nuevoEstado = data.valor;
-        const celdaEstado = document.querySelector(`#estado-caso-${casoId}`);
-        if (celdaEstado) {
-            const select = celdaEstado.querySelector('select');
-            if (select && select.value !== nuevoEstado) {
-                select.value = nuevoEstado;
-                aplicarColorEstado(select);
-                select.classList.add("flash-update");
-                setTimeout(() => select.classList.remove("flash-update"), 1500);
-            }
-        } else {
-            console.warn(`No se encontró celda de estado para ID: ${casoId}`);
-        }
-    }
+socket.onopen = function(event) {
+    console.log("✅ WebSocket conectado correctamente");
+};
 
-    if (data.tipo === 'nota') {
-        const nuevaNota = data.valor;
-        const celdaNota = document.querySelector(`#nota-caso-${casoId}`);
-        if (celdaNota) {
-            const input = celdaNota.querySelector('input, textarea');
-            if (input && input.value !== nuevaNota) {
-                input.value = nuevaNota;
-                input.classList.add("flash-update");
-                setTimeout(() => input.classList.remove("flash-update"), 1500);
-            }
-        } else {
-            console.warn(`No se encontró celda de nota para ID: ${casoId}`);
-        }
+socket.onerror = function(error) {
+    console.error("❌ Error en WebSocket:", error);
+    console.log("🔍 Verifica que el servidor esté corriendo y la URL sea correcta");
+};
+
+socket.onclose = function(event) {
+    console.log(`🔌 WebSocket cerrado. Código: ${event.code}, Razón: ${event.reason}`);
+    if (event.code !== 1000) {
+        console.log("⚠️ Reconexión podría ser necesaria");
     }
 };
 
-// Cambios de estado (envía al backend y aplica color)
-document.querySelectorAll('.estado-input').forEach(select => {
-    aplicarColorEstado(select);
-    select.addEventListener('change', function () {
-        const casoId = this.closest('tr').dataset.id;
-        const nuevoEstado = this.value;
+socket.onmessage = function(event) {
+    console.log("📨 Mensaje WebSocket recibido:", event.data);
+    
+    try {
+        const data = JSON.parse(event.data);
+        const casoId = data.caso_id;
 
-        fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: `caso_id=${casoId}&nuevo_estado=${nuevoEstado}`
+        if (data.tipo === 'estado') {
+            const nuevoEstado = data.valor;
+            const celdaEstado = document.querySelector(`#estado-caso-${casoId}`);
+            if (celdaEstado) {
+                const select = celdaEstado.querySelector('select');
+                if (select && select.value !== nuevoEstado) {
+                    select.value = nuevoEstado;
+                    aplicarColorEstado(select);
+                    select.classList.add("flash-update");
+                    setTimeout(() => select.classList.remove("flash-update"), 1500);
+                }
+            } else {
+                console.warn(`❌ No se encontró celda de estado para ID: ${casoId}`);
+            }
+        }
+
+        if (data.tipo === 'nota') {
+            const nuevaNota = data.valor;
+            const celdaNota = document.querySelector(`#nota-caso-${casoId}`);
+            if (celdaNota) {
+                const input = celdaNota.querySelector('input, textarea');
+                if (input && input.value !== nuevaNota) {
+                    input.value = nuevaNota;
+                    input.classList.add("flash-update");
+                    setTimeout(() => input.classList.remove("flash-update"), 1500);
+                }
+            } else {
+                console.warn(`❌ No se encontró celda de nota para ID: ${casoId}`);
+            }
+        }
+    } catch (error) {
+        console.error("❌ Error procesando mensaje WebSocket:", error);
+    }
+};
+
+// Esperar a que el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Cambios de estado (envía al backend y aplica color)
+    document.querySelectorAll('.estado-input').forEach(select => {
+        aplicarColorEstado(select);
+        select.addEventListener('change', function () {
+            const casoId = this.closest('tr').dataset.id;
+            const nuevoEstado = this.value;
+            
+            console.log(`🔄 Cambiando estado del caso ${casoId} a: ${nuevoEstado}`);
+
+            fetch("{% url 'matrix_app:actualizar_estado_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${casoId}&nuevo_estado=${nuevoEstado}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("❌ Error en la respuesta del servidor:", response.status);
+                }
+                return response;
+            })
+            .catch(error => {
+                console.error("❌ Error enviando cambio de estado:", error);
+            });
+
+            aplicarColorEstado(this);
         });
-
-        aplicarColorEstado(this);
     });
-});
 
-// Cambios de nota (envía al backend al salir del input)
-document.querySelectorAll('.nota-input').forEach(input => {
-    input.addEventListener('blur', function () {
-        const casoId = this.closest('tr').dataset.id;
-        const nuevaNota = this.value;
+    // Cambios de nota (envía al backend al salir del input)
+    document.querySelectorAll('.nota-input').forEach(input => {
+        input.addEventListener('blur', function () {
+            const casoId = this.closest('tr').dataset.id;
+            const nuevaNota = this.value;
+            
+            console.log(`📝 Actualizando nota del caso ${casoId}`);
 
-        fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: `caso_id=${casoId}&nota=${encodeURIComponent(nuevaNota)}`
+            fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `caso_id=${casoId}&nota=${encodeURIComponent(nuevaNota)}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("❌ Error en la respuesta del servidor:", response.status);
+                }
+                return response;
+            })
+            .catch(error => {
+                console.error("❌ Error enviando cambio de nota:", error);
+            });
         });
     });
 });
 
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
+    
+    // Resetear clases
     select.className = "estado-input form-control";
+    select.style.backgroundColor = "";
+    select.style.color = "";
 
     switch (estado) {
         case "funciona":
@@ -202,6 +253,20 @@ function aplicarColorEstado(select) {
     select.style.height = "40px";
     select.style.fontWeight = "bold";
 }
+
+// CSS para el efecto flash
+const style = document.createElement('style');
+style.textContent = `
+    .flash-update {
+        animation: flash 1.5s ease-in-out;
+    }
+    
+    @keyframes flash {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; transform: scale(1.02); }
+    }
+`;
+document.head.appendChild(style);
 </script>
 
 <style>
