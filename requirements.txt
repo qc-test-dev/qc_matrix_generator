@@ -26,6 +26,7 @@ django-rest-auth
 django-rest-swagger
 django-widget-tweaks
 djangorestframework
+django-redis
 et_xmlfile
 fonttools
 html5lib

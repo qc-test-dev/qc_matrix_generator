@@ -102,16 +102,37 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
-if 'REDIS_HOST' in os.environ:
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {
-                "hosts": [(os.environ['REDIS_HOST'], 6379)],
-            },
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.environ.get('REDIS_HOST', 'localhost'), 6379)],
         },
-    }
+    },
+}
 
+# Agrega logging para debug
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],  # Solo console, sin 'file'
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'channels': {
+            'handlers': ['console'],  # Solo console, sin 'file'
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 
 
 

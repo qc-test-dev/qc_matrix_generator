@@ -69,18 +69,21 @@ services:
     # Comando dividido en dos fases: setup inicial y servidor
     command: >
       sh -c "
+        set -e &&
+        echo '=== INICIO DEL SCRIPT ===' &&
         echo 'Esperando servicios...' &&
         sleep 10 &&
         echo 'Ejecutando setup inicial...' &&
-        python manage.py makemigrations &&
-        python manage.py migrate &&
+        python manage.py makemigrations --verbosity 2 &&
+        echo '=== MAKEMIGRATIONS COMPLETADO ===' &&
+        python manage.py migrate --verbosity 2 &&
+        echo '=== MIGRATE COMPLETADO ===' &&
         python manage.py collectstatic --noinput --clear &&
-        if [ -f /app/initialdata.json ]; then
-          echo 'Cargando datos iniciales...' &&
-          python manage.py loaddata /app/initialdata.json --ignorenonexistent --exclude contenttypes --exclude auth.permission;
-        fi &&
+        echo '=== COLLECTSTATIC COMPLETADO ===' &&
         echo 'Iniciando servidor Daphne...' &&
-        
+        echo '=== EJECUTANDO DAPHNE ===' &&
+        daphne -b 0.0.0.0 -p 8000 -v 2 main_website.asgi:application ||
+        (echo 'ERROR AL INICIAR DAPHNE' && sleep 3600)
       "
     networks:
       - qc_network
