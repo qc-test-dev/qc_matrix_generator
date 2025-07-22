@@ -287,11 +287,10 @@ def actualizar_estado_caso(request):
             async_to_sync(channel_layer.group_send)(
                 f"matriz_{caso.matriz.id}",
                 {
-                    "type": "estado_actualizado",
-                    "data": {
+                    "type": "estado_actualizado",  # ✅ Nombre del método en consumer
+                    "data": {  # ✅ Mantener estructura "data"
                         "caso_id": caso.id,
                         "valor": nuevo_estado,
-                        "tipo": "estado",
                     },
                 }
             )
@@ -299,6 +298,7 @@ def actualizar_estado_caso(request):
         except CasoDePrueba.DoesNotExist:
             return JsonResponse({"success": False, "error": "Caso no encontrado."})
     return JsonResponse({"success": False, "error": "Método no permitido."})
+
 
 @require_POST
 @login_required
@@ -316,8 +316,8 @@ def actualizar_nota_caso(request):
         async_to_sync(channel_layer.group_send)(
             f"matriz_{caso.matriz.id}",
             {
-                "type": "nota_actualizada",
-                "data": {
+                "type": "nota_actualizada",  # ✅ Nombre del método en consumer
+                "data": {  # ✅ Mantener estructura "data"
                     "caso_id": caso.id,
                     "valor": nueva_nota,
                 }
@@ -326,6 +326,8 @@ def actualizar_nota_caso(request):
         return JsonResponse({"success": True})
     except CasoDePrueba.DoesNotExist:
         return JsonResponse({"success": False, "error": "No encontrado"}, status=404)
+
+
 @login_required
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -413,14 +415,14 @@ def actualizar_estado_validate(request):
             validate.save()
 
             # WebSocket: enviar actualización a todos los clientes del grupo
-            super_matriz = validate.super_matriz  # Asumiendo que tienes esta relación
+            super_matriz = validate.super_matriz
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"validates_{super_matriz.id}",
                 {
-                    "type": "estado_actualizado",
-                    "validate_id": validate.id,
-                    "nuevo_estado": nuevo_estado,
+                    "type": "estado_actualizado",  # ✅ Nombre del método en consumer
+                    "validate_id": validate.id,    # ✅ Pasar directamente, no en "data"
+                    "nuevo_estado": nuevo_estado,  # ✅ Pasar directamente, no en "data"
                 }
             )
 

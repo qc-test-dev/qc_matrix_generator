@@ -150,8 +150,18 @@ socket.onmessage = function(event) {
 
 // Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔧 DOM cargado, configurando event listeners...");
+    
     // Configurar todos los selects
-    document.querySelectorAll("select").forEach(select => {
+    const selects = document.querySelectorAll("select");
+    console.log(`📊 Encontrados ${selects.length} selects`);
+    
+    selects.forEach((select, index) => {
+        if (!select) {
+            console.warn(`❌ Select ${index} es null`);
+            return;
+        }
+        
         select.classList.add("form-select", "form-select-sm", "estado-input");
         aplicarColorEstado(select);
         
@@ -187,7 +197,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Filtro por tester
-    document.querySelectorAll(".filter-btn").forEach(btn => {
+    const filterBtns = document.querySelectorAll(".filter-btn");
+    console.log(`🔍 Encontrados ${filterBtns.length} botones de filtro`);
+    
+    filterBtns.forEach((btn, index) => {
+        if (!btn) {
+            console.warn(`❌ Botón ${index} es null`);
+            return;
+        }
+        
         btn.addEventListener("click", () => {
             document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
@@ -195,7 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`🔍 Filtrando por tester: ${tester}`);
             
-            document.querySelectorAll("#validates-table tbody tr").forEach(row => {
+            const tableRows = document.querySelectorAll("#validates-table tbody tr");
+            tableRows.forEach(row => {
                 if (tester === "all" || row.dataset.tester === tester) {
                     row.style.display = "";
                 } else {

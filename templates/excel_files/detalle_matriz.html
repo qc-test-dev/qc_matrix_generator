@@ -86,7 +86,7 @@ console.log("matrizId:", "{{ matriz.id }}");
 
 const matrizId = "{{ matriz.id }}";
 
-// ✅ URL corregida según tu routing
+// ✅ WebSocket con detección de protocolo
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/ws/matriz/${matrizId}/`;
 
@@ -95,16 +95,16 @@ console.log("🔗 Intentando conectar WebSocket a:", wsUrl);
 const socket = new WebSocket(wsUrl);
 
 socket.onopen = function(event) {
-    console.log("✅ WebSocket conectado correctamente");
+    console.log("✅ WebSocket de matriz conectado correctamente");
 };
 
 socket.onerror = function(error) {
-    console.error("❌ Error en WebSocket:", error);
-    console.log("🔍 Verifica que el servidor esté corriendo y la URL sea correcta");
+    console.error("❌ Error en WebSocket de matriz:", error);
+    console.log("🔍 Verifica que el consumer MatrizConsumer esté funcionando");
 };
 
 socket.onclose = function(event) {
-    console.log(`🔌 WebSocket cerrado. Código: ${event.code}, Razón: ${event.reason}`);
+    console.log(`🔌 WebSocket de matriz cerrado. Código: ${event.code}, Razón: ${event.reason}`);
     if (event.code !== 1000) {
         console.log("⚠️ Reconexión podría ser necesaria");
     }
@@ -154,8 +154,18 @@ socket.onmessage = function(event) {
 
 // Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔧 DOM cargado, configurando event listeners...");
+    
     // Cambios de estado (envía al backend y aplica color)
-    document.querySelectorAll('.estado-input').forEach(select => {
+    const estadoSelects = document.querySelectorAll('.estado-input');
+    console.log(`📊 Encontrados ${estadoSelects.length} selects de estado`);
+    
+    estadoSelects.forEach((select, index) => {
+        if (!select) {
+            console.warn(`❌ Select ${index} es null`);
+            return;
+        }
+        
         aplicarColorEstado(select);
         select.addEventListener('change', function () {
             const casoId = this.closest('tr').dataset.id;
@@ -186,7 +196,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Cambios de nota (envía al backend al salir del input)
-    document.querySelectorAll('.nota-input').forEach(input => {
+    const notaInputs = document.querySelectorAll('.nota-input');
+    console.log(`📝 Encontrados ${notaInputs.length} inputs de nota`);
+    
+    notaInputs.forEach((input, index) => {
+        if (!input) {
+            console.warn(`❌ Input ${index} es null`);
+            return;
+        }
+        
         input.addEventListener('blur', function () {
             const casoId = this.closest('tr').dataset.id;
             const nuevaNota = this.value;
@@ -268,7 +286,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 </script>
-
 <style>
 .flash-update {
     background-color: #fff3cd !important;
