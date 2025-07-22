@@ -17,6 +17,8 @@ CSRF_TRUSTED_ORIGINS = [
     'ws://200.57.172.7',  # ← IMPORTANTE para WebSockets
     'http://localhost',
     'http://127.0.0.1',
+    'ws://localhost',
+    'ws://127.0.0.1',
 ]
 
 # Cookies seguras
