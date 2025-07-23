@@ -34,5 +34,4 @@ python manage.py collectstatic --noinput --clear
 echo -e "\033[1;32m[SERVER] Iniciando Daphne en 0.0.0.0:8180...\033[0m"
 daphne -b 0.0.0.0 -p 8000 -v 2 main_website.asgi:application &
 
-
 wait

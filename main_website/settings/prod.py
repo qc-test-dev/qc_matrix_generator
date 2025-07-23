@@ -15,7 +15,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1',
     'ws://localhost',
     'ws://127.0.0.1',
-    'ws://app',
+    
 ]
 
 # Cookies seguras
