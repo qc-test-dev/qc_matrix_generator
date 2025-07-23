@@ -22,9 +22,6 @@ from weasyprint import HTML
 from datetime import datetime
 from django.utils.timezone import localtime
 import locale
-from django.conf import settings
-import os
-
 
 # ✅ IMPORTS PARA WEBSOCKET
 from asgiref.sync import async_to_sync

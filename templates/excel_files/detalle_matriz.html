@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+c{% extends 'base.html' %}
 {% load static %}
 {% load widget_tweaks %}
 
@@ -67,6 +67,7 @@
 </div>
 <script>
 const matrizId = "{{ matriz.id }}";
+const myClientId = crypto.randomUUID(); // ID único por pestaña
 let socket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
@@ -104,6 +105,11 @@ function createWebSocketConnection() {
 
             if (data.type === 'connected') {
                 console.log("🎯 Confirmación de conexión recibida");
+                return;
+            }
+
+            // Ignorar mensajes que envió esta misma pestaña
+            if (data.from_instance && data.from_instance === myClientId) {
                 return;
             }
 
@@ -214,12 +220,13 @@ function setupEventListeners() {
             const caseId = this.closest('tr').dataset.id;
             const newState = this.value;
 
-            // Enviar por WebSocket
+            // Enviar por WebSocket con clientId
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
                     type: 'estado_update',
                     validate_id: caseId,
-                    nuevo_estado: newState
+                    nuevo_estado: newState,
+                    from_instance: myClientId
                 }));
             }
 
@@ -244,12 +251,13 @@ function setupEventListeners() {
             const caseId = this.closest('tr').dataset.id;
             const newNote = this.value;
 
-            // Enviar por WebSocket
+            // Enviar por WebSocket con clientId
             if (socket && socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({
                     type: 'nota_update',
                     validate_id: caseId,
-                    nueva_nota: newNote
+                    nueva_nota: newNote,
+                    from_instance: myClientId
                 }));
             }
 
