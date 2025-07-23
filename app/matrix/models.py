@@ -80,3 +80,4 @@ class DetallesValidate(models.Model):
     comentario_RN = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"Detalles de {self.super_matriz.nombre}"
+

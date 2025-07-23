@@ -292,12 +292,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 30000);
 });
 
-window.addEventListener('beforeunload', function() {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close(1000, "Usuario cerró la página");
-    }
-    clearInterval(heartbeatInterval);
-});
+    window.addEventListener('beforeunload', function() {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close(1000, "Usuario cerró la página");
+        }
+        clearInterval(heartbeatInterval);
+    });
+// Autosave cada 20 segundos
+setInterval(() => {
+    document.querySelectorAll('.nota-input').forEach(input => {
+        const caseId = input.closest('tr').dataset.id;
+        const newNote = input.value;
+
+        fetch("{% url 'matrix_app:actualizar_nota_caso' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: `caso_id=${caseId}&nota=${encodeURIComponent(newNote)}`
+        }).then(() => {
+            console.log(`💾 Autosalvado nota del caso ${caseId}`);
+        }).catch(console.error);
+    });
+}, 20000); // cada 20 segundos
+
+// Auto-actualización visual cada 5 segundos desde API JSON
+    setInterval(() => {
+        fetch("{% url 'matrix_app:estado_actualizado_json' matriz.id %}")
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(item => {
+                    updateCaseState(item.id, item.estado);
+                    updateCaseNote(item.id, item.nota);
+                });
+            }).catch(console.error);
+    }, 5000); // cada 5 segundos
+
 </script>
 
 <style>

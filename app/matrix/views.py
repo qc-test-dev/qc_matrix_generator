@@ -4,6 +4,8 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 import random
+from .models import CasoPrueba
+
 from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
@@ -512,3 +514,4 @@ def actualizar_estado_validate(request):
     
     print(f"✅✅✅ MÉTODO NO ES POST: {request.method}")
     return JsonResponse({"success": False, "error": "Método no permitido"})
+

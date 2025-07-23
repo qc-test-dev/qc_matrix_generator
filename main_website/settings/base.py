@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
+BASE_DIR = str(Path(__file__).resolve().parent.parent.parent)
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 LOGIN_REDIRECT_URL = '/home/'
