@@ -1,0 +1,34 @@
+<div id="contenedor-tabla">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th class="col-fase">Fase</th>
+                <th class="col-caso">Caso de Prueba</th>
+                <th class="col-estado">Estado</th>
+                <th class="col-criticidad">Criticidad</th>
+                <th class="col-nota">Nota</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for caso, form in formularios_casos_de_prueba %}
+                <tr data-id="{{ caso.id }}">
+                    <td>{{ caso.fase }}</td>
+                    <td>{{ caso.caso_de_prueba }}</td>
+                    <td id="estado-caso-{{ caso.id }}">
+                        {% render_field form.estado class="estado-input form-control" %}
+                    </td>
+                    <td>
+                        {% if caso.criticidad|lower == "bloqueante" %}
+                            <span class="badge bg-danger">🛑 Bloqueante</span>
+                        {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
+                            <span class="badge bg-warning text-dark">⚠️ Critico</span>
+                        {% endif %}
+                    </td>
+                    <td id="nota-caso-{{ caso.id }}">
+                        {% render_field form.nota class="nota-input form-control" %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

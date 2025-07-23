@@ -552,8 +552,3 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     response = HttpResponse(result, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
     return response
-from django.http import JsonResponse
-from .models import CasoDePrueba
-def casos_json(request):
-    casos = CasoDePrueba.objects.all().values('id', 'estado', 'nota')
-    return JsonResponse(list(casos), safe=False)

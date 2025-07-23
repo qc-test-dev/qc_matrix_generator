@@ -92,41 +92,36 @@ Validates – {{ super_matriz.nombre }}
 console.log("superMatrizId:", "{{ super_matriz.id }}");
 
 const superMatrizId = "{{ super_matriz.id }}";
-let socket = null;
+
+// ⚡ SSE - Server-Sent Events
+let eventSource = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
-const reconnectDelayBase = 2000; // 2 segundos base
 
-function setupWebSocket() {
-    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-        console.log("🔄 WebSocket ya está conectado o conectándose");
+function createSSEConnection() {
+    if (eventSource && eventSource.readyState === EventSource.OPEN) {
+        console.log("🔄 SSE validates ya está conectado");
         return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const wsUrl = `${protocol}${window.location.host}/ws/validates/${superMatrizId}/`;
-    console.log("🔗 Conectando WebSocket a:", wsUrl);
+    const sseUrl = `/matrix/validates/${superMatrizId}/sse/`;
+    console.log("🔗 Conectando SSE validates a:", sseUrl);
     
-    socket = new WebSocket(wsUrl);
+    eventSource = new EventSource(sseUrl);
 
-    socket.onopen = function() {
-        console.log("✅ WebSocket conectado correctamente");
+    eventSource.onopen = function() {
+        console.log("✅ SSE validates conectado correctamente");
         reconnectAttempts = 0;
-        // Enviar mensaje de identificación inicial
-        socket.send(JSON.stringify({
-            type: 'init',
-            matriz_id: superMatrizId
-        }));
     };
 
-    socket.onmessage = function(event) {
-        console.log("📨 WebSocket recibido:", event.data);
+    eventSource.onmessage = function(event) {
+        console.log("📨 SSE validates recibido:", event.data);
         
         try {
             const data = JSON.parse(event.data);
             
             if (data.type === 'connected') {
-                console.log("🎯 WebSocket confirmación de conexión");
+                console.log("🎯 SSE validates confirmación de conexión");
                 return;
             }
 
@@ -136,62 +131,44 @@ function setupWebSocket() {
                 
                 console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
                 
-                updateSelectState(validateId, nuevoEstado);
+                const celda = document.querySelector(`#estado-validate-${validateId}`);
+                if (celda) {
+                    const select = celda.querySelector('select');
+                    if (select && select.value !== nuevoEstado) {
+                        select.value = nuevoEstado;
+                        aplicarColorEstado(select);
+                        select.classList.add("flash-update");
+                        setTimeout(() => select.classList.remove("flash-update"), 1500);
+                        console.log(`✅ Validate ${validateId} actualizado correctamente`);
+                    }
+                } else {
+                    console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
+                }
             }
         } catch (error) {
-            console.error("❌ Error procesando mensaje WebSocket:", error);
+            console.error("❌ Error procesando mensaje SSE validates:", error);
         }
     };
 
-    socket.onerror = function(error) {
-        console.error("❌ Error en WebSocket:", error);
-    };
-
-    socket.onclose = function(event) {
-        console.log(`🔴 WebSocket cerrado. Código: ${event.code}, Razón: ${event.reason}`);
+    eventSource.onerror = function(error) {
+        console.error("❌ Error en SSE validates:", error);
         
-        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) { // 1000 = cierre normal
-            const delay = reconnectDelayBase * Math.pow(2, reconnectAttempts);
-            reconnectAttempts++;
-            console.log(`⚠️ Reconectando WebSocket... intento ${reconnectAttempts}/${maxReconnectAttempts} en ${delay}ms`);
-            setTimeout(setupWebSocket, delay);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                console.log(`⚠️ Reconectando SSE validates... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
+                setTimeout(createSSEConnection, 2000 * reconnectAttempts);
+            }
         }
     };
-}
-
-function updateSelectState(validateId, nuevoEstado) {
-    const celda = document.querySelector(`#estado-validate-${validateId}`);
-    if (celda) {
-        const select = celda.querySelector('select');
-        if (select && select.value !== nuevoEstado) {
-            select.value = nuevoEstado;
-            aplicarColorEstado(select);
-            select.classList.add("flash-update");
-            setTimeout(() => select.classList.remove("flash-update"), 1500);
-            console.log(`✅ Validate ${validateId} actualizado correctamente`);
-        }
-    } else {
-        console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
-    }
-}
-
-// Heartbeat para mantener conexión activa
-function setupHeartbeat() {
-    setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({type: 'heartbeat'}));
-            console.log("❤️ Enviando heartbeat");
-        }
-    }, 25000); // 25 segundos
 }
 
 // Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 DOM cargado, configurando event listeners validates...");
     
-    // ⚡ CREAR WebSocket
-    setupWebSocket();
-    setupHeartbeat();
+    // ⚡ CREAR SSE
+    createSSEConnection();
     
     // Configurar selects
     const selects = document.querySelectorAll("select");
@@ -213,13 +190,31 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`🔄 Cambiando estado del validate ${validateId} a: ${nuevoEstado}`);
 
-            // Enviar cambio tanto por HTTP como por WebSocket
-            sendStateUpdate(validateId, nuevoEstado);
+            fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `validate_id=${validateId}&nuevo_estado=${nuevoEstado}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error("❌ Error en la respuesta del servidor:", response.status);
+                } else {
+                    console.log(`✅ Estado del validate ${validateId} enviado correctamente`);
+                }
+                return response;
+            })
+            .catch(error => {
+                console.error("❌ Error enviando cambio de estado:", error);
+            });
+
             aplicarColorEstado(this);
         });
     });
 
-    // Configurar filtros (se mantiene igual)
+    // Filtros por tester
     const filterBtns = document.querySelectorAll(".filter-btn");
     console.log(`🔍 Encontrados ${filterBtns.length} botones de filtro`);
     
@@ -248,37 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function sendStateUpdate(validateId, nuevoEstado) {
-    // Enviar por HTTP (para persistencia)
-    fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: `validate_id=${validateId}&nuevo_estado=${nuevoEstado}`
-    })
-    .then(response => {
-        if (!response.ok) {
-            console.error("❌ Error en la respuesta del servidor:", response.status);
-        } else {
-            console.log(`✅ Estado del validate ${validateId} enviado correctamente`);
-        }
-        return response;
-    })
-    .catch(error => {
-        console.error("❌ Error enviando cambio de estado:", error);
-    });
-
-    // También enviar por WebSocket si está disponible (para propagación inmediata)
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({
-            type: 'estado_update',
-            validate_id: validateId,
-            nuevo_estado: nuevoEstado
-        }));
+// Verificar conexión cada 30 segundos
+setInterval(() => {
+    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+        console.log("🔄 Verificando conexión SSE validates...");
+        createSSEConnection();
     }
-}
+}, 30000);
 
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
@@ -310,6 +281,75 @@ function aplicarColorEstado(select) {
     select.style.height = "40px";
     select.style.fontWeight = "bold";
 }
+// Agregar esta función después de la función aplicarColorEstado
+
+function actualizarTablaValidates() {
+    console.log("🔄 Refrescando tabla de validates...");
+
+    fetch(window.location.href)
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevaTabla = doc.querySelector('#validates-table tbody');
+            const tablaActual = document.querySelector('#validates-table tbody');
+
+            if (nuevaTabla && tablaActual) {
+                nuevaTabla.querySelectorAll('tr').forEach(nuevaFila => {
+                    const id = nuevaFila.getAttribute('data-id');
+                    const filaActual = tablaActual.querySelector(`tr[data-id="${id}"]`);
+                    if (!filaActual) return;
+
+                    // Actualizar Estado
+                    const nuevaCelda = nuevaFila.querySelector(`#estado-validate-${id}`);
+                    const celdaActual = filaActual.querySelector(`#estado-validate-${id}`);
+                    
+                    if (nuevaCelda && celdaActual) {
+                        const nuevoSelect = nuevaCelda.querySelector('select');
+                        const actualSelect = celdaActual.querySelector('select');
+                        
+                        // Solo actualizar si el usuario NO está editando este select
+                        if (actualSelect && nuevoSelect && document.activeElement !== actualSelect) {
+                            if (actualSelect.value !== nuevoSelect.value) {
+                                actualSelect.value = nuevoSelect.value;
+                                aplicarColorEstado(actualSelect);
+                                
+                                // Aplicar efecto flash para indicar actualización
+                                actualSelect.classList.add("flash-update");
+                                setTimeout(() => actualSelect.classList.remove("flash-update"), 1500);
+                                
+                                console.log(`✅ Validate ${id} actualizado: ${nuevoSelect.value}`);
+                            }
+                        }
+                    }
+                });
+
+                console.log("✅ Tabla de validates actualizada sin recarga completa.");
+            }
+        })
+        .catch(err => {
+            console.error("❌ Error actualizando tabla de validates:", err);
+        });
+}
+
+// Agregar después del DOMContentLoaded existente:
+
+// Actualización periódica cada 6 segundos
+setInterval(() => {
+    actualizarTablaValidates();
+}, 6 * 1000);
+
+// También puedes agregar una verificación adicional de la conexión SSE junto con la actualización:
+setInterval(() => {
+    // Verificar SSE
+    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+        console.log("🔄 Verificando conexión SSE validates...");
+        createSSEConnection();
+    }
+    
+    // Actualizar tabla
+    actualizarTablaValidates();
+}, 6 * 1000);
 
 // CSS para animaciones
 const style = document.createElement('style');
@@ -327,8 +367,8 @@ document.head.appendChild(style);
 
 // Cleanup al cerrar página
 window.addEventListener('beforeunload', function() {
-    if (socket && socket.readyState !== WebSocket.CLOSED) {
-        socket.close(1000, "Página cerrada"); // 1000 = cierre normal
+    if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+        eventSource.close();
     }
 });
 </script>
