@@ -6,6 +6,7 @@
 
 {% block content %}
 {% include 'includes/header.html' %}
+{% csrf_token %}
 
 <div class="container-fluid p-5">
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
