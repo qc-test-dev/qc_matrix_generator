@@ -22,6 +22,7 @@ from weasyprint import HTML
 from datetime import datetime
 from django.utils.timezone import localtime
 import locale
+from .models import CasoDePrueba
 
 # ✅ IMPORTS PARA WEBSOCKET
 from asgiref.sync import async_to_sync
@@ -512,3 +513,43 @@ def actualizar_estado_validate(request):
     
     print(f"✅✅✅ MÉTODO NO ES POST: {request.method}")
     return JsonResponse({"success": False, "error": "Método no permitido"})
+
+@require_POST
+@login_required
+def bloquear_campo(request, caso_id, campo):
+    caso = CasoDePrueba.objects.get(pk=caso_id)
+    bloqueado, creado = CampoBloqueado.objects.get_or_create(
+        caso=caso, campo=campo,
+        defaults={"usuario": request.user}
+    )
+
+    if not creado and bloqueado.usuario != request.user:
+        if bloqueado.expirado():
+            bloqueado.usuario = request.user
+            bloqueado.save()
+        else:
+            return JsonResponse({"bloqueado": True, "por": bloqueado.usuario.username})
+
+    return JsonResponse({"bloqueado": False})
+
+
+@require_POST
+@login_required
+def liberar_campo(request, caso_id, campo):
+    try:
+        bloqueo = CampoBloqueado.objects.get(caso_id=caso_id, campo=campo, usuario=request.user)
+        bloqueo.delete()
+    except CampoBloqueado.DoesNotExist:
+        pass
+    return JsonResponse({"liberado": True})
+
+@login_required
+def estado_bloqueos(request, caso_id):
+    bloqueos = CampoBloqueado.objects.filter(caso_id=caso_id)
+    data = {
+        b.campo: {
+            "usuario": b.usuario.username,
+            "expirado": b.expirado()
+        } for b in bloqueos
+    }
+    return JsonResponse(data)

@@ -8,6 +8,12 @@ LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'changeme')  # ajusta tu secret key
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "bloqueos",
+    }
+}
 
 
 
