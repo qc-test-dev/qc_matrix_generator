@@ -44,6 +44,7 @@ from weasyprint import HTML
 from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
+
 import locale
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 @login_required
@@ -552,3 +553,27 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     response = HttpResponse(result, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
     return response
+User = get_user_model()
+
+@login_required
+def asignar_validates(request, super_matriz_id):
+    super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
+    validates = Validate.objects.filter(super_matriz=super_matriz)
+
+    # Usamos equipo_nuevo, que es un FK a Equipo
+    testers = User.objects.filter(cargo='Tester', equipo_nuevo=super_matriz.equipo_nuevo)
+
+    if request.method == "POST":
+        for validate in validates:
+            nuevo_tester = request.POST.get(f"tester_{validate.id}")
+            if nuevo_tester:
+                validate.tester = nuevo_tester  # Se guarda como string
+                validate.save()
+        return redirect('matrix_app:editar_validates', super_matriz_id=super_matriz.id)
+
+    context = {
+        'super_matriz': super_matriz,
+        'validates': validates,
+        'testers': testers,
+    }
+    return render(request, 'excel_files/asignar_validates.html', context)

@@ -22,7 +22,13 @@ Validates – {{ super_matriz.nombre }}
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz.id %}" 
            class="btn btn-secondary btn-sm">⬅ Volver</a>
     </div>
-
+    {% if request.user.cargo == "Lider" %}
+    <div class="mb-3">
+        <a href="{% url 'matrix_app:asignar_validates' super_matriz.id %}" class="btn btn-outline-success btn-sm">
+            🛠️ Asignar Validates
+        </a>
+    </div>
+    {% endif %}
     <h1 class="mb-4 mt-3">Editar Validates</h1>
 
     <div class="mb-4">

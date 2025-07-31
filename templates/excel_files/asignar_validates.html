@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Asignar Validates{% endblock %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+<div class="container mt-4">
+    <h2 class="mb-4">Asignar Validates – {{ super_matriz.nombre }}</h2>
+
+    {% if error %}
+        <div class="alert alert-warning">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Ticket</th>
+                    <th>Descripción</th>
+                    <th>Tester Actual</th>
+                    <th>Nuevo Tester</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for validate in validates %}
+                <tr>
+                    <td>
+                        <a href="https://dlatvarg.atlassian.net/browse/{{ validate.ticket }}" 
+                           target="_blank">{{ validate.ticket }}</a>
+                    </td>
+                    <td>{{ validate.descripcion }}</td>
+                    <td>{{ validate.tester }}</td>
+                    <td>
+                        <select name="tester_{{ validate.id }}" class="form-select form-select-sm">
+                            <option value="">-- Selecciona --</option>
+                            {% for tester in testers %}
+                                {% with nombre_completo=tester.nombre|stringformat:"s"|add:" "|add:tester.apellido %}
+                                <option value="{{ nombre_completo }}" {% if validate.tester == nombre_completo %}selected{% endif %}>
+                                    {{ nombre_completo }}
+                                </option>
+                                {% endwith %}
+                            {% endfor %}
+                        </select>
+
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn-secondary ms-2">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
