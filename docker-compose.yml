@@ -3,6 +3,7 @@ version: '3.9'
 networks:
   qc_network:
     driver: bridge
+    external: true
 
 volumes:
   postgres_data:
@@ -83,8 +84,15 @@ services:
         exec daphne -b 0.0.0.0 -p 8000 --access-log - --proxy-headers main_website.asgi:application
       "
     networks:
-      qc_network:
-        external: true
+      - qc_network
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/", "||", "exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   proxy:
     build:
       context: ./proxy_uat
