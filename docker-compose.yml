@@ -83,7 +83,9 @@ services:
         exec daphne -b 0.0.0.0 -p 8000 --access-log - --proxy-headers main_website.asgi:application
       "
     networks:
-      - qc_network
+      - qc_network:
+          external: true
+      
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/", "||", "exit 1"]
       interval: 30s
