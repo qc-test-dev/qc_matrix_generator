@@ -85,13 +85,6 @@ services:
     networks:
       qc_network:
         external: true
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8000/", "||", "exit 1"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 40s
-
   proxy:
     build:
       context: ./proxy_uat
