@@ -1,6 +1,7 @@
 # models.py
 from django.db import models
 from ..accounts.models import Equipo
+from django.core.exceptions import ValidationError
 class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
@@ -23,6 +24,12 @@ class SuperMatriz(models.Model):
     fecha_fin = models.DateField("Fecha Tentativa", null=True, blank=True)
     def __str__(self):
         return self.nombre
+    def clean(self):
+        super().clean()
+        if self.fecha_fin and self.fecha_fin < self.fecha_creacion.date():
+            raise ValidationError({
+                'fecha_fin': "La fecha fin no puede ser anterior a la fecha de creación."
+            })
 class Matriz(models.Model):
     super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='matrices')
     nombre = models.CharField(max_length=70)

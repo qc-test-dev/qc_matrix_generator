@@ -2,6 +2,7 @@ from django import forms
 from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate,Dispositivo
 from django.contrib.auth import get_user_model
 from ..accounts.models import Equipo
+from django.utils import timezone
 User = get_user_model()
 
 class MatrizForm(forms.ModelForm):
@@ -120,7 +121,8 @@ class SuperMatrizForm(forms.ModelForm):
     fecha_fin = forms.DateField(
         widget=forms.DateInput(attrs={
             'class': 'form-control',
-            'type': 'date'  
+            'type': 'date',
+            'min': timezone.now().date()
         }),
         required=True,
         label="Fecha de finalización"
