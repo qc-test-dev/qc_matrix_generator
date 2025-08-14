@@ -18,6 +18,7 @@
             </div>
         </div>
         <a href="{% url 'home' %}" class="home-btn">Home</a>
+        <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn ">Dashboard</a>
     <form method="post" action="{% url 'accounts_app:logout' %}">
         {% csrf_token %}
         

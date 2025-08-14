@@ -577,3 +577,11 @@ def asignar_validates(request, super_matriz_id):
         'testers': testers,
     }
     return render(request, 'excel_files/asignar_validates.html', context)
+
+@login_required
+def dashboard(request):
+    desc="Pestaña por ahora"
+    context = {
+        'desc': desc,
+    }
+    return render(request, 'excel_files/dashboard.html', context)
