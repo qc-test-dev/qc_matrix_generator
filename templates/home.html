@@ -56,11 +56,17 @@
                                     <h5 class="mb-1 text-success">{{ matriz.nombre }}</h5>
                                     <p class="mb-0 text-muted small">{{ matriz.descripcion|truncatechars:100 }}</p>
                                     <p class="mb-0 text-muted small">{{ matriz.equipo_nuevo.nombre }}</p>
-                                    <div class="d-flex justify-content-between mt-2">
+                                    <div class="d-flex justify-content-between mt-2 flex-wrap gap-2">
                                         <span class="badge bg-light text-dark small">
                                             <i class="far fa-calendar me-1"></i>
                                             Fecha de inicio: {{ matriz.fecha_creacion|date:"d/m/Y" }}
                                         </span>
+                                        {% if matriz.fecha_fin %}
+                                        <span class="badge bg-light text-dark small">
+                                            <i class="far fa-calendar-check me-1"></i>
+                                            Fecha Tentativa: {{ matriz.fecha_fin|date:"d/m/Y" }}
+                                        </span>
+                                        {% endif %}
                                         {% if es_lider %}
                                         <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" class="d-inline">
                                             {% csrf_token %}
@@ -150,6 +156,10 @@
                         <div class="mb-3">
                             <label for="id_equipo_nuevo" class="form-label small fw-bold">Equipo</label>
                             {{ matriz_form.equipo_nuevo }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_fecha_fin" class="form-label small fw-bold">Fecha Tentativa</label>
+                            {{ matriz_form.fecha_fin }}
                         </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="fas fa-save me-1"></i>Crear

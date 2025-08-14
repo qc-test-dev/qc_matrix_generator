@@ -172,3 +172,15 @@ python manage_local.py migrate
 pasos a relalizar 
 python manage_local.py makemigrations
 python manage_local.py migrate
+
+
+#Nueva Funcionalidad Calendario dashboard 17/08/2025
+
+## primer cambio al modelo Supermatrix
+se agrego un cambio 
+fecha_fin = models.DateField("Fecha Tentativa", null=True, blank=True)
+se debe de migrar con
+python manag_local.py makemigrations
+python manag_local.py migrate 
+para que se efectuen los cambios 
+

@@ -117,10 +117,18 @@ class SuperMatrizForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Equipo'
     )
+    fecha_fin = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'  
+        }),
+        required=True,
+        label="Fecha de finalización"
+    )
 
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion', 'equipo_nuevo']
+        fields = ['nombre', 'descripcion', 'equipo_nuevo', 'fecha_fin']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

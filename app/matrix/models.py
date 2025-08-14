@@ -20,6 +20,7 @@ class SuperMatriz(models.Model):
         blank=True,
         related_name='supermatrices'
     )
+    fecha_fin = models.DateField("Fecha Tentativa", null=True, blank=True)
     def __str__(self):
         return self.nombre
 class Matriz(models.Model):
