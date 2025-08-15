@@ -40,15 +40,40 @@ Dashboard - Avances de Equipos
                 </div>
             </div>
 
-            <!-- Detalle de SuperMatrices en filas -->
-            <div id="detalleMatrices" class="mt-4">
-                <div id="matricesContainer" class="d-flex flex-column gap-3"></div>
+            <!-- Sección de Espacios de Trabajo -->
+            <div id="espaciosTrabajoSection" class="mt-4">
+                <h4 id="sectionTitle">Espacios de Trabajo del Equipo</h4>
+                <div id="espaciosTrabajoContainer" class="row row-cols-1 row-cols-md-2 g-4"></div>
+                <div id="emptyMessage" class="text-center py-5">
+                    <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                    <h4 class="mt-3 text-muted">No hay espacios de trabajo para mostrar</h4>
+                    <p>Selecciona un equipo para ver sus espacios de trabajo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de matrices -->
+<div class="modal fade" id="matricesModal" tabindex="-1" aria-labelledby="matricesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="matricesModalLabel">Detalles de Matrices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalMatricesContent">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+    /* Estilos del calendario */
     .calendar-container {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
@@ -96,157 +121,113 @@ Dashboard - Avances de Equipos
         gap: 3px;
         margin-top: 4px;
     }
+    
+    /* Estilos para las tarjetas de espacios de trabajo */
+    .espacio-trabajo-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .espacio-trabajo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    .espacio-trabajo-header {
+        padding: 15px;
+        color: white;
+        font-weight: bold;
+        position: relative;
+    }
+    
+    .espacio-trabajo-body {
+        padding: 15px;
+        background-color: white;
+    }
+    
+    .espacio-trabajo-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    /* Estilos para el modal */
+    .matriz-modal-card {
+        border-left: 4px solid;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+        background-color: #f8f9fa;
+    }
+    
+    .pais-section {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+    
+    .pais-title {
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    
+    .tester-item {
+        padding: 5px 0;
+        border-bottom: 1px dotted #eee;
+    }
+    
+    /* Estilos para los botones de equipos */
     #equiposContainer button {
         font-weight: bold;
         text-align: center;
-        margin-bottom: 3px;
+        margin-bottom: 8px;
         color: white;
         border: none;
         transition: all 0.3s;
     }
+    
     #equiposContainer button:hover {
         transform: translateX(5px);
         box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }
     
-    /* Estilos para el contenedor de supermatrices en filas */
-    .supermatriz-fila {
-        border-radius: 8px;
-        background-color: #f5f5f5;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        overflow: hidden;
+    .equipo-activo {
+        transform: translateX(10px) !important;
+        box-shadow: 3px 3px 8px rgba(0,0,0,0.2) !important;
+        position: relative;
     }
     
-    .supermatriz-header {
-        padding: 12px;
-        color: white;
-        font-weight: bold;
-    }
-    
-    .matriz-scroll-container {
-        display: flex;
-        overflow-x: auto;
-        padding: 10px;
-        background-color: #e9ecef;
-        gap: 10px;
-        min-height: 250px;
-    }
-    
-    .matriz-card {
-        min-width: 280px;
-        max-width: 280px;
-        height: 220px; /* Altura fija */
-        border-left: 4px solid;
-        padding: 12px;
-        background-color: #ffffff;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto; /* Scroll vertical si el contenido excede */
-    }
-    
-    .matriz-content {
-        flex-grow: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .matriz-card:hover {
-        background-color: #f8f9fa;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .tester-list {
-        font-size: 0.9rem;
-        margin-top: 8px;
-        overflow-y: auto;
-        flex-grow: 1;
-    }
-    
-    .pais-label {
-        font-weight: bold;
-        color: #495057;
-        margin-top: 8px;
-        padding-bottom: 2px;
-        border-bottom: 1px dashed #adb5bd;
-    }
-    
-    .empty-matrices {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        color: #6c757d;
-        font-style: italic;
-        min-height: 150px;
-    }
-    
-    .matriz-title {
-        color: #212529;
-        font-size: 1.05rem;
-        margin-bottom: 6px;
-        font-weight: 600;
-    }
-    
-    .matriz-date {
-        font-size: 0.85rem;
-        color: #6c757d;
-        margin-bottom: 4px;
-    }
-    
-    .tester-name {
-        padding: 2px 5px;
-        background-color: #e9ecef;
-        border-radius: 3px;
-        display: inline-block;
-        margin: 2px;
-        font-size: 0.8rem;
-    }
-    
-    /* Scrollbar styles */
-    .matriz-scroll-container::-webkit-scrollbar {
+    .equipo-activo::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8px;
         height: 8px;
-    }
-    .matriz-scroll-container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    .matriz-scroll-container::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-    }
-    .matriz-scroll-container::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-    
-    .matriz-card::-webkit-scrollbar {
-        width: 6px;
-    }
-    .matriz-card::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    .matriz-card::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 3px;
-    }
-    .matriz-card::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-    
-    .tester-list::-webkit-scrollbar {
-        width: 4px;
-    }
-    .tester-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    .tester-list::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 2px;
+        background-color: white;
+        border-radius: 50%;
     }
 </style>
 
@@ -254,8 +235,9 @@ Dashboard - Avances de Equipos
     const matrices = {{ matrices_json|safe }};
     const equipos = {{ equipos_json|safe }};
     let equipoFiltrado = null;
-    const matricesContainer = document.getElementById('matricesContainer');
+    let equipoActivoBtn = null;
 
+    // Renderizar calendarios
     function renderCalendar(containerId, monthOffset) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
@@ -308,107 +290,166 @@ Dashboard - Avances de Equipos
         }
     }
 
+    // Inicializar calendarios
     renderCalendar('calendarActual', 0);
     renderCalendar('calendarPasado', -1);
 
-    // Botones de equipos
+    // Renderizar botones de equipos
     const equiposContainer = document.getElementById('equiposContainer');
-
     equipos.forEach(eq => {
         const btn = document.createElement('button');
         btn.classList.add('btn', 'w-100', 'mb-2');
         btn.style.backgroundColor = eq.color;
         btn.style.boxShadow = `0 2px 4px ${eq.color}80`;
         btn.innerText = eq.nombre;
-        btn.addEventListener('click', () => filtrarEquipo(eq.nombre));
+        btn.addEventListener('click', () => {
+            filtrarEquipo(eq.nombre);
+            
+            // Remover clase activa del botón anterior
+            if (equipoActivoBtn) {
+                equipoActivoBtn.classList.remove('equipo-activo');
+            }
+            
+            // Agregar clase activa al botón actual
+            btn.classList.add('equipo-activo');
+            equipoActivoBtn = btn;
+        });
         equiposContainer.appendChild(btn);
     });
 
     function filtrarEquipo(equipoNombre) {
-        equipoFiltrado = equipoNombre; 
+        equipoFiltrado = equipoNombre;
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
-        mostrarDetalleMatrices(equipoNombre);
+        mostrarEspaciosTrabajo(equipoNombre);
     }
 
-    function mostrarDetalleMatrices(equipoNombre) {
-        matricesContainer.innerHTML = '';
-
-        if(!equipoNombre) {
+    function mostrarEspaciosTrabajo(equipoNombre) {
+        const container = document.getElementById('espaciosTrabajoContainer');
+        const emptyMsg = document.getElementById('emptyMessage');
+        const sectionTitle = document.getElementById('sectionTitle');
+        
+        container.innerHTML = '';
+        
+        if (!equipoNombre) {
+            emptyMsg.classList.remove('d-none');
+            container.classList.add('d-none');
+            sectionTitle.textContent = 'Espacios de Trabajo del Equipo';
             return;
         }
-
-        const matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
-
-        if(!matricesFiltradas.length) {
-            matricesContainer.innerHTML = `
-                <div class="supermatriz-fila d-flex align-items-center justify-content-center p-4">
-                    <p class="text-muted">No hay matrices asignadas al equipo ${equipoNombre}</p>
-                </div>`;
+        
+        container.classList.remove('d-none');
+        emptyMsg.classList.add('d-none');
+        sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre}`;
+        
+        const espaciosFiltrados = matrices.filter(m => m.equipo === equipoNombre);
+        
+        if (espaciosFiltrados.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            container.classList.add('d-none');
+            emptyMsg.querySelector('p').textContent = `El equipo ${equipoNombre} no tiene espacios de trabajo asignados`;
             return;
         }
-
+        
         const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
-
-        matricesFiltradas.forEach(sm => {
-            const fila = document.createElement('div');
-            fila.className = 'supermatriz-fila mb-3';
-            fila.style.border = `2px solid ${colorEquipo}`;
+        
+        espaciosFiltrados.forEach(espacio => {
+            const col = document.createElement('div');
+            col.className = 'col';
             
-            let html = `
-                <div class="supermatriz-header" style="background-color:${colorEquipo}">
-                    <h5>${sm.supermatriz}</h5>
+            // Contar matrices
+            const numMatrices = espacio.matrices ? espacio.matrices.length : 0;
+            
+            col.innerHTML = `
+                <div class="espacio-trabajo-card" onclick="mostrarDetallesMatrices('${espacio.supermatriz}')" style="border-color: ${colorEquipo}">
+                    <div class="espacio-trabajo-header" style="background-color: ${colorEquipo}">
+                        <h5>${espacio.supermatriz}</h5>
+                        <small>${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</small>
+                    </div>
+                    <div class="espacio-trabajo-body">
+                        <p class="mb-3">${espacio.descripcion || 'Sin descripción'}</p>
+                        <div class="espacio-trabajo-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${numMatrices}</div>
+                                <div class="stat-label">Matrices</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="matriz-scroll-container">`;
-
-            if(!sm.matrices || sm.matrices.length === 0) {
-                html += `<div class="empty-matrices">
-                            <p><em>No hay matrices en este espacio de trabajo</em></p>
-                         </div>`;
-            } else {
-                sm.matrices.forEach(m => {
-                    html += `
-                    <div class="matriz-card" style="border-left-color:${colorEquipo}">
-                        <div class="matriz-content">
-                            <div class="matriz-title">${m.nombre}</div>
-                            <div class="matriz-date">Creación: ${m.fecha_creacion}</div>
-                            <div class="matriz-date">Fin: ${m.fecha_fin || 'No definida'}</div>`;
-
-                    // Testers asignados por país
-                    if(m.tester_asignado && m.tester_asignado.length) {
-                        const testersPorPais = {};
-                        m.tester_asignado.forEach(t => {
-                            const parts = t.split('-');
-                            const nombre = parts[0].trim();
-                            const pais = parts[1] ? parts[1].trim() : 'Sin país';
-                            if(!testersPorPais[pais]) testersPorPais[pais] = [];
-                            testersPorPais[pais].push(nombre);
-                        });
-
-                        html += `<div class="tester-list"><strong>Testers:</strong>`;
-                        for(const pais in testersPorPais) {
-                            html += `
-                            <div class="pais-label">${pais}</div>
-                            <div class="d-flex flex-wrap">
-                                ${testersPorPais[pais].map(t => `<span class="tester-name">${t}</span>`).join('')}
-                            </div>`;
-                        }
-                        html += `</div>`;
-                    } else {
-                        html += `<p class="text-muted"><small>No hay testers asignados</small></p>`;
-                    }
-
-                    html += `</div></div>`;
-                });
-            }
-
-            html += `</div>`;
-            fila.innerHTML = html;
-            matricesContainer.appendChild(fila);
+            `;
+            
+            container.appendChild(col);
         });
     }
 
-    mostrarDetalleMatrices(null);
+    function mostrarDetallesMatrices(espacioNombre) {
+        const espacio = matrices.find(esp => esp.supermatriz === espacioNombre);
+        if (!espacio) return;
+        
+        const colorEquipo = equipos.find(e => e.nombre === espacio.equipo).color;
+        const modalContent = document.getElementById('modalMatricesContent');
+        
+        let html = `
+            <div class="mb-4">
+                <h4>${espacio.supermatriz}</h4>
+                <p><strong>Equipo:</strong> <span class="badge" style="background-color: ${colorEquipo}">${espacio.equipo}</span></p>
+                <p><strong>Periodo:</strong> ${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</p>
+                <p>${espacio.descripcion || 'Sin descripción adicional'}</p>
+            </div>
+            <h5 class="mb-3">Matrices asociadas</h5>
+        `;
+        
+        if (!espacio.matrices || espacio.matrices.length === 0) {
+            html += `<div class="alert alert-info">No hay matrices asociadas a este espacio de trabajo</div>`;
+        } else {
+            espacio.matrices.forEach(matriz => {
+                html += `
+                    <div class="matriz-modal-card" style="border-left-color: ${colorEquipo}">
+                        <h6>${matriz.nombre}</h6>
+                        <p><small class="text-muted">${matriz.fecha_creacion} - ${matriz.fecha_fin || 'Sin fecha fin'}</small></p>
+                `;
+                
+                // Agregar testers por país si existen
+                if (matriz.tester_asignado && matriz.tester_asignado.length > 0) {
+                    const testersPorPais = {};
+                    
+                    // Agrupar testers por país
+                    matriz.tester_asignado.forEach(tester => {
+                        const [nombre, pais = 'Sin país'] = tester.split('-').map(s => s.trim());
+                        if (!testersPorPais[pais]) {
+                            testersPorPais[pais] = [];
+                        }
+                        testersPorPais[pais].push(nombre);
+                    });
+                    
+                    // Mostrar testers agrupados por país
+                    html += `<div class="mt-3"><strong>Testers asignados:</strong></div>`;
+                    
+                    for (const pais in testersPorPais) {
+                        html += `
+                            <div class="pais-section">
+                                <div class="pais-title">${pais}</div>
+                                <div class="tester-list">
+                        `;
+                        
+                        testersPorPais[pais].forEach(tester => {
+                            html += `<div class="tester-item">${tester}</div>`;
+                        });
+                        
+                        html += `</div></div>`;
+                    }
+                }
+                
+                html += `</div>`; // Cierre de matriz-modal-card
+            });
+        }
+        
+        modalContent.innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
+        modal.show();
+    }
+
+    mostrarEspaciosTrabajo(null);
 </script>
 
 {% endblock content %}
