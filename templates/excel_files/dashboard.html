@@ -2,102 +2,218 @@
 {% load static %}
 
 {% block title %}
-    Matrices
+Dashboard - Avances de Equipos
 {% endblock title %}
 
 {% block content %}
 {% include 'includes/header.html' %}
 
 <div class="container my-4">
-    <!-- Pestañas -->
-    <ul class="nav nav-tabs" id="calendarTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab">Mes Actual</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="prev-tab" data-bs-toggle="tab" data-bs-target="#prev" type="button" role="tab">Mes Pasado</button>
-        </li>
-    </ul>
+    <div class="row">
+        <h2>Dashboard</h2>
+        <div class="col-lg-3 col-md-4 mb-3">
+            <h4>Equipos</h4>
+            <button class="btn btn-secondary mb-2 w-100" onclick="filtrarEquipo(null)">Todos</button>
+            <div id="equiposContainer" class="d-flex flex-column"></div>
+        </div>
 
-    <!-- Contenido de pestañas -->
-    <div class="tab-content mt-3" id="calendarTabsContent">
-        <div class="tab-pane fade show active" id="current" role="tabpanel"></div>
-        <div class="tab-pane fade" id="prev" role="tabpanel"></div>
+        <!-- Columna calendario -->
+        <div class="col-lg-9 col-md-8">
+            <!-- Tabs Calendario -->
+            <ul class="nav nav-tabs" id="calendarTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="actual-tab" data-bs-toggle="tab" data-bs-target="#mes-actual" type="button" role="tab">Mes Actual</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pasado-tab" data-bs-toggle="tab" data-bs-target="#mes-pasado" type="button" role="tab">Mes Pasado</button>
+                </li>
+            </ul>
+
+            <div class="tab-content p-3 border border-top-0 rounded" id="calendarTabsContent">
+                <div class="tab-pane fade show active" id="mes-actual" role="tabpanel">
+                    <div id="calendarActual" class="calendar-container"></div>
+                </div>
+                <div class="tab-pane fade" id="mes-pasado" role="tabpanel">
+                    <div id="calendarPasado" class="calendar-container"></div>
+                </div>
+            </div>
+
+            <!-- Detalle de SuperMatrices -->
+            <div id="detalleMatrices" class="mt-4"></div>
+        </div>
     </div>
 </div>
 
-<!-- Script Calendario -->
+<style>
+    .calendar-container {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        text-align: center;
+        font-size: 1rem;
+        padding: 15px;
+        background-color: #cce5ff; /* Azul claro */
+        border-radius: 8px;
+        min-height: 300px;
+    }
+    .calendar-day {
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        position: relative;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .calendar-day:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .day-number {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #495057;
+    }
+    .event-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin: 2px;
+    }
+    .dots-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 3px;
+        margin-top: 4px;
+    }
+    #equiposContainer button {
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 3px;
+    }
+    #detalleMatrices .card {
+        margin-bottom: 10px;
+    }
+</style>
+
 <script>
-    const fmtMonth = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
-    const fmtFull = new Intl.DateTimeFormat('es-MX', { dateStyle: 'full' });
-    const DOW = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+    const matrices = {{ matrices_json|safe }};
+    const equipos = {{ equipos_json|safe }};
+    let equipoFiltrado = null; // null = todos los equipos
 
-    function monthStart(baseDate, offset){
-        return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
-    }
-    function daysInMonth(date){
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    }
-    function mondayIndex(firstDay){
-        return (firstDay.getDay() + 6) % 7;
-    }
+    function renderCalendar(containerId, monthOffset) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
 
-    function buildCalendar(targetDate){
-        const first = monthStart(targetDate, 0);
-        const total = daysInMonth(first);
-        const startPad = mondayIndex(first);
-        const today = new Date(); today.setHours(0,0,0,0);
-        const isSameMonth = today.getFullYear() === first.getFullYear() && today.getMonth() === first.getMonth();
-        const title = fmtMonth.format(first).replace(/^./, c => c.toUpperCase());
+        const today = new Date();
+        today.setMonth(today.getMonth() + monthOffset);
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        let html = `
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white fw-bold fs-4 text-center">${title}</div>
-                <div class="card-body p-3">
-                    <div class="table-responsive">
-                        <table class="table table-bordered text-center align-middle fs-5">
-                            <thead class="table-light">
-                                <tr>${DOW.map(d => `<th scope="col">${d}</th>`).join('')}</tr>
-                            </thead>
-                            <tbody>
-                                <tr>`;
+        const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        daysOfWeek.forEach(d => {
+            const cell = document.createElement('div');
+            cell.innerHTML = `<strong>${d}</strong>`;
+            container.appendChild(cell);
+        });
 
-        // Celdas vacías antes del día 1
-        for(let i=0; i<startPad; i++){
-            html += `<td class="text-muted"></td>`;
+        for (let i = 0; i < firstDay; i++) container.appendChild(document.createElement('div'));
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const cell = document.createElement('div');
+            cell.classList.add('calendar-day');
+
+            const dayNumber = document.createElement('div');
+            dayNumber.classList.add('day-number');
+            dayNumber.innerText = day;
+            cell.appendChild(dayNumber);
+
+            const dotsContainer = document.createElement('div');
+            dotsContainer.classList.add('dots-container');
+
+            equipos.forEach(eq => {
+                if(equipoFiltrado && eq.nombre !== equipoFiltrado) return; 
+                const activo = matrices.some(m => m.equipo === eq.nombre &&
+                    new Date(m.fecha_creacion) <= new Date(dateStr) &&
+                    new Date(dateStr) <= new Date(m.fecha_fin)
+                );
+                if (activo) {
+                    const dot = document.createElement('div');
+                    dot.classList.add('event-dot');
+                    dot.style.backgroundColor = eq.color;
+                    dotsContainer.appendChild(dot);
+                }
+            });
+
+            cell.appendChild(dotsContainer);
+            container.appendChild(cell);
         }
+    }
 
-        // Días del mes
-        for(let d=1; d<=total; d++){
-            const cellDate = new Date(first.getFullYear(), first.getMonth(), d);
-            const isToday = isSameMonth && d === today.getDate();
-            const label = fmtFull.format(cellDate);
+    renderCalendar('calendarActual', 0);
+    renderCalendar('calendarPasado', -1);
 
-            html += `<td class="${isToday ? 'bg-success text-white fw-bold' : ''}" style="height:80px; vertical-align: middle;" title="${label}">${d}</td>`;
+    // Botones de equipos
+    const equiposContainer = document.getElementById('equiposContainer');
+    const detalleDiv = document.getElementById('detalleMatrices');
 
-            if((startPad + d) % 7 === 0 && d !== total){
-                html += `</tr><tr>`;
-            }
+    equipos.forEach(eq => {
+        const btn = document.createElement('button');
+        btn.classList.add('btn', 'w-100');
+        btn.style.backgroundColor = eq.color;
+        btn.style.color = 'white';
+        btn.innerText = eq.nombre;
+        btn.addEventListener('click', () => filtrarEquipo(eq.nombre));
+        equiposContainer.appendChild(btn);
+    });
+
+    function filtrarEquipo(equipoNombre) {
+        equipoFiltrado = equipoNombre; 
+        renderCalendar('calendarActual', 0);
+        renderCalendar('calendarPasado', -1);
+        // Si es "Todos" (equipoNombre null), no mostrar detalle
+        if(!equipoNombre){
+            detalleDiv.innerHTML = '';
+        } else {
+            mostrarDetalleMatrices(equipoNombre);
         }
+    }
 
-        // Celdas vacías al final
-        const endPad = (7 - (startPad + total) % 7) % 7;
-        for(let i=0; i<endPad; i++){
-            html += `<td class="text-muted"></td>`;
-        }
+    function mostrarDetalleMatrices(equipoNombre) {
+        const matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
 
-        html += `</tr></tbody></table>
+        let html = `<h4>Espacio de trabajo del equipo: ${equipoNombre}</h4>`;
+        if(!matricesFiltradas.length){
+            html += "<p>No hay matrices asignadas.</p>";
+        } else {
+            matricesFiltradas.forEach(m => {
+                const color = equipos.find(e => e.nombre === m.equipo)?.color || '#6c757d';
+                html += `
+                    <div class="card border-left" style="border-left:5px solid ${color};">
+                        <div class="card-body">
+                            <p><strong>Equipo:</strong> ${m.equipo}</p>
+                            <p><strong>SuperMatriz:</strong> ${m.supermatriz}</p>
+                            <p><strong>Inicio:</strong> ${m.fecha_creacion}</p>
+                            <p><strong>Finalizacion tentativa:</strong> ${m.fecha_fin || 'No definida'}</p>
+                        </div>
                     </div>
-                </div>
-            </div>`;
-        return html;
+                `;
+            });
+        }
+        detalleDiv.innerHTML = html;
     }
 
-    (function render(){
-        const now = new Date();
-        const prev = monthStart(now, -1);
-        document.getElementById('current').innerHTML = buildCalendar(now);
-        document.getElementById('prev').innerHTML = buildCalendar(prev);
-    })();
+    // Inicialmente mostrar todos
+    filtrarEquipo(null);
 </script>
+
 {% endblock content %}

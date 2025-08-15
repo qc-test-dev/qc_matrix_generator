@@ -26,10 +26,12 @@ class SuperMatriz(models.Model):
         return self.nombre
     def clean(self):
         super().clean()
-        if self.fecha_fin and self.fecha_fin < self.fecha_creacion.date():
-            raise ValidationError({
-                'fecha_fin': "La fecha fin no puede ser anterior a la fecha de creación."
-            })
+        # Validación segura
+        if self.fecha_fin and self.fecha_creacion:
+            if self.fecha_fin < self.fecha_creacion.date():
+                raise ValidationError({
+                    'fecha_fin': "La fecha fin no puede ser anterior a la fecha de creación."
+                })
 class Matriz(models.Model):
     super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='matrices')
     nombre = models.CharField(max_length=70)

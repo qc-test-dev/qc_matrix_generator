@@ -45,7 +45,7 @@ from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
 
-import locale
+import locale, json
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
@@ -578,10 +578,60 @@ def asignar_validates(request, super_matriz_id):
     }
     return render(request, 'excel_files/asignar_validates.html', context)
 
+import json
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from .models import SuperMatriz
+
+
 @login_required
 def dashboard(request):
-    desc="Pestaña por ahora"
+    desc = "Pestaña por ahora"
+
+    # Lista de colores (uno por equipo)
+    colores = ["#0dcaf0", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#fd7e14", "#20c997"]
+
+    # Obtener equipos únicos de las SuperMatrices
+    equipos_dict = {}
+    supermatrices = SuperMatriz.objects.all()
+    color_idx = 0
+    for sm in supermatrices:
+        if sm.equipo_nuevo:
+            eq_id = sm.equipo_nuevo.id
+            if eq_id not in equipos_dict:
+                equipos_dict[eq_id] = {
+                    "id": eq_id,
+                    "nombre": sm.equipo_nuevo.nombre,
+                    "color": colores[color_idx % len(colores)],
+                    "supermatrices": []
+                }
+                color_idx += 1
+            equipos_dict[eq_id]["supermatrices"].append({
+                "nombre": sm.nombre,
+                "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
+                "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None
+            })
+
+    equipos_data = list(equipos_dict.values())
+
+    # Datos para el calendario (todos los supermatrices)
+    matrices_data = []
+    for sm in supermatrices:
+        if sm.equipo_nuevo:
+            color = next(eq['color'] for eq in equipos_data if eq['id'] == sm.equipo_nuevo.id)
+        else:
+            color = "#6c757d"  # gris por defecto si no tiene equipo
+        matrices_data.append({
+            "equipo": sm.equipo or (sm.equipo_nuevo.nombre if sm.equipo_nuevo else ""),
+            "supermatriz": sm.nombre,
+            "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
+            "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
+            "color": color
+        })
+
     context = {
-        'desc': desc,
+        'matrices_json': json.dumps(matrices_data),
+        'equipos_json': json.dumps(equipos_data)
     }
+
     return render(request, 'excel_files/dashboard.html', context)
