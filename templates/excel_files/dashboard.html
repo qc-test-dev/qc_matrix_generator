@@ -7,5 +7,97 @@
 
 {% block content %}
 {% include 'includes/header.html' %}
-<h1>{{desc}}</h1>
+
+<div class="container my-4">
+    <!-- Pestañas -->
+    <ul class="nav nav-tabs" id="calendarTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab">Mes Actual</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="prev-tab" data-bs-toggle="tab" data-bs-target="#prev" type="button" role="tab">Mes Pasado</button>
+        </li>
+    </ul>
+
+    <!-- Contenido de pestañas -->
+    <div class="tab-content mt-3" id="calendarTabsContent">
+        <div class="tab-pane fade show active" id="current" role="tabpanel"></div>
+        <div class="tab-pane fade" id="prev" role="tabpanel"></div>
+    </div>
+</div>
+
+<!-- Script Calendario -->
+<script>
+    const fmtMonth = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' });
+    const fmtFull = new Intl.DateTimeFormat('es-MX', { dateStyle: 'full' });
+    const DOW = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+
+    function monthStart(baseDate, offset){
+        return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+    }
+    function daysInMonth(date){
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+    function mondayIndex(firstDay){
+        return (firstDay.getDay() + 6) % 7;
+    }
+
+    function buildCalendar(targetDate){
+        const first = monthStart(targetDate, 0);
+        const total = daysInMonth(first);
+        const startPad = mondayIndex(first);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const isSameMonth = today.getFullYear() === first.getFullYear() && today.getMonth() === first.getMonth();
+        const title = fmtMonth.format(first).replace(/^./, c => c.toUpperCase());
+
+        let html = `
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white fw-bold fs-4 text-center">${title}</div>
+                <div class="card-body p-3">
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center align-middle fs-5">
+                            <thead class="table-light">
+                                <tr>${DOW.map(d => `<th scope="col">${d}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>
+                                <tr>`;
+
+        // Celdas vacías antes del día 1
+        for(let i=0; i<startPad; i++){
+            html += `<td class="text-muted"></td>`;
+        }
+
+        // Días del mes
+        for(let d=1; d<=total; d++){
+            const cellDate = new Date(first.getFullYear(), first.getMonth(), d);
+            const isToday = isSameMonth && d === today.getDate();
+            const label = fmtFull.format(cellDate);
+
+            html += `<td class="${isToday ? 'bg-success text-white fw-bold' : ''}" style="height:80px; vertical-align: middle;" title="${label}">${d}</td>`;
+
+            if((startPad + d) % 7 === 0 && d !== total){
+                html += `</tr><tr>`;
+            }
+        }
+
+        // Celdas vacías al final
+        const endPad = (7 - (startPad + total) % 7) % 7;
+        for(let i=0; i<endPad; i++){
+            html += `<td class="text-muted"></td>`;
+        }
+
+        html += `</tr></tbody></table>
+                    </div>
+                </div>
+            </div>`;
+        return html;
+    }
+
+    (function render(){
+        const now = new Date();
+        const prev = monthStart(now, -1);
+        document.getElementById('current').innerHTML = buildCalendar(now);
+        document.getElementById('prev').innerHTML = buildCalendar(prev);
+    })();
+</script>
 {% endblock content %}
