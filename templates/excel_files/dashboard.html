@@ -40,9 +40,9 @@ Dashboard - Avances de Equipos
                 </div>
             </div>
 
-            <!-- Detalle de SuperMatrices con scroll horizontal -->
+            <!-- Detalle de SuperMatrices en filas -->
             <div id="detalleMatrices" class="mt-4">
-                <div id="matricesContainer" class="d-flex flex-nowrap overflow-auto pb-2" style="min-height: 400px;"></div>
+                <div id="matricesContainer" class="d-flex flex-column gap-3"></div>
             </div>
         </div>
     </div>
@@ -109,59 +109,50 @@ Dashboard - Avances de Equipos
         box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }
     
-    /* Estilos para el contenedor de matrices */
-    #matricesContainer::-webkit-scrollbar {
-        height: 8px;
-    }
-    #matricesContainer::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    #matricesContainer::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-    }
-    #matricesContainer::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-    
-    /* Estilos para las tarjetas de supermatrices */
-    .supermatriz-card {
-        min-width: 320px;
-        max-width: 320px;
-        height: 400px;
-        margin-right: 15px;
-        flex-shrink: 0;
+    /* Estilos para el contenedor de supermatrices en filas */
+    .supermatriz-fila {
         border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
         background-color: #f5f5f5;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
     }
     
     .supermatriz-header {
         padding: 12px;
         color: white;
         font-weight: bold;
-        flex-shrink: 0;
     }
     
     .matriz-scroll-container {
-        flex-grow: 1;
-        overflow-y: auto;
+        display: flex;
+        overflow-x: auto;
         padding: 10px;
         background-color: #e9ecef;
+        gap: 10px;
+        min-height: 250px;
     }
     
     .matriz-card {
+        min-width: 280px;
+        max-width: 280px;
+        height: 220px; /* Altura fija */
         border-left: 4px solid;
-        margin-bottom: 10px;
         padding: 12px;
         background-color: #ffffff;
         border-radius: 6px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         transition: all 0.3s ease;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto; /* Scroll vertical si el contenido excede */
+    }
+    
+    .matriz-content {
+        flex-grow: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
     .matriz-card:hover {
@@ -170,17 +161,11 @@ Dashboard - Avances de Equipos
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     
-    .matriz-card:nth-child(odd) {
-        background-color: #f8f9fa;
-    }
-    
-    .matriz-card:nth-child(even) {
-        background-color: #ffffff;
-    }
-    
     .tester-list {
         font-size: 0.9rem;
         margin-top: 8px;
+        overflow-y: auto;
+        flex-grow: 1;
     }
     
     .pais-label {
@@ -195,9 +180,10 @@ Dashboard - Avances de Equipos
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100%;
+        width: 100%;
         color: #6c757d;
         font-style: italic;
+        min-height: 150px;
     }
     
     .matriz-title {
@@ -220,6 +206,47 @@ Dashboard - Avances de Equipos
         display: inline-block;
         margin: 2px;
         font-size: 0.8rem;
+    }
+    
+    /* Scrollbar styles */
+    .matriz-scroll-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    .matriz-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    .matriz-scroll-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    .matriz-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    .matriz-card::-webkit-scrollbar {
+        width: 6px;
+    }
+    .matriz-card::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .matriz-card::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    .matriz-card::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    .tester-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    .tester-list::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .tester-list::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 2px;
     }
 </style>
 
@@ -308,10 +335,6 @@ Dashboard - Avances de Equipos
         matricesContainer.innerHTML = '';
 
         if(!equipoNombre) {
-            matricesContainer.innerHTML = `
-                <div class="supermatriz-card d-flex align-items-center justify-content-center">
-                    <p class="text-muted">Seleccione un equipo para ver sus matrices</p>
-                </div>`;
             return;
         }
 
@@ -319,7 +342,7 @@ Dashboard - Avances de Equipos
 
         if(!matricesFiltradas.length) {
             matricesContainer.innerHTML = `
-                <div class="supermatriz-card d-flex align-items-center justify-content-center">
+                <div class="supermatriz-fila d-flex align-items-center justify-content-center p-4">
                     <p class="text-muted">No hay matrices asignadas al equipo ${equipoNombre}</p>
                 </div>`;
             return;
@@ -328,9 +351,9 @@ Dashboard - Avances de Equipos
         const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
 
         matricesFiltradas.forEach(sm => {
-            const supermatrizCard = document.createElement('div');
-            supermatrizCard.className = 'supermatriz-card';
-            supermatrizCard.style.border = `2px solid ${colorEquipo}`;
+            const fila = document.createElement('div');
+            fila.className = 'supermatriz-fila mb-3';
+            fila.style.border = `2px solid ${colorEquipo}`;
             
             let html = `
                 <div class="supermatriz-header" style="background-color:${colorEquipo}">
@@ -340,15 +363,16 @@ Dashboard - Avances de Equipos
 
             if(!sm.matrices || sm.matrices.length === 0) {
                 html += `<div class="empty-matrices">
-                            <p><em>No hay matrices en esta supermatriz</em></p>
+                            <p><em>No hay matrices en este espacio de trabajo</em></p>
                          </div>`;
             } else {
                 sm.matrices.forEach(m => {
                     html += `
                     <div class="matriz-card" style="border-left-color:${colorEquipo}">
-                        <div class="matriz-title">${m.nombre}</div>
-                        <div class="matriz-date">Creación: ${m.fecha_creacion}</div>
-                        <div class="matriz-date">Fin: ${m.fecha_fin || 'No definida'}</div>`;
+                        <div class="matriz-content">
+                            <div class="matriz-title">${m.nombre}</div>
+                            <div class="matriz-date">Creación: ${m.fecha_creacion}</div>
+                            <div class="matriz-date">Fin: ${m.fecha_fin || 'No definida'}</div>`;
 
                     // Testers asignados por país
                     if(m.tester_asignado && m.tester_asignado.length) {
@@ -374,13 +398,13 @@ Dashboard - Avances de Equipos
                         html += `<p class="text-muted"><small>No hay testers asignados</small></p>`;
                     }
 
-                    html += `</div>`;
+                    html += `</div></div>`;
                 });
             }
 
             html += `</div>`;
-            supermatrizCard.innerHTML = html;
-            matricesContainer.appendChild(supermatrizCard);
+            fila.innerHTML = html;
+            matricesContainer.appendChild(fila);
         });
     }
 
