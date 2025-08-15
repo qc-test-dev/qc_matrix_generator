@@ -9,15 +9,17 @@ Dashboard - Avances de Equipos
 {% include 'includes/header.html' %}
 
 <div class="container my-4">
+    <h1 class="mb-4">{{ desc }}</h1>
+
     <div class="row">
-        <h2>Dashboard</h2>
+        <!-- Columna botones -->
         <div class="col-lg-3 col-md-4 mb-3">
             <h4>Equipos</h4>
             <button class="btn btn-secondary mb-2 w-100" onclick="filtrarEquipo(null)">Todos</button>
             <div id="equiposContainer" class="d-flex flex-column"></div>
         </div>
 
-        <!-- Columna calendario -->
+        <!-- Columna calendario y detalle -->
         <div class="col-lg-9 col-md-8">
             <!-- Tabs Calendario -->
             <ul class="nav nav-tabs" id="calendarTabs" role="tablist">
@@ -29,7 +31,7 @@ Dashboard - Avances de Equipos
                 </li>
             </ul>
 
-            <div class="tab-content p-3 border border-top-0 rounded" id="calendarTabsContent">
+            <div class="tab-content p-3 border border-top-0 rounded mb-3" id="calendarTabsContent">
                 <div class="tab-pane fade show active" id="mes-actual" role="tabpanel">
                     <div id="calendarActual" class="calendar-container"></div>
                 </div>
@@ -38,8 +40,10 @@ Dashboard - Avances de Equipos
                 </div>
             </div>
 
-            <!-- Detalle de SuperMatrices -->
-            <div id="detalleMatrices" class="mt-4"></div>
+            <!-- Detalle de SuperMatrices con scroll horizontal -->
+            <div id="detalleMatrices" class="mt-4">
+                <div id="matricesContainer" class="d-flex flex-nowrap overflow-auto pb-2" style="min-height: 400px;"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -52,7 +56,7 @@ Dashboard - Avances de Equipos
         text-align: center;
         font-size: 1rem;
         padding: 15px;
-        background-color: #cce5ff; /* Azul claro */
+        background-color: #cce5ff;
         border-radius: 8px;
         min-height: 300px;
     }
@@ -96,16 +100,134 @@ Dashboard - Avances de Equipos
         font-weight: bold;
         text-align: center;
         margin-bottom: 3px;
+        color: white;
+        border: none;
+        transition: all 0.3s;
     }
-    #detalleMatrices .card {
+    #equiposContainer button:hover {
+        transform: translateX(5px);
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    /* Estilos para el contenedor de matrices */
+    #matricesContainer::-webkit-scrollbar {
+        height: 8px;
+    }
+    #matricesContainer::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    #matricesContainer::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    #matricesContainer::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Estilos para las tarjetas de supermatrices */
+    .supermatriz-card {
+        min-width: 320px;
+        max-width: 320px;
+        height: 400px;
+        margin-right: 15px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        background-color: #f5f5f5;
+    }
+    
+    .supermatriz-header {
+        padding: 12px;
+        color: white;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    
+    .matriz-scroll-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        background-color: #e9ecef;
+    }
+    
+    .matriz-card {
+        border-left: 4px solid;
         margin-bottom: 10px;
+        padding: 12px;
+        background-color: #ffffff;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .matriz-card:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .matriz-card:nth-child(odd) {
+        background-color: #f8f9fa;
+    }
+    
+    .matriz-card:nth-child(even) {
+        background-color: #ffffff;
+    }
+    
+    .tester-list {
+        font-size: 0.9rem;
+        margin-top: 8px;
+    }
+    
+    .pais-label {
+        font-weight: bold;
+        color: #495057;
+        margin-top: 8px;
+        padding-bottom: 2px;
+        border-bottom: 1px dashed #adb5bd;
+    }
+    
+    .empty-matrices {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c757d;
+        font-style: italic;
+    }
+    
+    .matriz-title {
+        color: #212529;
+        font-size: 1.05rem;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+    
+    .matriz-date {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+    
+    .tester-name {
+        padding: 2px 5px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        display: inline-block;
+        margin: 2px;
+        font-size: 0.8rem;
     }
 </style>
 
 <script>
     const matrices = {{ matrices_json|safe }};
     const equipos = {{ equipos_json|safe }};
-    let equipoFiltrado = null; // null = todos los equipos
+    let equipoFiltrado = null;
+    const matricesContainer = document.getElementById('matricesContainer');
 
     function renderCalendar(containerId, monthOffset) {
         const container = document.getElementById(containerId);
@@ -164,13 +286,12 @@ Dashboard - Avances de Equipos
 
     // Botones de equipos
     const equiposContainer = document.getElementById('equiposContainer');
-    const detalleDiv = document.getElementById('detalleMatrices');
 
     equipos.forEach(eq => {
         const btn = document.createElement('button');
-        btn.classList.add('btn', 'w-100');
+        btn.classList.add('btn', 'w-100', 'mb-2');
         btn.style.backgroundColor = eq.color;
-        btn.style.color = 'white';
+        btn.style.boxShadow = `0 2px 4px ${eq.color}80`;
         btn.innerText = eq.nombre;
         btn.addEventListener('click', () => filtrarEquipo(eq.nombre));
         equiposContainer.appendChild(btn);
@@ -180,40 +301,90 @@ Dashboard - Avances de Equipos
         equipoFiltrado = equipoNombre; 
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
-        // Si es "Todos" (equipoNombre null), no mostrar detalle
-        if(!equipoNombre){
-            detalleDiv.innerHTML = '';
-        } else {
-            mostrarDetalleMatrices(equipoNombre);
-        }
+        mostrarDetalleMatrices(equipoNombre);
     }
 
     function mostrarDetalleMatrices(equipoNombre) {
+        matricesContainer.innerHTML = '';
+
+        if(!equipoNombre) {
+            matricesContainer.innerHTML = `
+                <div class="supermatriz-card d-flex align-items-center justify-content-center">
+                    <p class="text-muted">Seleccione un equipo para ver sus matrices</p>
+                </div>`;
+            return;
+        }
+
         const matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
 
-        let html = `<h4>Espacio de trabajo del equipo: ${equipoNombre}</h4>`;
-        if(!matricesFiltradas.length){
-            html += "<p>No hay matrices asignadas.</p>";
-        } else {
-            matricesFiltradas.forEach(m => {
-                const color = equipos.find(e => e.nombre === m.equipo)?.color || '#6c757d';
-                html += `
-                    <div class="card border-left" style="border-left:5px solid ${color};">
-                        <div class="card-body">
-                            <p><strong>Equipo:</strong> ${m.equipo}</p>
-                            <p><strong>Revision:</strong> ${m.supermatriz}</p>
-                            <p><strong>Inicio:</strong> ${m.fecha_creacion}</p>
-                            <p><strong>Finalizacion tentativa:</strong> ${m.fecha_fin || 'No definida'}</p>
-                        </div>
-                    </div>
-                `;
-            });
+        if(!matricesFiltradas.length) {
+            matricesContainer.innerHTML = `
+                <div class="supermatriz-card d-flex align-items-center justify-content-center">
+                    <p class="text-muted">No hay matrices asignadas al equipo ${equipoNombre}</p>
+                </div>`;
+            return;
         }
-        detalleDiv.innerHTML = html;
+
+        const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
+
+        matricesFiltradas.forEach(sm => {
+            const supermatrizCard = document.createElement('div');
+            supermatrizCard.className = 'supermatriz-card';
+            supermatrizCard.style.border = `2px solid ${colorEquipo}`;
+            
+            let html = `
+                <div class="supermatriz-header" style="background-color:${colorEquipo}">
+                    <h5>${sm.supermatriz}</h5>
+                </div>
+                <div class="matriz-scroll-container">`;
+
+            if(!sm.matrices || sm.matrices.length === 0) {
+                html += `<div class="empty-matrices">
+                            <p><em>No hay matrices en esta supermatriz</em></p>
+                         </div>`;
+            } else {
+                sm.matrices.forEach(m => {
+                    html += `
+                    <div class="matriz-card" style="border-left-color:${colorEquipo}">
+                        <div class="matriz-title">${m.nombre}</div>
+                        <div class="matriz-date">Creación: ${m.fecha_creacion}</div>
+                        <div class="matriz-date">Fin: ${m.fecha_fin || 'No definida'}</div>`;
+
+                    // Testers asignados por país
+                    if(m.tester_asignado && m.tester_asignado.length) {
+                        const testersPorPais = {};
+                        m.tester_asignado.forEach(t => {
+                            const parts = t.split('-');
+                            const nombre = parts[0].trim();
+                            const pais = parts[1] ? parts[1].trim() : 'Sin país';
+                            if(!testersPorPais[pais]) testersPorPais[pais] = [];
+                            testersPorPais[pais].push(nombre);
+                        });
+
+                        html += `<div class="tester-list"><strong>Testers:</strong>`;
+                        for(const pais in testersPorPais) {
+                            html += `
+                            <div class="pais-label">${pais}</div>
+                            <div class="d-flex flex-wrap">
+                                ${testersPorPais[pais].map(t => `<span class="tester-name">${t}</span>`).join('')}
+                            </div>`;
+                        }
+                        html += `</div>`;
+                    } else {
+                        html += `<p class="text-muted"><small>No hay testers asignados</small></p>`;
+                    }
+
+                    html += `</div>`;
+                });
+            }
+
+            html += `</div>`;
+            supermatrizCard.innerHTML = html;
+            matricesContainer.appendChild(supermatrizCard);
+        });
     }
 
-    // Inicialmente mostrar todos
-    filtrarEquipo(null);
+    mostrarDetalleMatrices(null);
 </script>
 
 {% endblock content %}

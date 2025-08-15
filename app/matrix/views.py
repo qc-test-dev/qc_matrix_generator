@@ -588,13 +588,12 @@ from .models import SuperMatriz
 def dashboard(request):
     desc = "Pestaña por ahora"
 
-    # Lista de colores (uno por equipo)
     colores = ["#0dcaf0", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#fd7e14", "#20c997"]
 
-    # Obtener equipos únicos de las SuperMatrices
     equipos_dict = {}
-    supermatrices = SuperMatriz.objects.all()
+    supermatrices = SuperMatriz.objects.all().prefetch_related('matrices__casos')
     color_idx = 0
+
     for sm in supermatrices:
         if sm.equipo_nuevo:
             eq_id = sm.equipo_nuevo.id
@@ -606,30 +605,64 @@ def dashboard(request):
                     "supermatrices": []
                 }
                 color_idx += 1
+
+            # Testers del equipo
+            testers_equipo = User.objects.filter(cargo="Tester", equipo_nuevo=sm.equipo_nuevo)
+
+            # Testers asignados
+            testers_asignados_set = set()
+            for m in sm.matrices.all():
+                for c in m.casos.all():
+                    if c.tester:
+                        testers_asignados_set.add(c.tester)
+
+            testers_disponibles = [t.nombre for t in testers_equipo if t.nombre not in testers_asignados_set]
+
+            # Si no hay matrices
+            matrices_list = []
+            if sm.matrices.exists():
+                for m in sm.matrices.all():
+                    m_testers_asignados = list({c.tester for c in m.casos.all() if c.tester})
+                    matrices_list.append({
+                        "nombre": m.nombre,
+                        "fecha_creacion": m.fecha_creacion.strftime('%Y-%m-%d'),
+                        "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
+                        "tester_asignado": m_testers_asignados,
+                        "testers_disponibles": testers_disponibles
+                    })
+            else:
+                matrices_list = None  # Para indicar "Espacio No disponible"
+
             equipos_dict[eq_id]["supermatrices"].append({
                 "nombre": sm.nombre,
                 "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
-                "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None
+                "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
+                "matrices": matrices_list
             })
 
     equipos_data = list(equipos_dict.values())
 
-    # Datos para el calendario (todos los supermatrices)
+    # Datos para el calendario
     matrices_data = []
     for sm in supermatrices:
         if sm.equipo_nuevo:
             color = next(eq['color'] for eq in equipos_data if eq['id'] == sm.equipo_nuevo.id)
+            nombre_equipo = sm.equipo_nuevo.nombre
         else:
-            color = "#6c757d"  # gris por defecto si no tiene equipo
+            color = "#6c757d"
+            nombre_equipo = sm.equipo or ""
+
         matrices_data.append({
-            "equipo": sm.equipo or (sm.equipo_nuevo.nombre if sm.equipo_nuevo else ""),
+            "equipo": nombre_equipo,
             "supermatriz": sm.nombre,
             "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
             "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
-            "color": color
+            "color": color,
+            "matrices": next((eq_sm["matrices"] for eq in equipos_data for eq_sm in eq["supermatrices"] if eq_sm["nombre"] == sm.nombre), None)
         })
 
     context = {
+        'desc': desc,
         'matrices_json': json.dumps(matrices_data),
         'equipos_json': json.dumps(equipos_data)
     }
