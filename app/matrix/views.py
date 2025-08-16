@@ -586,8 +586,6 @@ from .models import SuperMatriz
 
 @login_required
 def dashboard(request):
-    desc = "Pestaña por ahora"
-
     colores = ["#0dcaf0", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#fd7e14", "#20c997"]
 
     equipos_dict = {}
@@ -662,7 +660,6 @@ def dashboard(request):
         })
 
     context = {
-        'desc': desc,
         'matrices_json': json.dumps(matrices_data),
         'equipos_json': json.dumps(equipos_data)
     }
