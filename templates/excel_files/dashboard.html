@@ -15,7 +15,7 @@ Dashboard - Avances de Equipos
         <!-- Columna botones -->
         <div class="col-lg-3 col-md-4 mb-3">
             <h4>Equipos</h4>
-            <button class="btn btn-secondary mb-2 w-100" onclick="filtrarEquipo(null)">Todos</button>
+            <button id="btnTodos" class="btn btn-secondary mb-2 w-100 equipo-activo" onclick="filtrarEquipo(null)">Todos</button>
             <div id="equiposContainer" class="d-flex flex-column"></div>
         </div>
 
@@ -235,7 +235,7 @@ Dashboard - Avances de Equipos
     const matrices = {{ matrices_json|safe }};
     const equipos = {{ equipos_json|safe }};
     let equipoFiltrado = null;
-    let equipoActivoBtn = null;
+    let equipoActivoBtn = document.getElementById('btnTodos');
 
     // Renderizar calendarios
     function renderCalendar(containerId, monthOffset) {
@@ -322,6 +322,20 @@ Dashboard - Avances de Equipos
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
         mostrarEspaciosTrabajo(equipoNombre);
+        
+        // Actualizar el botón activo
+        const btnTodos = document.getElementById('btnTodos');
+        if (!equipoNombre) {
+            // Si se selecciona "Todos"
+            if (equipoActivoBtn) {
+                equipoActivoBtn.classList.remove('equipo-activo');
+            }
+            btnTodos.classList.add('equipo-activo');
+            equipoActivoBtn = btnTodos;
+        } else {
+            // Si se selecciona un equipo específico
+            btnTodos.classList.remove('equipo-activo');
+        }
     }
 
     function mostrarEspaciosTrabajo(equipoNombre) {
