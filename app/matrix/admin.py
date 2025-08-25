@@ -12,15 +12,15 @@ class CasoDePruebaInline(admin.TabularInline):
 
 # SuperMatriz Admin
 class SuperMatrizAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'descripcion', 'equipo')  # quitamos 'fecha_creacion'
-    search_fields = ('nombre', 'descripcion', 'equipo__nombre')
+    list_display = ('id', 'nombre', 'descripcion', 'equipo', 'fecha_creacion')
     list_filter = ('equipo',)
     ordering = ('id',)
     inlines = [MatrizInline]
+    readonly_fields = ('fecha_creacion',)
 
 # Matriz Admin
 class MatrizAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'super_matriz')  # quitamos 'fecha_creacion'
+    list_display = ('id', 'nombre', 'super_matriz') 
     search_fields = ('nombre', 'super_matriz__nombre')
     list_filter = ('super_matriz',)
     ordering = ('id',)
