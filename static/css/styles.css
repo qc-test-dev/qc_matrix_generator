@@ -10,6 +10,7 @@
     --button-success-hover: #218838;
     --button-danger-bg: #dc3545;
     --button-danger-hover: #c82333;
+    --button-dashboard:#1C6EA4;
     --matrix-btn-bg: #FF6500;
     --matrix-btn-hover: #1E3E62;
     --alert-success-bg: #d4edda;
@@ -105,6 +106,28 @@ body {
 }
 
 .home-btn:hover {
+    background-color: var(--matrix-btn-hover);
+    color: var(--header-color);
+    box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);
+}
+.dashboard-btn {
+    display: inline-block;
+    text-decoration: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.dashboard-btn {
+    background-color: var(--button-dashboard);
+    color: var(--header-color);
+    box-shadow: 0 4px 6px rgba(11, 25, 44, 0.5);
+}
+
+.dashboard-btn:hover {
     background-color: var(--matrix-btn-hover);
     color: var(--header-color);
     box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);

@@ -2,6 +2,7 @@ from django import forms
 from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate,Dispositivo
 from django.contrib.auth import get_user_model
 from ..accounts.models import Equipo
+from django.utils import timezone
 User = get_user_model()
 
 class MatrizForm(forms.ModelForm):
@@ -117,10 +118,19 @@ class SuperMatrizForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Equipo'
     )
+    fecha_fin = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+            'min': timezone.now().date()
+        }),
+        required=True,
+        label="Fecha de finalización"
+    )
 
     class Meta:
         model = SuperMatriz
-        fields = ['nombre', 'descripcion', 'equipo_nuevo']
+        fields = ['nombre', 'descripcion', 'equipo_nuevo', 'fecha_fin']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

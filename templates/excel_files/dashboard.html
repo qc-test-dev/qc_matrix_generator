@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+Dashboard - Avances de Equipos
+{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container my-4">
+    <div class="row">
+        <!-- Columna botones -->
+        <div class="col-lg-3 col-md-4 mb-3">
+            <h4>Equipos</h4>
+            <button id="btnTodos" class="btn btn-secondary mb-2 w-100 equipo-activo" onclick="filtrarEquipo(null)">Todos</button>
+            <div id="equiposContainer" class="d-flex flex-column"></div>
+        </div>
+
+        <!-- Columna calendario y detalle -->
+        <div class="col-lg-9 col-md-8">
+            <!-- Tabs Calendario -->
+            <ul class="nav nav-tabs" id="calendarTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="actual-tab" data-bs-toggle="tab" data-bs-target="#mes-actual" type="button" role="tab">Mes Actual</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pasado-tab" data-bs-toggle="tab" data-bs-target="#mes-pasado" type="button" role="tab">Mes Pasado</button>
+                </li>
+            </ul>
+
+            <div class="tab-content p-3 border border-top-0 rounded mb-3" id="calendarTabsContent">
+                <div class="tab-pane fade show active" id="mes-actual" role="tabpanel">
+                    <div id="calendarActual" class="calendar-container"></div>
+                </div>
+                <div class="tab-pane fade" id="mes-pasado" role="tabpanel">
+                    <div id="calendarPasado" class="calendar-container"></div>
+                </div>
+            </div>
+
+            <!-- Sección de Espacios de Trabajo -->
+            <div id="espaciosTrabajoSection" class="mt-4">
+                <h4 id="sectionTitle">Espacios de Trabajo del Equipo</h4>
+                <div id="espaciosTrabajoContainer" class="row row-cols-1 row-cols-md-2 g-4"></div>
+                <div id="emptyMessage" class="text-center py-5">
+                    <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                    <h4 class="mt-3 text-muted">No hay espacios de trabajo para mostrar</h4>
+                    <p>Selecciona un equipo para ver sus espacios de trabajo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de matrices -->
+<div class="modal fade" id="matricesModal" tabindex="-1" aria-labelledby="matricesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="matricesModalLabel">Detalles de Matrices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalMatricesContent">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos del calendario */
+    .calendar-container {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        text-align: center;
+        font-size: 1rem;
+        padding: 15px;
+        background-color: #cce5ff;
+        border-radius: 8px;
+        min-height: 300px;
+    }
+    .calendar-day {
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        position: relative;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .calendar-day:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .day-number {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #495057;
+    }
+    .event-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin: 2px;
+    }
+    .dots-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 3px;
+        margin-top: 4px;
+    }
+    
+    /* Estilos para las tarjetas de espacios de trabajo */
+    .espacio-trabajo-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .espacio-trabajo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    }
+    
+    .espacio-trabajo-header {
+        padding: 15px;
+        color: white;
+        font-weight: bold;
+        position: relative;
+    }
+    
+    .espacio-trabajo-body {
+        padding: 15px;
+        background-color: white;
+    }
+    
+    .espacio-trabajo-stats {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+    
+    .stat-value {
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    /* Estilos para el modal */
+    .matriz-modal-card {
+        border-left: 4px solid;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+        background-color: #f8f9fa;
+    }
+    
+    .pais-section {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+    
+    .pais-title {
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    
+    .tester-item {
+        padding: 5px 0;
+        border-bottom: 1px dotted #eee;
+    }
+    
+    /* Estilos para los botones de equipos */
+    #equiposContainer button {
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 8px;
+        color: white;
+        border: none;
+        transition: all 0.3s;
+    }
+    
+    #equiposContainer button:hover {
+        transform: translateX(5px);
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .equipo-activo {
+        transform: translateX(10px) !important;
+        box-shadow: 3px 3px 8px rgba(0,0,0,0.2) !important;
+        position: relative;
+    }
+    
+    .equipo-activo::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8px;
+        height: 8px;
+        background-color: white;
+        border-radius: 50%;
+    }
+</style>
+
+<script>
+    const matrices = {{ matrices_json|safe }};
+    const equipos = {{ equipos_json|safe }};
+    let equipoFiltrado = null;
+    let equipoActivoBtn = document.getElementById('btnTodos');
+
+    // Renderizar calendarios
+    function renderCalendar(containerId, monthOffset) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        const today = new Date();
+        today.setMonth(today.getMonth() + monthOffset);
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        daysOfWeek.forEach(d => {
+            const cell = document.createElement('div');
+            cell.innerHTML = `<strong>${d}</strong>`;
+            container.appendChild(cell);
+        });
+
+        for (let i = 0; i < firstDay; i++) container.appendChild(document.createElement('div'));
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const cell = document.createElement('div');
+            cell.classList.add('calendar-day');
+
+            const dayNumber = document.createElement('div');
+            dayNumber.classList.add('day-number');
+            dayNumber.innerText = day;
+            cell.appendChild(dayNumber);
+
+            const dotsContainer = document.createElement('div');
+            dotsContainer.classList.add('dots-container');
+
+            equipos.forEach(eq => {
+                if(equipoFiltrado && eq.nombre !== equipoFiltrado) return; 
+                const activo = matrices.some(m => m.equipo === eq.nombre &&
+                    new Date(m.fecha_creacion) <= new Date(dateStr) &&
+                    new Date(dateStr) <= new Date(m.fecha_fin)
+                );
+                if (activo) {
+                    const dot = document.createElement('div');
+                    dot.classList.add('event-dot');
+                    dot.style.backgroundColor = eq.color;
+                    dotsContainer.appendChild(dot);
+                }
+            });
+
+            cell.appendChild(dotsContainer);
+            container.appendChild(cell);
+        }
+    }
+
+    // Inicializar calendarios
+    renderCalendar('calendarActual', 0);
+    renderCalendar('calendarPasado', -1);
+
+    // Renderizar botones de equipos
+    const equiposContainer = document.getElementById('equiposContainer');
+    equipos.forEach(eq => {
+        const btn = document.createElement('button');
+        btn.classList.add('btn', 'w-100', 'mb-2');
+        btn.style.backgroundColor = eq.color;
+        btn.style.boxShadow = `0 2px 4px ${eq.color}80`;
+        btn.innerText = eq.nombre;
+        btn.addEventListener('click', () => {
+            filtrarEquipo(eq.nombre);
+            
+            // Remover clase activa del botón anterior
+            if (equipoActivoBtn) {
+                equipoActivoBtn.classList.remove('equipo-activo');
+            }
+            
+            // Agregar clase activa al botón actual
+            btn.classList.add('equipo-activo');
+            equipoActivoBtn = btn;
+        });
+        equiposContainer.appendChild(btn);
+    });
+
+    function filtrarEquipo(equipoNombre) {
+        equipoFiltrado = equipoNombre;
+        renderCalendar('calendarActual', 0);
+        renderCalendar('calendarPasado', -1);
+        mostrarEspaciosTrabajo(equipoNombre);
+        
+        // Actualizar el botón activo
+        const btnTodos = document.getElementById('btnTodos');
+        if (!equipoNombre) {
+            // Si se selecciona "Todos"
+            if (equipoActivoBtn) {
+                equipoActivoBtn.classList.remove('equipo-activo');
+            }
+            btnTodos.classList.add('equipo-activo');
+            equipoActivoBtn = btnTodos;
+        } else {
+            // Si se selecciona un equipo específico
+            btnTodos.classList.remove('equipo-activo');
+        }
+    }
+
+    function mostrarEspaciosTrabajo(equipoNombre) {
+        const container = document.getElementById('espaciosTrabajoContainer');
+        const emptyMsg = document.getElementById('emptyMessage');
+        const sectionTitle = document.getElementById('sectionTitle');
+        
+        container.innerHTML = '';
+        
+        if (!equipoNombre) {
+            emptyMsg.classList.remove('d-none');
+            container.classList.add('d-none');
+            sectionTitle.textContent = 'Espacios de Trabajo del Equipo';
+            return;
+        }
+        
+        container.classList.remove('d-none');
+        emptyMsg.classList.add('d-none');
+        sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre}`;
+        
+        const espaciosFiltrados = matrices.filter(m => m.equipo === equipoNombre);
+        
+        if (espaciosFiltrados.length === 0) {
+            emptyMsg.classList.remove('d-none');
+            container.classList.add('d-none');
+            emptyMsg.querySelector('p').textContent = `El equipo ${equipoNombre} no tiene espacios de trabajo asignados`;
+            return;
+        }
+        
+        const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
+        
+        espaciosFiltrados.forEach(espacio => {
+            const col = document.createElement('div');
+            col.className = 'col';
+            
+            // Contar matrices
+            const numMatrices = espacio.matrices ? espacio.matrices.length : 0;
+            
+            col.innerHTML = `
+                <div class="espacio-trabajo-card" onclick="mostrarDetallesMatrices('${espacio.supermatriz}')" style="border-color: ${colorEquipo}">
+                    <div class="espacio-trabajo-header" style="background-color: ${colorEquipo}">
+                        <h5>${espacio.supermatriz}</h5>
+                        <small>${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</small>
+                    </div>
+                    <div class="espacio-trabajo-body">
+                        <p class="mb-3">${espacio.descripcion || 'Sin descripción'}</p>
+                        <div class="espacio-trabajo-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">${numMatrices}</div>
+                                <div class="stat-label">Matrices</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(col);
+        });
+    }
+
+    function mostrarDetallesMatrices(espacioNombre) {
+        const espacio = matrices.find(esp => esp.supermatriz === espacioNombre);
+        if (!espacio) return;
+        
+        const colorEquipo = equipos.find(e => e.nombre === espacio.equipo).color;
+        const modalContent = document.getElementById('modalMatricesContent');
+        
+        let html = `
+            <div class="mb-4">
+                <h4>${espacio.supermatriz}</h4>
+                <p><strong>Equipo:</strong> <span class="badge" style="background-color: ${colorEquipo}">${espacio.equipo}</span></p>
+                <p><strong>Periodo:</strong> ${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</p>
+                <p>${espacio.descripcion || 'Sin descripción adicional'}</p>
+            </div>
+            <h5 class="mb-3">Matrices asociadas</h5>
+        `;
+        
+        if (!espacio.matrices || espacio.matrices.length === 0) {
+            html += `<div class="alert alert-info">No hay matrices asociadas a este espacio de trabajo</div>`;
+        } else {
+            espacio.matrices.forEach(matriz => {
+                html += `
+                    <div class="matriz-modal-card" style="border-left-color: ${colorEquipo}">
+                        <h6>${matriz.nombre}</h6>
+                        <p><small class="text-muted">${matriz.fecha_creacion} - ${matriz.fecha_fin || 'Sin fecha fin'}</small></p>
+                `;
+                
+                // Agregar testers por país si existen
+                if (matriz.tester_asignado && matriz.tester_asignado.length > 0) {
+                    const testersPorPais = {};
+                    
+                    // Agrupar testers por país
+                    matriz.tester_asignado.forEach(tester => {
+                        const [nombre, pais = 'Sin país'] = tester.split('-').map(s => s.trim());
+                        if (!testersPorPais[pais]) {
+                            testersPorPais[pais] = [];
+                        }
+                        testersPorPais[pais].push(nombre);
+                    });
+                    
+                    // Mostrar testers agrupados por país
+                    html += `<div class="mt-3"><strong>Testers asignados:</strong></div>`;
+                    
+                    for (const pais in testersPorPais) {
+                        html += `
+                            <div class="pais-section">
+                                <div class="pais-title">${pais}</div>
+                                <div class="tester-list">
+                        `;
+                        
+                        testersPorPais[pais].forEach(tester => {
+                            html += `<div class="tester-item">${tester}</div>`;
+                        });
+                        
+                        html += `</div></div>`;
+                    }
+                }
+                
+                html += `</div>`; // Cierre de matriz-modal-card
+            });
+        }
+        
+        modalContent.innerHTML = html;
+        const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
+        modal.show();
+    }
+
+    mostrarEspaciosTrabajo(null);
+</script>
+
+{% endblock content %}
