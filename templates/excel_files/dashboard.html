@@ -257,6 +257,9 @@ Dashboard - Avances de Equipos
         for (let i = 0; i < firstDay; i++) container.appendChild(document.createElement('div'));
 
         for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dayOfWeek = dateObj.getDay(); // 0=Dom, 6=Sáb
+
             const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
             const cell = document.createElement('div');
             cell.classList.add('calendar-day');
@@ -269,19 +272,22 @@ Dashboard - Avances de Equipos
             const dotsContainer = document.createElement('div');
             dotsContainer.classList.add('dots-container');
 
-            equipos.forEach(eq => {
-                if(equipoFiltrado && eq.nombre !== equipoFiltrado) return; 
-                const activo = matrices.some(m => m.equipo === eq.nombre &&
-                    new Date(m.fecha_creacion) <= new Date(dateStr) &&
-                    new Date(dateStr) <= new Date(m.fecha_fin)
-                );
-                if (activo) {
-                    const dot = document.createElement('div');
-                    dot.classList.add('event-dot');
-                    dot.style.backgroundColor = eq.color;
-                    dotsContainer.appendChild(dot);
-                }
-            });
+            // Solo mostrar actividades de lunes (1) a viernes (5)
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                equipos.forEach(eq => {
+                    if(equipoFiltrado && eq.nombre !== equipoFiltrado) return; 
+                    const activo = matrices.some(m => m.equipo === eq.nombre &&
+                        new Date(m.fecha_creacion) <= new Date(dateStr) &&
+                        new Date(dateStr) <= new Date(m.fecha_fin)
+                    );
+                    if (activo) {
+                        const dot = document.createElement('div');
+                        dot.classList.add('event-dot');
+                        dot.style.backgroundColor = eq.color;
+                        dotsContainer.appendChild(dot);
+                    }
+                });
+            }
 
             cell.appendChild(dotsContainer);
             container.appendChild(cell);
