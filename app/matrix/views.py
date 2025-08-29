@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -39,7 +39,6 @@ from collections import defaultdict
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
-from collections import defaultdict
 from weasyprint import HTML
 from django.template.loader import render_to_string
 from datetime import datetime
@@ -56,43 +55,7 @@ def detalle_super_matriz(request, super_matriz_id):
 
     equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
-    matrices_info = []
-    for matriz in matrices:
-        casos = matriz.casos.all()
-        total_casos = casos.count()
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na"]
-        casos_filtrados = casos.filter(estado__in=estados_interes).count()
-        porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
-
-        if matriz.alcances_utilizados=='A':
-            alcance="MVP (Minimum Viable Product:A)"
-        elif matriz.alcances_utilizados=='A,B':
-            alcance='Smoke Test (A,B)'
-        elif matriz.alcances_utilizados=='A,B,C':
-            alcance='No Afectacion (NA:A,B,C)'
-        else:
-            alcance = 'No definido'
-
-        testers_por_region = defaultdict(set)
-        for caso in casos:
-            if caso.tester:
-                partes = caso.tester.split('-')
-                if len(partes) == 2:
-                    nombre, region = partes
-                    testers_por_region[region.strip()].add(nombre.strip())
-
-        testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
-
-        matrices_info.append({
-            'matriz': matriz,
-            'total_casos': total_casos,
-            'casos_filtrados': casos_filtrados,
-            'porcentaje': round(porcentaje, 2),
-            'testers_por_region': testers_por_region,
-            'alcance': alcance,
-            'dispositivo': matriz.dispositivo,  # <-- agregar dispositivo aquí
-        })
-
+    matrices_info = matriz_info(matrices)
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
 
@@ -152,91 +115,6 @@ def detalle_super_matriz(request, super_matriz_id):
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
     })
-
-
-# @login_required
-# def detalle_super_matriz(request, super_matriz_id):
-#     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-#     matrices = super_matriz.matrices.all()
-#     validates = super_matriz.validates.all()
-#     es_lider = request.user.cargo=='Lider'
-    
-#     matrices_info = []
-#     for matriz in matrices:
-#         casos = matriz.casos.all()
-#         total_casos = casos.count()
-#         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente']
-#         casos_filtrados = casos.filter(estado__in=estados_interes).count()
-#         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
-
-#         testers_por_region = defaultdict(set)
-#         for caso in casos:
-#             if caso.tester:
-#                 partes = caso.tester.split('-')
-#                 if len(partes) == 2:
-#                     nombre, region = partes
-#                     testers_por_region[region.strip()].add(nombre.strip())
-
-#         # Convertir sets a listas ordenadas
-#         testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
-
-#         matrices_info.append({
-#             'matriz': matriz,
-#             'total_casos': total_casos,
-#             'casos_filtrados': casos_filtrados,
-#             'porcentaje': round(porcentaje, 2),
-#             'testers_por_region': testers_por_region,
-#         })
-#     # Formulario vacío al principio
-#     form = MatrizForm(equipo=super_matriz.equipo)
-#     validate_form = ValidateForm()
-
-#     if request.method == 'POST':
-#         if 'crear_matriz' in request.POST:
-#             form = MatrizForm(request.POST, equipo=super_matriz.equipo)
-#             if form.is_valid():
-#                 nueva_matriz = form.save(commit=False)
-#                 nueva_matriz.super_matriz = super_matriz
-
-#                 alcance_seleccionado = request.POST.get('alcance', '')
-#                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
-
-#                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
-#                 nueva_matriz.save()
-
-#                 ruta_excel_matriz = os.path.join('static', 'excel_files', 'matriz_base.xlsx')
-#                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
-
-#                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
-#                 regiones_seleccionados = form.cleaned_data.get('regiones', [])
-#                 casos = list(nueva_matriz.casos.all())
-#                 random.shuffle(regiones_seleccionados)
-#                 random.shuffle(testers_seleccionados)
-#                 random.shuffle(casos)
-#                 for idx, caso in enumerate(casos):
-#                     tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
-#                     region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
-#                     caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
-#                     caso.save()
-
-#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
-
-#         elif 'crear_validate' in request.POST:
-#             validate_form = ValidateForm(request.POST)
-#             if validate_form.is_valid():
-#                 validate = validate_form.save(commit=False)
-#                 validate.super_matriz = super_matriz
-#                 validate.save()
-#                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
-
-#     return render(request, 'excel_files/detalle_super_matriz.html', {
-#         'super_matriz': super_matriz,
-#         'matrices_info': matrices_info,
-#         'form': form,
-#         'validate_form': validate_form,
-#         'validates': validates,
-#         'es_lider': es_lider,
-#     })
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -331,14 +209,14 @@ def actualizar_nota_caso(request):
 def editar_validates(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
 
-    # 1️⃣ Validates ordenados por ticket ascendente (para la tabla)
+    #Validates ordenados por ticket ascendente (para la tabla)
     validates = Validate.objects.filter(
         super_matriz=super_matriz
     ).order_by('ticket')
 
     detalles_validate = getattr(super_matriz, 'detalles_validate', None)
 
-    # 2️⃣ Testers únicos sin repetir (para los botones de filtro)
+    #Testers únicos sin repetir (para los botones de filtro)
     testers = (
         Validate.objects
         .filter(super_matriz=super_matriz)
@@ -580,45 +458,47 @@ def asignar_validates(request, super_matriz_id):
 
 @login_required
 def dashboard(request):
-    
-    colores = ["#0dcaf0", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#fd7e14", "#20c997"]
+    colores = ["#093FB4", "#dc3545", "#198754", "#E67514", "#6f42c1", "#4B352A", "#2F5249"]
 
-    #Obtener todos los equipos
+    # Obtener todos los equipos
     equipos = Equipo.objects.all().order_by("id")
 
-    #Obtener todas las supermatrices con sus matrices (optimizado con prefetch)
-    supermatrices = (
-        SuperMatriz.objects
-        .select_related("equipo_nuevo")        # optimiza la relación con equipo
-        .prefetch_related("matrices")          # optimiza la relación con matrices
-        .all()
-    )
+    # Obtener todas las supermatrices con sus matrices
+    supermatrices = SuperMatriz.objects.select_related("equipo_nuevo").prefetch_related("matrices").all()
 
-    #Diccionario temporal para agrupar la información
+    # Diccionario temporal para agrupar la información
     equipos_dict = {}
-    color_idx = 0
-
-    #Inicializar estructura de todos los equipos
-    for eq in equipos:
+    for idx, eq in enumerate(equipos):
         equipos_dict[eq.id] = {
             "id": eq.id,
             "nombre": eq.nombre,
-            "color": colores[color_idx % len(colores)],
+            "color": colores[idx % len(colores)],
             "supermatrices": []
         }
-        color_idx += 1
 
-  
+    # Agrupar supermatrices por equipo
     for sm in supermatrices:
+        info_matrices = matriz_info(sm.matrices.all())
+
         if sm.equipo_nuevo_id in equipos_dict:
-            matrices_list = [
-                {
+            matrices_list = []
+
+            for m in sm.matrices.all():
+                # Buscar la info correspondiente a esta matriz
+                m_info = next((info for info in info_matrices if info["matriz"].id == m.id), None)
+
+                matrices_list.append({
                     "id": m.id,
                     "nombre": m.nombre,
-                    "fecha_creacion": m.fecha_creacion.strftime('%Y-%m-%d'),
-                }
-                for m in sm.matrices.all()
-            ]
+                    "info": {
+                        "total_casos": m_info["total_casos"] if m_info else 0,
+                        "casos_filtrados": m_info["casos_filtrados"] if m_info else 0,
+                        "porcentaje": m_info["porcentaje"] if m_info else 0,
+                        "testers_por_region": m_info["testers_por_region"] if m_info else {},
+                        "alcance": str(m_info["alcance"]) if m_info else "",
+                        "dispositivo": str(m_info["dispositivo"]) if m_info else ""
+                    }
+                })
 
             equipos_dict[sm.equipo_nuevo_id]["supermatrices"].append({
                 "id": sm.id,
@@ -635,16 +515,22 @@ def dashboard(request):
     matrices_data = []
     for eq in equipos_data:
         for sm in eq["supermatrices"]:
+            # Solo datos serializables a JSON
             matrices_data.append({
                 "equipo": eq["nombre"],
                 "supermatriz": sm["nombre"],
                 "fecha_creacion": sm["fecha_creacion"],
                 "fecha_fin": sm["fecha_fin"],
                 "color": eq["color"],
-                "matrices": sm["matrices"],  # incluye las matrices de ese supermatriz
+                "matrices": [
+                    {
+                        "id": m["id"],
+                        "nombre": m["nombre"],
+                        "info": m["info"]
+                    } for m in sm["matrices"]
+                ]
             })
 
-    #Contexto final para el template
     context = {
         "matrices_json": json.dumps(matrices_data),
         "equipos_json": json.dumps(equipos_data),

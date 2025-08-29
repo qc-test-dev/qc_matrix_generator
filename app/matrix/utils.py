@@ -2,6 +2,7 @@ import openpyxl
 from .models import CasoDePrueba,Validate
 from requests.auth import HTTPBasicAuth
 from decouple import config
+from collections import defaultdict
 import pandas as pd
 import re
 import requests
@@ -180,3 +181,43 @@ def fetch_jira_issues(link):
     ]
 
     return detailed_issues, None
+def matriz_info(matrices):
+    matrices_info = []
+    for matriz in matrices:
+        casos = matriz.casos.all()
+        total_casos = casos.count()
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na"]
+        casos_filtrados = casos.filter(estado__in=estados_interes).count()
+        porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
+
+        if matriz.alcances_utilizados=='A':
+            alcance="MVP (Minimum Viable Product:A)"
+        elif matriz.alcances_utilizados=='A,B':
+            alcance='Smoke Test (A,B)'
+        elif matriz.alcances_utilizados=='A,B,C':
+            alcance='No Afectacion (NA:A,B,C)'
+        else:
+            alcance = 'No definido'
+
+        testers_por_region = defaultdict(set)
+        for caso in casos:
+            if caso.tester:
+                partes = caso.tester.split('-')
+                if len(partes) == 2:
+                    nombre, region = partes
+                    testers_por_region[region.strip()].add(nombre.strip())
+
+        testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
+
+        matrices_info.append({
+            'matriz': matriz,
+            'total_casos': total_casos,
+            'casos_filtrados': casos_filtrados,
+            'porcentaje': round(porcentaje, 2),
+            'testers_por_region': testers_por_region,
+            'alcance': alcance,
+            'dispositivo': matriz.dispositivo,  
+        })
+
+    return matrices_info
+    

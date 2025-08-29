@@ -56,17 +56,23 @@ Dashboard - Avances de Equipos
     </div>
 </div>
 
-<!-- Modal detalle de matrices -->
+<!-- Modal detalle de matrices - Versión Mejorada -->
 <div class="modal fade" id="matricesModal" tabindex="-1" aria-labelledby="matricesModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="matricesModalLabel">Detalles de Matrices</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            <div class="modal-header" id="modalHeader">
+                <h5 class="modal-title text-white" id="matricesModalLabel">
+                    <i class="bi bi-diagram-3 me-2"></i>Detalle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body" id="modalMatricesContent"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <div class="modal-body p-4" id="modalMatricesContent">
+                <!-- Contenido dinámico se insertará aquí -->
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -81,7 +87,7 @@ Dashboard - Avances de Equipos
     
     .calendar-container {
         display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr)); /* 7 columnas para todos los días */
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 6px;
         text-align: center;
         font-size: 1rem;
@@ -107,7 +113,7 @@ Dashboard - Avances de Equipos
     }
     
     .weekend-day {
-        background-color: #f8f9fa; /* Fondo diferente para fines de semana */
+        background-color: #f8f9fa;
     }
     
     .day-number {
@@ -119,7 +125,7 @@ Dashboard - Avances de Equipos
     }
     
     .weekend-day .day-number {
-        color: #6c757d; /* Color más suave para fines de semana */
+        color: #6c757d;
     }
     
     .event-dot {
@@ -139,7 +145,6 @@ Dashboard - Avances de Equipos
         padding-top: 5px;
     }
     
-    /* Días de la semana */
     .calendar-container > div:not(.calendar-day) {
         font-weight: bold;
         padding: 8px 5px;
@@ -148,10 +153,9 @@ Dashboard - Avances de Equipos
         font-size: 0.85rem;
     }
     
-    /* Estilo diferente para sábado y domingo */
     .calendar-container > div:nth-child(7),
     .calendar-container > div:nth-child(1) {
-        background-color: #d1ecf1; /* Color diferente para domingo y sábado */
+        background-color: #d1ecf1;
     }
 
     /* === Estilos cards === */
@@ -195,6 +199,136 @@ Dashboard - Avances de Equipos
         box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
     }
 
+    /* === Estilos mejorados para el modal === */
+    .modal-matriz-header {
+        color: white;
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+    
+    .matriz-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+        border: none;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .matriz-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    
+    .matriz-card-header {
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .matriz-card-body {
+        padding: 1.5rem;
+    }
+    
+    .stat-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        height: 100%;
+        transition: background-color 0.3s;
+    }
+    
+    .stat-card:hover {
+        background: #e9ecef;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .progress {
+        height: 12px;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+    }
+    
+    .progress-bar {
+        border-radius: 10px;
+    }
+    
+    .badge-custom {
+        padding: 0.5em 0.8em;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+    
+    .tester-badge {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+        margin: 0.2rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 15px;
+        display: inline-block;
+        font-size: 0.8rem;
+    }
+    
+    .region-title {
+        color: #5a67d8;
+        font-weight: 600;
+        margin-top: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .info-item {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    
+    .info-item h6 {
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .info-item p {
+        color: #2d3748;
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #a0aec0;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
     /* Responsividad para móviles */
     @media (max-width: 768px) {
         .calendar-container {
@@ -223,6 +357,14 @@ Dashboard - Avances de Equipos
             font-size: 0.75rem;
             padding: 5px 3px;
         }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .matriz-card-body {
+            padding: 1rem;
+        }
     }
 
     @media (max-width: 576px) {
@@ -238,6 +380,10 @@ Dashboard - Avances de Equipos
         .day-number {
             font-size: 0.75rem;
         }
+        
+        .modal-dialog {
+            margin: 0.5rem;
+        }
     }
 </style>
 
@@ -246,7 +392,7 @@ Dashboard - Avances de Equipos
     const equipos = {{ equipos_json|safe }};
     let equipoFiltrado = null;
     let equipoActivoBtn = document.getElementById('btnTodos');
-    let mesActual = 'actual'; // 'actual' o 'pasado'
+    let mesActual = 'actual';
 
     // === Función para cambiar entre mes actual y pasado ===
     function cambiarMes(tipoMes) {
@@ -263,25 +409,22 @@ Dashboard - Avances de Equipos
             mes = ahora.getMonth();
             año = ahora.getFullYear();
         } else {
-            // Mes pasado
             mes = ahora.getMonth() === 0 ? 11 : ahora.getMonth() - 1;
             año = ahora.getMonth() === 0 ? ahora.getFullYear() - 1 : ahora.getFullYear();
         }
         
-        // Filtrar por equipo si está seleccionado
         let matricesFiltradas = matrices;
         if (equipoNombre) {
             matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
         }
         
-        // Filtrar por mes
         return matricesFiltradas.filter(matriz => {
             const fechaCreacion = new Date(matriz.fecha_creacion);
             return fechaCreacion.getMonth() === mes && fechaCreacion.getFullYear() === año;
         });
     }
 
-    // === Render calendario (todos los días, pero solo marcar eventos L-V) ===
+    // === Render calendario ===
     function renderCalendar(containerId, monthOffset) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
@@ -289,37 +432,32 @@ Dashboard - Avances de Equipos
         today.setMonth(today.getMonth() + monthOffset);
         const year = today.getFullYear();
         const month = today.getMonth();
-        const firstDay = new Date(year, month, 1).getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+        const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         
-        // Todos los días de la semana
         const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         
-        // Añadir días de la semana
         daysOfWeek.forEach(d => {
             const dayElement = document.createElement('div');
             dayElement.textContent = d;
             container.appendChild(dayElement);
         });
 
-        // Añadir celdas vacías para alinear el primer día
         for (let i = 0; i < firstDay; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.classList.add('calendar-day');
-            if (i === 0) emptyCell.classList.add('weekend-day'); // Domingo
+            if (i === 0) emptyCell.classList.add('weekend-day');
             container.appendChild(emptyCell);
         }
 
-        // Añadir los días del mes
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month, day);
-            const dayOfWeek = dateObj.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+            const dayOfWeek = dateObj.getDay();
             
             const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
             const cell = document.createElement('div');
             cell.classList.add('calendar-day');
             
-            // Marcar como fin de semana
             if (dayOfWeek === 0 || dayOfWeek === 6) {
                 cell.classList.add('weekend-day');
             }
@@ -327,7 +465,6 @@ Dashboard - Avances de Equipos
             cell.innerHTML = `<div class="day-number">${day}</div><div class="dots-container"></div>`;
             const dotsContainer = cell.querySelector('.dots-container');
 
-            // Verificar si hay eventos para este día (solo L-V)
             if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 equipos.forEach(eq => {
                     if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
@@ -383,7 +520,6 @@ Dashboard - Avances de Equipos
         const sectionTitle = document.getElementById('sectionTitle');
         container.innerHTML = '';
 
-        // Obtener matrices filtradas por mes
         const matricesFiltradas = obtenerMatricesPorMes(equipoNombre);
 
         if (!equipoNombre) {
@@ -427,31 +563,129 @@ Dashboard - Avances de Equipos
         });
     }
 
-    // === Modal detalle matrices ===
-    function mostrarDetallesMatrices(espacioNombre) {
-        const espacio = matrices.find(esp => esp.supermatriz === espacioNombre);
+    // === Modal detalle matrices - Con color del equipo ===
+    function mostrarDetallesMatrices(supermatrizNombre) {
+        const espacio = matrices.find(esp => esp.supermatriz === supermatrizNombre);
         if (!espacio) return;
-        const colorEquipo = equipos.find(e => e.nombre === espacio.equipo).color;
+
+        const equipo = equipos.find(e => e.nombre === espacio.equipo);
+        const colorEquipo = equipo ? equipo.color : '#6c757d'; // Color por defecto si no se encuentra
+
+        // Aplicar el color del equipo al header del modal
+        const modalHeader = document.getElementById('modalHeader');
+        modalHeader.style.backgroundColor = colorEquipo;
+
+        const porcentajeCompletado = espacio.matrices && espacio.matrices.length > 0 ? 
+            espacio.matrices.reduce((acc, matriz) => acc + (matriz.info?.porcentaje || 0), 0) / espacio.matrices.length : 0;
+
         let html = `
-            <div class="mb-4">
-                <h4>${espacio.supermatriz}</h4>
-                <p><strong>Equipo:</strong> <span class="badge" style="background-color: ${colorEquipo}">${espacio.equipo}</span></p>
-                <p><strong>Periodo:</strong> ${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</p>
+        <div class="modal-matriz-header rounded-top" style="background: ${colorEquipo}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h4 class="mb-1 text-white"><i class="bi bi-collection-play-fill me-2"></i>${espacio.supermatriz}</h4>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span class="badge bg-light text-dark badge-custom">
+                            <i class="bi bi-people-fill me-1"></i>${espacio.equipo}
+                        </span>
+                        <span class="badge bg-light text-dark badge-custom">
+                            <i class="bi bi-calendar-event me-1"></i><b>Inicio: ${espacio.fecha_creacion}</b> - <b>Fin: ${espacio.fecha_fin || 'Presente'}</b>
+                        </span>
+                        <span class="badge bg-light text-dark badge-custom">
+                            <i class="bi bi-clipboard-data me-1"></i>${espacio.matrices ? espacio.matrices.length : 0} Matrices
+                        </span>
+                    </div>
+                </div>
             </div>
-            <h5 class="mb-3">Matrices asociadas</h5>`;
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-4 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color: ${colorEquipo}">${espacio.matrices ? espacio.matrices.length : 0}</div>
+                    <div class="stat-label">Total de Matrices</div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="stat-card">
+                    <div class="stat-number" style="color: ${porcentajeCompletado >= 80 ? '#28a745' : porcentajeCompletado >= 50 ? '#ffc107' : '#dc3545'}">
+                        ${porcentajeCompletado.toFixed(1)}%
+                    </div>
+                    <div class="stat-label">Progreso General</div>
+                </div>
+            </div>
+        </div>`;
+
         if (!espacio.matrices || espacio.matrices.length === 0) {
-            html += `<div class="alert alert-info">No hay matrices asociadas</div>`;
+            html += `
+            <div class="empty-state">
+                <i class="bi bi-inboxes"></i>
+                <h5>No hay matrices asociadas</h5>
+                <p class="text-muted">Este Espacio de trabajo no contiene matrices de prueba</p>
+            </div>`;
         } else {
-            espacio.matrices.forEach(matriz => {
+            html += `<h5 class="d-flex justify-content-center mb-3 mt-4 fs-1"><i class="bi bi-list-check me-2"></i>Matrices de Prueba</h5>`;
+            
+            espacio.matrices.forEach((matriz, index) => {
+                const info = matriz.info || {};
+                const porcentaje = info.porcentaje || 0;
+                const progressColor = porcentaje >= 80 ? 'bg-success' : porcentaje >= 50 ? 'bg-warning' : 'bg-danger';
+                
+                let testersHTML = '';
+                if (info.testers_por_region) {
+                    for (const region in info.testers_por_region) {
+                        testersHTML += `
+                        <div class="d-flex justify-content-around mb-2">
+                            <h6 class="region-title"><i class="bi bi-geo-alt me-1"></i>${region}</h6>
+                        </div>`;
+                    }
+                }
+
                 html += `
-                    <div class="matriz-modal-card p-3 mb-2 bg-light rounded" style="border-left: 4px solid ${colorEquipo}">
-                        <h6>${matriz.nombre}</h6>
-                        <p><small class="text-muted">Creada: ${matriz.fecha_creacion}</small></p>
-                    </div>`;
+                <div class="matriz-card">
+                    <div class="matriz-card-header d-flex justify-content-between align-items-center" style="border-left: 4px solid ${colorEquipo}">
+                        <span><i class="bi bi-clipboard-data me-2"></i>${matriz.nombre}</span>
+                        <span class="badge ${progressColor}">${porcentaje}% Completado</span>
+                    </div>
+                    <div class="matriz-card-body">
+                        <div class="info-grid">
+                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                                <h6><i class="bi bi-list-ol me-1"></i>Total de Casos</h6>
+                                <p>${info.total_casos || 0}</p>
+                            </div>
+                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                                <h6><i class="bi bi-check-circle me-1"></i>Casos Probados</h6>
+                                <p>${info.casos_filtrados || 0}</p>
+                            </div>
+                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                                <h6><i class="bi bi-bullseye me-1"></i>Alcance</h6>
+                                <p>${info.alcance || 'N/A'}</p>
+                            </div>
+                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                                <h6><i class="bi bi-phone me-1"></i>Dispositivo</h6>
+                                <p>${info.dispositivo || 'N/A'}</p>
+                            </div>
+                        </div>
+                        
+                        ${testersHTML ? `
+                        <div class="d-flex flex-row bd-highlight">
+                            <h6 class="d-flex flex-row bd-highlight mb-3 mt-3"><i class="bi bi-people-fill me-1"></i>Regiones</h6>
+                            ${testersHTML}
+                        </div>` : ''}
+                    </div>
+                </div>`;
             });
         }
+
         document.getElementById('modalMatricesContent').innerHTML = html;
-        new bootstrap.Modal(document.getElementById('matricesModal')).show();
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
+        modal.show();
+        
+        // Restaurar el color por defecto cuando se cierra el modal
+        document.getElementById('matricesModal').addEventListener('hidden.bs.modal', function () {
+            modalHeader.style.backgroundColor = '';
+        });
     }
 
     mostrarEspaciosTrabajo(null);
