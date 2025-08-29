@@ -10,7 +10,7 @@ from .forms import (
     ValidateEstadoForm, DetallesValidateForm,
     TicketPorLevantarForm,ValidateForm
 )
-from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo
+from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
 from .utils import importar_matriz_desde_excel,importar_validates
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -578,90 +578,76 @@ def asignar_validates(request, super_matriz_id):
     }
     return render(request, 'excel_files/asignar_validates.html', context)
 
-import json
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import SuperMatriz
-
-
 @login_required
 def dashboard(request):
+    
     colores = ["#0dcaf0", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#fd7e14", "#20c997"]
 
+    #Obtener todos los equipos
+    equipos = Equipo.objects.all().order_by("id")
+
+    #Obtener todas las supermatrices con sus matrices (optimizado con prefetch)
+    supermatrices = (
+        SuperMatriz.objects
+        .select_related("equipo_nuevo")        # optimiza la relación con equipo
+        .prefetch_related("matrices")          # optimiza la relación con matrices
+        .all()
+    )
+
+    #Diccionario temporal para agrupar la información
     equipos_dict = {}
-    supermatrices = SuperMatriz.objects.all().prefetch_related('matrices__casos')
     color_idx = 0
 
+    #Inicializar estructura de todos los equipos
+    for eq in equipos:
+        equipos_dict[eq.id] = {
+            "id": eq.id,
+            "nombre": eq.nombre,
+            "color": colores[color_idx % len(colores)],
+            "supermatrices": []
+        }
+        color_idx += 1
+
+  
     for sm in supermatrices:
-        if sm.equipo_nuevo:
-            eq_id = sm.equipo_nuevo.id
-            if eq_id not in equipos_dict:
-                equipos_dict[eq_id] = {
-                    "id": eq_id,
-                    "nombre": sm.equipo_nuevo.nombre,
-                    "color": colores[color_idx % len(colores)],
-                    "supermatrices": []
+        if sm.equipo_nuevo_id in equipos_dict:
+            matrices_list = [
+                {
+                    "id": m.id,
+                    "nombre": m.nombre,
+                    "fecha_creacion": m.fecha_creacion.strftime('%Y-%m-%d'),
                 }
-                color_idx += 1
+                for m in sm.matrices.all()
+            ]
 
-            # Testers del equipo
-            testers_equipo = User.objects.filter(cargo="Tester", equipo_nuevo=sm.equipo_nuevo)
-
-            # Testers asignados
-            testers_asignados_set = set()
-            for m in sm.matrices.all():
-                for c in m.casos.all():
-                    if c.tester:
-                        testers_asignados_set.add(c.tester)
-
-            testers_disponibles = [t.nombre for t in testers_equipo if t.nombre not in testers_asignados_set]
-
-            # Si no hay matrices
-            matrices_list = []
-            if sm.matrices.exists():
-                for m in sm.matrices.all():
-                    m_testers_asignados = list({c.tester for c in m.casos.all() if c.tester})
-                    matrices_list.append({
-                        "nombre": m.nombre,
-                        "fecha_creacion": m.fecha_creacion.strftime('%Y-%m-%d'),
-                        "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
-                        "tester_asignado": m_testers_asignados,
-                        "testers_disponibles": testers_disponibles
-                    })
-            else:
-                matrices_list = None  # Para indicar "Espacio No disponible"
-
-            equipos_dict[eq_id]["supermatrices"].append({
+            equipos_dict[sm.equipo_nuevo_id]["supermatrices"].append({
+                "id": sm.id,
                 "nombre": sm.nombre,
                 "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
                 "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
                 "matrices": matrices_list
             })
 
+    # Convertir a lista para enviar al template
     equipos_data = list(equipos_dict.values())
 
-    # Datos para el calendario
+    # Preparar datos para el calendario
     matrices_data = []
-    for sm in supermatrices:
-        if sm.equipo_nuevo:
-            color = next(eq['color'] for eq in equipos_data if eq['id'] == sm.equipo_nuevo.id)
-            nombre_equipo = sm.equipo_nuevo.nombre
-        else:
-            color = "#6c757d"
-            nombre_equipo = sm.equipo or ""
+    for eq in equipos_data:
+        for sm in eq["supermatrices"]:
+            matrices_data.append({
+                "equipo": eq["nombre"],
+                "supermatriz": sm["nombre"],
+                "fecha_creacion": sm["fecha_creacion"],
+                "fecha_fin": sm["fecha_fin"],
+                "color": eq["color"],
+                "matrices": sm["matrices"],  # incluye las matrices de ese supermatriz
+            })
 
-        matrices_data.append({
-            "equipo": nombre_equipo,
-            "supermatriz": sm.nombre,
-            "fecha_creacion": sm.fecha_creacion.strftime('%Y-%m-%d'),
-            "fecha_fin": sm.fecha_fin.strftime('%Y-%m-%d') if sm.fecha_fin else None,
-            "color": color,
-            "matrices": next((eq_sm["matrices"] for eq in equipos_data for eq_sm in eq["supermatrices"] if eq_sm["nombre"] == sm.nombre), None)
-        })
-
+    #Contexto final para el template
     context = {
-        'matrices_json': json.dumps(matrices_data),
-        'equipos_json': json.dumps(equipos_data)
+        "matrices_json": json.dumps(matrices_data),
+        "equipos_json": json.dumps(equipos_data),
     }
 
-    return render(request, 'excel_files/dashboard.html', context)
+    return render(request, "excel_files/dashboard.html", context)
