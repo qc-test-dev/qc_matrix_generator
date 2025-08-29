@@ -8,7 +8,7 @@ from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm
+    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
 from .utils import importar_matriz_desde_excel,importar_validates,matriz_info
@@ -448,6 +448,7 @@ def asignar_validates(request, super_matriz_id):
                 validate.tester = nuevo_tester  # Se guarda como string
                 validate.save()
         return redirect('matrix_app:editar_validates', super_matriz_id=super_matriz.id)
+        
 
     context = {
         'super_matriz': super_matriz,
@@ -537,3 +538,21 @@ def dashboard(request):
     }
 
     return render(request, "excel_files/dashboard.html", context)
+@login_required
+def editar_fecha_fin(request, pk):
+    supermatriz = get_object_or_404(SuperMatriz, pk=pk)
+
+    if request.method == "POST":
+        form = SuperMatrizFechaFinForm(request.POST, instance=supermatriz)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Fecha fin actualizada correctamente.")
+            return redirect('home')  # <-- cambiar 'dashboard' por 'home'
+    else:
+        form = SuperMatrizFechaFinForm(instance=supermatriz)
+
+    context = {
+        "form": form,
+        "supermatriz": supermatriz
+    }
+    return render(request, "home.html", context)

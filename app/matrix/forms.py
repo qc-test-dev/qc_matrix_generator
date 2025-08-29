@@ -242,3 +242,24 @@ class DetallesValidateForm(forms.ModelForm):
         self.fields['filtro_RN'].required = False
         if equipo_nuevo:
             self.fields['testers'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)
+
+class SuperMatrizFechaFinForm(forms.ModelForm):
+    fecha_fin = forms.DateField(
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'min': timezone.now().date().strftime('%Y-%m-%d')  # Limita desde hoy
+            }
+        ),
+        label="Fecha Tentativa"
+    )
+
+    class Meta:
+        model = SuperMatriz
+        fields = ['fecha_fin']
+
+    def clean_fecha_fin(self):
+        fecha_fin = self.cleaned_data.get('fecha_fin')
+        if fecha_fin and fecha_fin < timezone.now().date():
+            raise forms.ValidationError("La fecha fin no puede ser anterior a la fecha de hoy.")
+        return fecha_fin
