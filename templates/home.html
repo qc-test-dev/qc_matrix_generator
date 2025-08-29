@@ -55,9 +55,7 @@
                             <div class="list-group-item d-flex justify-content-between align-items-center py-3">
                                 <div class="w-100">
                                     <h5 class="mb-1 text-success">
-                                        <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}" class="text-success text-decoration-none">
-                                            {{ matriz.nombre }}
-                                        </a>
+                                        {{ matriz.nombre }}
                                     </h5>
                                     <p class="mb-0 text-muted small">{{ matriz.descripcion|truncatechars:100 }}</p>
                                     <p class="mb-0 text-muted small">{{ matriz.equipo_nuevo.nombre }}</p>
@@ -74,8 +72,13 @@
                                         {% endif %}
                                         {% if es_lider %}
                                         <div class="d-flex gap-2">
+                                            <!-- Botón Ver -->
+                                            <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}" class="btn btn-sm btn-success">
+                                                <i class="fas fa-eye me-1"></i>Ver
+                                            </a>
+
                                             <!-- Botón Editar Fecha -->
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editarFechaModal" 
+                                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editarFechaModal" 
                                                     onclick="cargarMatrizModal({{ matriz.id }}, '{{ matriz.nombre }}', '{{ matriz.fecha_fin|date:"Y-m-d"|default_if_none:"" }}')">
                                                 <i class="fas fa-calendar-alt me-1"></i>Editar Fecha
                                             </button>
@@ -83,7 +86,7 @@
                                             <!-- Botón Eliminar -->
                                             <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" class="d-inline">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
                                                     <i class="fas fa-trash-alt me-1"></i>Eliminar
                                                 </button>
                                             </form>
@@ -199,7 +202,6 @@
             <input type="hidden" name="supermatriz_id" id="modalSupermatrizId">
             <div class="mb-3">
                 <label for="id_fecha_fin_modal" class="form-label">Nueva Fecha Final</label>
-                <!-- Añadimos el atributo min con la fecha actual -->
                 <input type="date" name="fecha_fin" class="form-control" id="id_fecha_fin_modal" min="{{ today|date:'Y-m-d' }}">
             </div>
         </div>
@@ -267,7 +269,7 @@ function cargarMatrizModal(id, nombre, fechaFin) {
     document.getElementById('id_fecha_fin_modal').value = fechaFin;
     document.getElementById('formEditarFecha').action = "{% url 'matrix_app:editar_fecha_fin' 0 %}".replace('0', id);
     
-    // Asegurarnos de que la fecha mínima sea hoy (por si acaso)
+    // Asegurar que la fecha mínima sea hoy
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('id_fecha_fin_modal').setAttribute('min', today);
 }
