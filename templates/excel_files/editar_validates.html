@@ -73,16 +73,15 @@ Validates – {{ super_matriz.nombre }}
                         </td>
                         <td class="align-middle" style="white-space:pre-wrap;">{{ validate.descripcion }}</td>
                         <td class="align-middle text-center fw-semibold">
-                            {% if validate.prioridad|lower == "blocker" %}
+                            {% if validate.prioridad|lower == "blocker" or validate.prioridad|lower == "supone un impedimento" %}
                                 <span class="badge bg-danger">🔶 Bloqueante</span>
-                            {% elif validate.prioridad|lower == "critical" or validate.prioridad|lower == "crítico" %}
+                            {% elif validate.prioridad|lower in "critico,critical,crítica"%}
                                 <span class="badge bg-warning text-dark">🟡 Crítico</span>
-                            {% elif validate.prioridad|lower == "error" %}
-                                <span class="badge bg-danger">🔴 Error</span>
-                            {% elif validate.prioridad|lower == "major" %}
+                            {% elif validate.prioridad|lower == "major"  or validate.prioridad|lower == "importante" %}
                                 <span class="badge bg-primary">🔧 Importante</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Sin clasificar</span>
+                            {% elif validate.prioridad|lower == "minor" %}
+                                <span class="badge bg-primary">Menor</span>
+                                
                             {% endif %}
                         </td>
                         <td class="align-middle text-center" id="estado-validate-{{ validate.id }}">{{ form.estado }}</td>

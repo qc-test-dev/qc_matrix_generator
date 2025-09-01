@@ -3,11 +3,12 @@ from .models import CasoDePrueba,Validate
 from requests.auth import HTTPBasicAuth
 from decouple import config
 from collections import defaultdict
+from resources.url_jira import JIRA_URL
 import pandas as pd
 import re
 import requests
 import random
-import os
+import os,json
 
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
@@ -144,43 +145,61 @@ def importar_validates(super_matriz, link, testers_qs):
                 )
             )
     Validate.objects.bulk_create(validate_objects)
-def fetch_jira_issues(link):
-    """
-    Obtiene los issues desde Jira usando un filtro.
-    """
-    match = re.search(r'filter=(\d+)', link)
+def fetch_jira_issues(filter_link):
+    match = re.search(r'filter=(\d+)', filter_link)
     if not match:
         return None, "No se pudo extraer el filtro del enlace."
 
     filter_id = match.group(1)
-
-    url = "https://dlatvarg.atlassian.net/rest/api/3/search"
-    params = {'jql': f'filter = {filter_id}'}
-    headers = {"Accept": "application/json"}
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
     try:
-        response = requests.get(
-            url,
-            headers=headers,
-            params=params,
-            auth=HTTPBasicAuth(config('JIRA_EMAIL'),config('JIRA_API_TOKEN'))
+        # Obtener el JQL del filtro
+        #https://dlatvarg.atlassian.net/issues/?filter=56761
+        filter_url = f"{JIRA_URL['jira_url_filter']}{filter_id}"
+        filter_resp = requests.get(
+            filter_url,
+            headers={"Accept": "application/json"},
+            auth=HTTPBasicAuth(config('JIRA_EMAIL'), config('JIRA_API_TOKEN'))
         )
-        response.raise_for_status()
+        filter_resp.raise_for_status()
+        jql = filter_resp.json().get("jql")
+        if not jql:
+            return None, "El filtro no tiene JQL definido."
+
+        # Endpoint correcto para la nueva API
+        search_url = "https://dlatvarg.atlassian.net/rest/api/3/search/jql"
+        payload = {"jql": jql, "maxResults": 50, "fields": ["summary","description","priority"]}
+        resp = requests.post(
+            search_url,
+            headers=headers,
+            auth=HTTPBasicAuth(config('JIRA_EMAIL'), config('JIRA_API_TOKEN')),
+            data=json.dumps(payload)
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        issues = []
+        for issue in data.get("issues", []):
+            fields = issue.get("fields", {})
+            issues.append({
+                "key": issue.get("key"),
+                "summary": fields.get("summary"),
+                "description": fields.get("description", "Sin descripción"),
+                "priority": fields.get("priority", {}).get("name", "Sin prioridad")
+            })
+
     except requests.RequestException as e:
         return None, f"Error al obtener issues: {e}"
+    except json.JSONDecodeError:
+        return None, "No se pudo decodificar la respuesta de Jira."
 
-    data = response.json()
-    detailed_issues = [
-        {
-            'key': issue['key'],
-            'summary': issue['fields'].get('summary'),
-            'description': issue['fields'].get('description', 'Sin descripción'),
-            'priority': issue['fields']['priority']['name'] if issue['fields'].get('priority') else 'Sin prioridad',
-        }
-        for issue in data.get('issues', [])
-    ]
+    if not issues:
+        return None, "No se encontraron issues."
 
-    return detailed_issues, None
+    return issues, None
+
+    return issues, None
 def matriz_info(matrices):
     matrices_info = []
     for matriz in matrices:
