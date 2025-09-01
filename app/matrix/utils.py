@@ -146,41 +146,79 @@ def importar_validates(super_matriz, link, testers_qs):
     Validate.objects.bulk_create(validate_objects)
 def fetch_jira_issues(link):
     """
-    Obtiene los issues desde Jira usando un filtro.
+    Obtiene todos los issues desde Jira usando un link de filtro.
     """
+    import json
+
     match = re.search(r'filter=(\d+)', link)
     if not match:
         return None, "No se pudo extraer el filtro del enlace."
 
     filter_id = match.group(1)
-
-    url = "https://dlatvarg.atlassian.net/rest/api/3/search"
-    params = {'jql': f'filter = {filter_id}'}
     headers = {"Accept": "application/json"}
 
     try:
-        response = requests.get(
-            url,
+        # Obtener JQL del filtro
+        filter_url = f"https://dlatvarg.atlassian.net/rest/api/3/filter/{filter_id}"
+        filter_response = requests.get(
+            filter_url,
             headers=headers,
-            params=params,
-            auth=HTTPBasicAuth(config('JIRA_EMAIL'),config('JIRA_API_TOKEN'))
+            auth=HTTPBasicAuth(config('JIRA_EMAIL'), config('JIRA_API_TOKEN'))
         )
-        response.raise_for_status()
+        filter_response.raise_for_status()
+        filter_data = filter_response.json()
+        jql = filter_data.get('jql')
+        if not jql:
+            return None, "No se pudo obtener el JQL del filtro."
+
+        # Traer todos los issues con paginación
+        search_url = "https://dlatvarg.atlassian.net/rest/api/3/search/jql"
+        start_at = 0
+        max_results = 50
+        all_issues = []
+
+        while True:
+            params = {'jql': jql, 'startAt': start_at, 'maxResults': max_results}
+            response = requests.get(
+                search_url,
+                headers=headers,
+                params=params,
+                auth=HTTPBasicAuth(config('JIRA_EMAIL'), config('JIRA_API_TOKEN'))
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            issues = data.get('issues', [])
+            for issue in issues:
+                key = issue.get('key')
+                fields = issue.get('fields', {})
+                summary = fields.get('summary')
+                description = fields.get('description', 'Sin descripción')
+                priority = fields.get('priority', {}).get('name', 'Sin prioridad')
+
+                if key:
+                    all_issues.append({
+                        'key': key,
+                        'summary': summary,
+                        'description': description,
+                        'priority': priority
+                    })
+
+            # Revisar si hay más issues
+            if start_at + max_results >= data.get('total', 0):
+                break
+            start_at += max_results
+
     except requests.RequestException as e:
         return None, f"Error al obtener issues: {e}"
+    except json.JSONDecodeError:
+        return None, "No se pudo decodificar la respuesta de Jira."
 
-    data = response.json()
-    detailed_issues = [
-        {
-            'key': issue['key'],
-            'summary': issue['fields'].get('summary'),
-            'description': issue['fields'].get('description', 'Sin descripción'),
-            'priority': issue['fields']['priority']['name'] if issue['fields'].get('priority') else 'Sin prioridad',
-        }
-        for issue in data.get('issues', [])
-    ]
+    if not all_issues:
+        return None, "No se encontraron issues."
 
-    return detailed_issues, None
+    return all_issues, None
+
 def matriz_info(matrices):
     matrices_info = []
     for matriz in matrices:

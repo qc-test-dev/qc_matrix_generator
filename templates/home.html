@@ -70,13 +70,13 @@
                                             Fecha Final: {{ matriz.fecha_fin|date:"d/m/Y" }}
                                         </span>
                                         {% endif %}
-                                        {% if es_lider %}
+                                        
                                         <div class="d-flex gap-2">
                                             <!-- Botón Ver -->
                                             <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}" class="btn btn-sm btn-success">
                                                 <i class="fas fa-eye me-1"></i>Ver
                                             </a>
-
+                                            {% if es_lider %}
                                             <!-- Botón Editar Fecha -->
                                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editarFechaModal" 
                                                     onclick="cargarMatrizModal({{ matriz.id }}, '{{ matriz.nombre }}', '{{ matriz.fecha_fin|date:"Y-m-d"|default_if_none:"" }}')">
@@ -90,8 +90,9 @@
                                                     <i class="fas fa-trash-alt me-1"></i>Eliminar
                                                 </button>
                                             </form>
+                                            {% endif %}
                                         </div>
-                                        {% endif %}
+                                       
                                     </div>
                                 </div>
                             </div>
