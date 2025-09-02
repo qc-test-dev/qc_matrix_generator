@@ -392,11 +392,25 @@ Dashboard - Avances de Equipos
     const equipos = {{ equipos_json|safe }};
     let equipoFiltrado = null;
     let equipoActivoBtn = document.getElementById('btnTodos');
-    let mesActual = 'actual';
+    let mesSeleccionado = 'actual';
 
     // === Función para cambiar entre mes actual y pasado ===
     function cambiarMes(tipoMes) {
-        mesActual = tipoMes;
+        mesSeleccionado = tipoMes;
+        
+        // Actualizar visualización de pestañas
+        document.getElementById('actual-tab').classList.toggle('active', tipoMes === 'actual');
+        document.getElementById('pasado-tab').classList.toggle('active', tipoMes === 'pasado');
+        document.getElementById('mes-actual').classList.toggle('show', tipoMes === 'actual');
+        document.getElementById('mes-actual').classList.toggle('active', tipoMes === 'actual');
+        document.getElementById('mes-pasado').classList.toggle('show', tipoMes === 'pasado');
+        document.getElementById('mes-pasado').classList.toggle('active', tipoMes === 'pasado');
+        
+        // Actualizar calendarios
+        renderCalendar('calendarActual', 0);
+        renderCalendar('calendarPasado', -1);
+        
+        // Actualizar espacios de trabajo
         mostrarEspaciosTrabajo(equipoFiltrado);
     }
 
@@ -405,7 +419,7 @@ Dashboard - Avances de Equipos
         const ahora = new Date();
         let mes, año;
         
-        if (mesActual === 'actual') {
+        if (mesSeleccionado === 'actual') {
             mes = ahora.getMonth();
             año = ahora.getFullYear();
         } else {
@@ -420,7 +434,13 @@ Dashboard - Avances de Equipos
         
         return matricesFiltradas.filter(matriz => {
             const fechaCreacion = new Date(matriz.fecha_creacion);
-            return fechaCreacion.getMonth() === mes && fechaCreacion.getFullYear() === año;
+            const fechaFin = matriz.fecha_fin ? new Date(matriz.fecha_fin) : new Date(); // Si no hay fecha fin, usar hoy
+            
+            // Verificar si el espacio de trabajo está activo durante el mes seleccionado
+            const inicioMes = new Date(año, mes, 1);
+            const finMes = new Date(año, mes + 1, 0);
+            
+            return (fechaCreacion <= finMes) && (fechaFin >= inicioMes);
         });
     }
 
@@ -468,10 +488,13 @@ Dashboard - Avances de Equipos
             if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 equipos.forEach(eq => {
                     if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
+                    
+                    // Verificar si hay algún espacio de trabajo activo en esta fecha
                     const activo = matrices.some(m => m.equipo === eq.nombre &&
                         new Date(m.fecha_creacion) <= new Date(dateStr) &&
                         (!m.fecha_fin || new Date(dateStr) <= new Date(m.fecha_fin))
                     );
+                    
                     if (activo) {
                         const dot = document.createElement('span');
                         dot.classList.add('event-dot');
@@ -527,22 +550,22 @@ Dashboard - Avances de Equipos
             emptyMsgSubtext.textContent = 'Selecciona un equipo para ver sus espacios de trabajo';
             emptyMsg.classList.remove('d-none'); 
             container.classList.add('d-none');
-            sectionTitle.textContent = 'Espacios de Trabajo del Equipo'; 
+            sectionTitle.textContent = `Espacios de Trabajo (${mesSeleccionado === 'actual' ? 'Mes Actual' : 'Mes Pasado'})`; 
             return;
         }
 
         if (matricesFiltradas.length === 0) {
             emptyMsgText.textContent = 'No hay matrices por el momento';
-            emptyMsgSubtext.textContent = `El equipo ${equipoNombre} no tiene matrices en el ${mesActual === 'actual' ? 'mes actual' : 'mes pasado'}`;
+            emptyMsgSubtext.textContent = `El equipo ${equipoNombre} no tiene matrices en el ${mesSeleccionado === 'actual' ? 'mes actual' : 'mes pasado'}`;
             emptyMsg.classList.remove('d-none'); 
             container.classList.add('d-none');
-            sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre}`;
+            sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre} (${mesSeleccionado === 'actual' ? 'Mes Actual' : 'Mes Pasado'})`;
             return;
         }
 
         container.classList.remove('d-none'); 
         emptyMsg.classList.add('d-none');
-        sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre} (${mesActual === 'actual' ? 'Mes Actual' : 'Mes Pasado'})`;
+        sectionTitle.textContent = `Espacios de Trabajo del Equipo ${equipoNombre} (${mesSeleccionado === 'actual' ? 'Mes Actual' : 'Mes Pasado'})`;
 
         const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
         matricesFiltradas.forEach(espacio => {
@@ -569,7 +592,7 @@ Dashboard - Avances de Equipos
         if (!espacio) return;
 
         const equipo = equipos.find(e => e.nombre === espacio.equipo);
-        const colorEquipo = equipo ? equipo.color : '#6c757d'; // Color por defecto si no se encuentra
+        const colorEquipo = equipo ? equipo.color : '#6c757d';
 
         // Aplicar el color del equipo al header del modal
         const modalHeader = document.getElementById('modalHeader');
