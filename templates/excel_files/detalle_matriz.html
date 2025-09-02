@@ -18,10 +18,17 @@
         <li class="list-inline-item">
             <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-primary btn-sm">Todos</a>
         </li>
+        <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
+        <li class="list-inline-item">
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if tester_filtrado %}&tester={{ tester_filtrado }}{% endif %}"
+            class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
+            Bloqueante (Falla Nueva + Persistente)
+            </a>
+        </li>
         {% for tester in testers_disponibles %}
             <li class="list-inline-item">
                 <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}"
-                   class="btn btn-outline-secondary btn-sm {% if tester == tester_filtrado %}active{% endif %}">
+                   class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
                     {{ tester }}
                 </a>
             </li>

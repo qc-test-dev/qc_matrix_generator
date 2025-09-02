@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -119,28 +119,49 @@ def detalle_super_matriz(request, super_matriz_id):
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     super_matriz_id = matriz.super_matriz.id
-    testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
-    casos_de_prueba = matriz.casos.all()
+
+    # Obtener parámetros de filtro desde la URL
     tester_filtrado = request.GET.get('tester')
-    if matriz.alcances_utilizados=='A':
-            alcance="MVP (Minimum Viable Product:A)"
-    elif matriz.alcances_utilizados=='A,B':
-            alcance='Smoke Test (A,B)'
-    elif matriz.alcances_utilizados=='A,B,C':
-            alcance='No Afectacion (NA:A,B,C)'
+    fallo_filtrado = request.GET.get('fallo')
+
+    # Casos de prueba base
+    casos_de_prueba = matriz.casos.all()
+
+    # Aplicar filtro por tester si existe
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
+    # Ordenar los casos
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
-    alcances_lista = []
-    if matriz.alcances_utilizados:
-        alcances_lista = matriz.alcances_utilizados.split(',')
+    # Aplicar filtro de fallo usando la función matriz_fails
+    if fallo_filtrado == 'bloqueante':
+        fallos = matriz_fails(matriz)
+        # Solo tomar los casos filtrados dentro de fallos
+        casos_filtrados = fallos[0]['casos_filtrados']
+    else:
+        casos_filtrados = casos_de_prueba
 
+    # Formularios por caso
     formularios_casos_de_prueba = [
         (caso, CasoDePruebaForm(instance=caso, prefix=f"caso_{caso.id}"))
-        for caso in casos_de_prueba
+        for caso in casos_filtrados
     ]
+
+    # Alcances
+    if matriz.alcances_utilizados == 'A':
+        alcance = "MVP (Minimum Viable Product:A)"
+    elif matriz.alcances_utilizados == 'A,B':
+        alcance = 'Smoke Test (A,B)'
+    elif matriz.alcances_utilizados == 'A,B,C':
+        alcance = 'No Afectacion (NA:A,B,C)'
+    else:
+        alcance = ''
+
+    alcances_lista = matriz.alcances_utilizados.split(',') if matriz.alcances_utilizados else []
+
+    # Testers disponibles
+    testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -149,9 +170,10 @@ def detalle_matriz(request, matriz_id):
         'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'testers_disponibles': testers_disponibles,
         'tester_filtrado': tester_filtrado,
-        'alcance':alcance
+        'fallo_filtrado': fallo_filtrado,
+        'alcance': alcance,
+        'fallos': fallos if fallo_filtrado == 'bloqueante' else []
     })
-
 @login_required
 def actualizar_estado_caso(request):
     if request.method == "POST":

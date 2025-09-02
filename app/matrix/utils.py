@@ -239,4 +239,19 @@ def matriz_info(matrices):
         })
 
     return matrices_info
+
+def matriz_fails(matriz):
+    matrices_fails = []
+    
+    casos = matriz.casos.all()
+    estados_interes = ['falla_nueva', 'falla_persistente']
+    casos_filtrados = casos.filter(criticidad__iexact='Bloqueante',estado__in=estados_interes)
+    matrices_fails.append({
+            'matriz': matriz,
+            'casos_filtrados': casos_filtrados,
+            'interes':estados_interes
+    })
+
+    return matrices_fails
+    
     
