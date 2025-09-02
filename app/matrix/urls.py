@@ -22,5 +22,6 @@ urlpatterns = [
     path('supermatriz/<int:super_matriz_id>/asignar_validates/', views.asignar_validates, name='asignar_validates'),
     path("dashboard",views.dashboard,name="dashboard"),
     path('supermatriz/<int:pk>/editar-fecha-fin/', views.editar_fecha_fin, name='editar_fecha_fin'),
+    path('matriz/<int:matriz_id>/num-fallos/', views.obtener_num_fallos, name='obtener_num_fallos'),
 ]   
 

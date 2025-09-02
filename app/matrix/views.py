@@ -123,7 +123,7 @@ def detalle_matriz(request, matriz_id):
     # Obtener parámetros de filtro desde la URL
     tester_filtrado = request.GET.get('tester')
     fallo_filtrado = request.GET.get('fallo')
-
+    num_fallos = matriz_fails(matriz)[0]['indice']
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
@@ -172,7 +172,8 @@ def detalle_matriz(request, matriz_id):
         'tester_filtrado': tester_filtrado,
         'fallo_filtrado': fallo_filtrado,
         'alcance': alcance,
-        'fallos': fallos if fallo_filtrado == 'bloqueante' else []
+        'fallos': fallos if fallo_filtrado == 'bloqueante' else [],
+        'num_fallos':num_fallos
     })
 @login_required
 def actualizar_estado_caso(request):
@@ -578,3 +579,9 @@ def editar_fecha_fin(request, pk):
         "supermatriz": supermatriz
     }
     return render(request, "home.html", context)
+@login_required
+def obtener_num_fallos(request, matriz_id):
+    matriz = get_object_or_404(Matriz, id=matriz_id)
+    data = matriz_fails(matriz)
+    num_fallos = data[0]['indice']
+    return JsonResponse({"num_fallos": num_fallos})

@@ -249,7 +249,8 @@ def matriz_fails(matriz):
     matrices_fails.append({
             'matriz': matriz,
             'casos_filtrados': casos_filtrados,
-            'interes':estados_interes
+            'interes':estados_interes,
+            'indice':casos_filtrados.count()
     })
 
     return matrices_fails

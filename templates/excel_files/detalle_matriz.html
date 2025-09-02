@@ -22,7 +22,7 @@
         <li class="list-inline-item">
             <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if tester_filtrado %}&tester={{ tester_filtrado }}{% endif %}"
             class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
-            Bloqueante (Falla Nueva + Persistente)
+            Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
             </a>
         </li>
         {% for tester in testers_disponibles %}
@@ -356,6 +356,19 @@ function actualizarTablaCasos() {
     }, 6 * 1000);
 
 
+</script>
+<script>
+    function actualizarFallos() {
+        fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("num-fallos").textContent = data.num_fallos;
+            })
+            .catch(error => console.error("Error al actualizar fallos:", error));
+    }
+
+    // Actualizar cada 6 segundos
+    setInterval(actualizarFallos, 6000);
 </script>
 
 <style>
