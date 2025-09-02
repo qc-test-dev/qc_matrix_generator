@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -386,7 +386,7 @@ def eliminar_matriz(request, matriz_id):
 def generar_pdf_supermatriz(request, supermatriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=supermatriz_id)
     matrices = super_matriz.matrices.all()
-
+    
     matrices_info = []
     paises = set()
     total_global_casos = 0
@@ -408,7 +408,7 @@ def generar_pdf_supermatriz(request, supermatriz_id):
             'A,B': 'Smoke Test (A,B)',
             'A,B,C': 'No Afectación (NA:A,B,C)'
         }.get(matriz.alcances_utilizados, 'No definido')
-
+        num_fallos = matriz_fails(matriz)[0]['indice']
         # Testers por región
         testers_por_region = defaultdict(set)
         for caso in casos:
@@ -431,6 +431,7 @@ def generar_pdf_supermatriz(request, supermatriz_id):
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
             'alcance': alcance,
+            'num_fallos':num_fallos
         })
 
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0

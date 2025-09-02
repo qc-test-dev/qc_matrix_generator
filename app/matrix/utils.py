@@ -254,5 +254,13 @@ def matriz_fails(matriz):
     })
 
     return matrices_fails
+def matrices_fails(matrices):
+    matrices_fails = []
+    for matriz in matrices:
+        matrices_fails.append(
+            matriz_fails(matriz)
+        )
+    return matrices_fails
+    
     
     
