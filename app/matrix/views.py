@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -59,6 +59,9 @@ def detalle_super_matriz(request, super_matriz_id):
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
 
+    # Inicializamos la variable siempre
+    testers_por_region_unicos = obtener_testers_por_region_unicos(matrices)
+
     if request.method == 'POST':
         if 'crear_matriz' in request.POST:
             form = MatrizForm(request.POST, equipo_nuevo=equipo_nuevo)
@@ -67,19 +70,19 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz.super_matriz = super_matriz
 
                 # Guardar alcances seleccionados
-                alcance_seleccionado = request.POST.get('alcance', '')
+                alcance_seleccionado = form.cleaned_data.get('alcance', '')
                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                # 🔑 Guardar testers seleccionados en el ManyToMany
-                testers_seleccionados = form.cleaned_data.get('testers', [])
+                # Guardar testers seleccionados en el ManyToMany
+                testers_seleccionados = list(form.cleaned_data.get('testers', []))
                 nueva_matriz.testers.set(testers_seleccionados)
 
                 # Validación de dispositivo y carga de Excel
                 dispositivo = form.cleaned_data.get('dispositivo')
                 if not dispositivo or not dispositivo.matriz_base:
-                    messages.error(request, f"El dispositivo no tiene archivo base asociado.")
+                    messages.error(request, "El dispositivo no tiene archivo base asociado.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
                 ruta_excel_matriz = os.path.join(settings.BASE_DIR, 'static', 'excel_files', dispositivo.matriz_base)
@@ -90,20 +93,21 @@ def detalle_super_matriz(request, super_matriz_id):
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
                 # Distribución de casos entre testers y regiones
-                testers_seleccionados = list(testers_seleccionados)
-                regiones_seleccionadas = form.cleaned_data.get('regiones', [])
                 casos = list(nueva_matriz.casos.all())
+                regiones_seleccionadas = list(form.cleaned_data.get('regiones', []))
 
                 random.shuffle(testers_seleccionados)
                 random.shuffle(regiones_seleccionadas)
                 random.shuffle(casos)
 
                 for idx, caso in enumerate(casos):
-                    tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
-                    region = regiones_seleccionadas[idx % len(regiones_seleccionadas)] if regiones_seleccionadas else ''
-                    caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
+                    # Asignar tester de manera balanceada
+                    caso.tester_asignado = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else None
+                    # Asignar país de manera balanceada
+                    caso.pais = regiones_seleccionadas[idx % len(regiones_seleccionadas)] if regiones_seleccionadas else None
                     caso.save()
 
+                messages.success(request, "Matriz creada correctamente con testers y regiones asignadas.")
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
         elif 'crear_validate' in request.POST:
@@ -112,6 +116,7 @@ def detalle_super_matriz(request, super_matriz_id):
                 validate = validate_form.save(commit=False)
                 validate.super_matriz = super_matriz
                 validate.save()
+                messages.success(request, "Validate creado correctamente.")
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
     return render(request, 'excel_files/detalle_super_matriz.html', {
@@ -122,6 +127,7 @@ def detalle_super_matriz(request, super_matriz_id):
         'validates': validates,
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
+        'testers_por_region_unicos': testers_por_region_unicos
     })
 @login_required
 def detalle_matriz(request, matriz_id):

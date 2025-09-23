@@ -9,20 +9,21 @@
 {% include 'includes/header.html' %}
 
 <div class="container mt-3">
-    
+
     {% if es_lider %}
         <a href="{% url 'matrix_app:reporte_pdf_supermatriz' super_matriz.id %}" class="btn btn-success mb-3">
             Descargar Reporte en PDF
         </a>
     {% endif %}
-        
+
     <h1 class="mb-3">{{ super_matriz.nombre }}</h1>
     <p class="text-muted">{{ super_matriz.descripcion }}</p>
 
-    <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn btn-success mb-3">Validates</a>
+    <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn-success mb-3">Validates</a>
     <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">Seguimiento de tickets</a>
 
     <div class="row mt-5">
+
         {% if es_lider %}
         <div class="col-md-4">
             <h3>Agregar nueva matriz</h3>
@@ -57,12 +58,12 @@
                             {% if forloop.first or forloop.counter0|divisibleby:5 %}
                                 <div class="me-4 mb-2">
                             {% endif %}
-                
+
                             <div class="form-check">
                                 {{ checkbox.tag }}
                                 {{ checkbox.choice_label }}
                             </div>
-                
+
                             {% if forloop.counter|divisibleby:5 or forloop.last %}
                                 </div>
                             {% endif %}
@@ -86,49 +87,51 @@
                             <div class="card-header bg-success text-white">
                                 <h5 class="mb-0">{{ info.matriz.nombre }}</h5>
                             </div>
-                            <div class="card-body d-flex flex-column"> 
+                            <div class="card-body d-flex flex-column">
                                 <p><strong>Dispositivo:</strong> {{ info.dispositivo.nombre }}</p>
-                                <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
-                                <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
-                                <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
-                                <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
-
-                                <!-- Nuevo bloque: testers asignados -->
-                                {% if info.matriz.testers.all %}
-                                    <p><strong>Testers asignados:</strong></p>
-                                    <ul class="list-unstyled">
-                                        {% for tester in info.matriz.testers.all %}
-                                            <li>• {{ tester.get_full_name|default:tester.username }}</li>
-                                        {% empty %}
-                                            <li><em>No hay testers asignados.</em></li>
-                                        {% endfor %}
-                                    </ul>
-                                {% endif %}
-
+                                <p>Tipo de alcance: {{ info.alcance }}</p>
+                                <p>Casos Totales: {{ info.total_casos }}</p>
+                                <p>Casos Completos: {{ info.casos_filtrados }}</p>
+                                <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>
                                 <div class="progress mb-3 d-flex align-items-center">
-                                    <div
-                                        class="progress-bar bg-success d-flex justify-content-center"
-                                        role="progressbar"
-                                        style="width: {{ info.porcentaje|floatformat:0 }}%;"
-                                        aria-valuenow="{{ info.porcentaje }}"
-                                        aria-valuemin="0"
-                                        aria-valuemax="100"
-                                    >
-                                        {{ info.porcentaje|floatformat:0 }}%
+                                    <div class="progress-bar bg-success d-flex justify-content-center"
+                                         role="progressbar"
+                                         style="width: {{ info.porcentaje|floatformat:0 }}%;"
+                                         aria-valuenow="{{ info.porcentaje }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                         {{ info.porcentaje|floatformat:0 }}%
                                     </div>
                                 </div>
 
-                                {% if info.testers_por_region %}
-                                    <p><strong>Testers por región:</strong></p>
+                                <!-- Testers por región -->
+                                {% if info.matriz.casos.all %}
+                                    <p><strong>Testers asignados por región:</strong></p>
                                     <div style="max-height: 10em; overflow-y: auto;">
-                                        {% for region, testers in info.testers_por_region.items %}
-                                            <p class="mb-1"><strong>{{ region }}</strong></p>
-                                            <ul class="list-unstyled ms-3 mb-2">
-                                                {% for tester in testers %}
-                                                    <li>• {{ tester }}</li>
+                                        {% comment %}
+                                        Si hay testers asignados en los casos, mostramos info antigua (caso por caso)
+                                        {% endcomment %}
+                                        {% with casos_con_tester=info.matriz.casos.all|dictsort:"tester_asignado" %}
+                                            {% if casos_con_tester.0.tester_asignado %}
+                                                {% for caso in info.matriz.casos.all %}
+                                                    {% if caso.tester_asignado %}
+                                                        <p class="mb-1">• {{ caso.tester_asignado.nombre }} - {{ caso.pais }}</p>
+                                                    {% endif %}
                                                 {% endfor %}
-                                            </ul>
-                                        {% endfor %}
+                                            {% else %}
+                                                {% comment %}
+                                                Si no hay testers asignados, usamos la función nueva para mostrar testers únicos
+                                                {% endcomment %}
+                                                {% for region, testers in testers_por_region_unicos.items %}
+                                                    <p class="mb-1"><strong>{{ region }}</strong></p>
+                                                    <ul class="list-unstyled ms-3 mb-2">
+                                                        {% for tester in testers %}
+                                                            <li>• {{ tester }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endwith %}
                                     </div>
                                 {% endif %}
 
@@ -136,7 +139,7 @@
                                     <a href="{% url 'matrix_app:detalle_matriz' info.matriz.id %}" class="btn btn-success w-100 mb-2">
                                         Ver Matriz
                                     </a>
-                                    
+
                                     {% if es_lider %}
                                     <form method="POST" action="{% url 'matrix_app:eliminar_matriz' info.matriz.id %}" onsubmit="return confirm('¿Seguro que deseas eliminar esta matriz?');">
                                         {% csrf_token %}
@@ -145,7 +148,7 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                        
+
                                 </div>
                             </div>
                         </div>

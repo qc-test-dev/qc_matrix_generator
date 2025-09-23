@@ -199,7 +199,6 @@ def fetch_jira_issues(filter_link):
 
     return issues, None
 
-    return issues, None
 def matriz_info(matrices):
     matrices_info = []
     for matriz in matrices:
@@ -218,6 +217,7 @@ def matriz_info(matrices):
         else:
             alcance = 'No definido'
 
+        # Construir dict de testers por región basado en tu campo antiguo "tester"
         testers_por_region = defaultdict(set)
         for caso in casos:
             if caso.tester:
@@ -225,8 +225,11 @@ def matriz_info(matrices):
                 if len(partes) == 2:
                     nombre, region = partes
                     testers_por_region[region.strip()].add(nombre.strip())
-
+        
         testers_por_region = {region: sorted(list(nombres)) for region, nombres in testers_por_region.items()}
+
+        # Indicador si hay testers asignados en los casos (tester_asignado)
+        tiene_testers_asignados = casos.filter(tester_asignado__isnull=False).exists()
 
         matrices_info.append({
             'matriz': matriz,
@@ -235,11 +238,11 @@ def matriz_info(matrices):
             'porcentaje': round(porcentaje, 2),
             'testers_por_region': testers_por_region,
             'alcance': alcance,
-            'dispositivo': matriz.dispositivo,  
+            'dispositivo': matriz.dispositivo,
+            'tiene_testers_asignados': tiene_testers_asignados
         })
 
     return matrices_info
-
 def matriz_fails(matriz):
     matrices_fails = []
     
@@ -261,6 +264,20 @@ def matrices_fails(matrices):
             matriz_fails(matriz)
         )
     return matrices_fails
+def obtener_testers_por_region_unicos(matrices):
+    testers_por_region = defaultdict(set)  # sets para evitar duplicados automáticamente
     
+    for matriz in matrices:
+        for caso in matriz.casos.all():
+            if caso.tester_asignado and caso.pais:
+                region = caso.pais
+                tester = caso.tester_asignado.nombre
+                testers_por_region[region].add(tester)  # set evita repetidos
+
+    # Convertir sets a listas ordenadas para el template
+    testers_por_region = {region: sorted(list(testers)) for region, testers in testers_por_region.items()}
+    
+    return testers_por_region
+       
     
     

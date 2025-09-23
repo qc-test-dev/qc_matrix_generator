@@ -4,8 +4,6 @@ from django.contrib.auth import get_user_model
 from ..accounts.models import Equipo
 from django.utils import timezone
 User = get_user_model()
-
-
 class MatrizForm(forms.ModelForm):
     ALCANCE_CHOICES = [
         ('A', 'MVP (A)'),
@@ -98,13 +96,31 @@ class CasoDePruebaForm(forms.ModelForm):
     )
 
     nota = forms.CharField(
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'style': 'resize: none;',"maxlength":"80"}),
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'style': 'resize: none;',
+            'maxlength': '80'
+        }),
         required=False
+    )
+
+    tester_asignado = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,
+        label="Tester asignado",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    pais = forms.CharField(
+        required=False,
+        label="País",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. México'})
     )
 
     class Meta:
         model = CasoDePrueba
-        fields = ['estado', 'nota']
+        fields = ['estado', 'nota', 'tester_asignado', 'pais']
 
 
 class SuperMatrizForm(forms.ModelForm):

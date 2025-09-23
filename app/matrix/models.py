@@ -70,6 +70,14 @@ class CasoDePrueba(models.Model):
     criticidad = models.CharField(max_length=15, choices=CRITICIDAD_CHOICES)
     nota = models.TextField(blank=True, null=True,max_length=80)
     tester = models.TextField(blank=True, null=True)
+    tester_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='casos_asignados'
+    )
+    pais = models.CharField(max_length=50, blank=True, null=True)
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):
