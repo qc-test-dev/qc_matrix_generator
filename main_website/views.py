@@ -6,10 +6,15 @@ from app.matrix.forms import SuperMatrizForm
 from django.core.paginator import Paginator
 from app.accounts.forms import UserCreateForm
 from app.accounts.models import Equipo
+from django.db.models import Case, When, Value, IntegerField
 @login_required
 def home(request):
     equipo = request.GET.get('equipo')
     equipo_nuevo = request.GET.get('equipo_nuevo')
+
+    # Si el usuario NO es líder ni superusuario y no hay filtro, aplicar su equipo por defecto
+    if not (request.user.is_superuser or request.user.cargo == "Lider") and not equipo_nuevo:
+        equipo_nuevo = request.user.equipo_nuevo.id
 
     if equipo_nuevo:
         super_matrices_list = SuperMatriz.objects.filter(equipo_nuevo=equipo_nuevo).order_by('-fecha_creacion')
@@ -34,8 +39,7 @@ def home(request):
                 super_matriz = matriz_form.save()
                 return redirect('matrix_app:detalles_validate_modal', super_matriz_id=super_matriz.id)
 
-    # Obtener equipos dinámicamente desde la FK 'equipo_nuevo'
-    equipos = Equipo.objects.all()  # o el modelo FK que corresponda
+    equipos = Equipo.objects.all()  # obtener equipos dinámicamente
 
     return render(request, "home.html", {
         'matriz_form': matriz_form,
