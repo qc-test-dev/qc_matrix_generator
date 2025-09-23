@@ -12,21 +12,17 @@
     
     {% if es_lider %}
         <a href="{% url 'matrix_app:reporte_pdf_supermatriz' super_matriz.id %}" class="btn btn-success mb-3">
-        Descargar Reporte en PDF
-    </a>
+            Descargar Reporte en PDF
+        </a>
     {% endif %}
         
     <h1 class="mb-3">{{ super_matriz.nombre }}</h1>
     <p class="text-muted">{{ super_matriz.descripcion }}</p>
 
     <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn btn-success mb-3">Validates</a>
-    <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">seguimiento de tickets</a>
+    <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">Seguimiento de tickets</a>
 
-    
-
-    
     <div class="row mt-5">
-        
         {% if es_lider %}
         <div class="col-md-4">
             <h3>Agregar nueva matriz</h3>
@@ -48,9 +44,10 @@
                     <label for="id_testers" class="form-label">Seleccionar Testers</label>
                     {{ form.testers }}
                 </div>
+
                 <div class="mb-3">
                     {{ form.dispositivo.label_tag }}
-                    {{ form.dispositivo}}
+                    {{ form.dispositivo }}
                 </div>
 
                 <div class="mb-3">
@@ -72,13 +69,11 @@
                         {% endfor %}
                     </div>
                 </div>
-                
 
                 <button type="submit" class="btn btn-dark w-100">Agregar Matriz</button>
             </form>
         </div>
         {% endif %}
-            
 
         <!-- Grid de matrices -->
         <div class="{% if es_lider %}col-md-8{% else %}col-md-12{% endif %}">
@@ -93,24 +88,35 @@
                             </div>
                             <div class="card-body d-flex flex-column"> 
                                 <p><strong>Dispositivo:</strong> {{ info.dispositivo.nombre }}</p>
-                                <p>Tipo de alcance: {{info.alcance}}</p>
-                                <p>Casos Totales: {{ info.total_casos }}</p>
-                                <p>Casos Completos: {{ info.casos_filtrados }}</p>
-                                <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>
+                                <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
+                                <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
+                                <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
+                                <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
+
+                                <!-- Nuevo bloque: testers asignados -->
+                                {% if info.matriz.testers.all %}
+                                    <p><strong>Testers asignados:</strong></p>
+                                    <ul class="list-unstyled">
+                                        {% for tester in info.matriz.testers.all %}
+                                            <li>• {{ tester.get_full_name|default:tester.username }}</li>
+                                        {% empty %}
+                                            <li><em>No hay testers asignados.</em></li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
                                 <div class="progress mb-3 d-flex align-items-center">
-                                <div
-                                    class="progress-bar bg-success d-flex justify-content-center"
-                                    role="progressbar"
-                                    style="width: {{ info.porcentaje|floatformat:0 }}%;"
-                                    aria-valuenow="{{ info.porcentaje }}"
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                >
-                                    {{ info.porcentaje|floatformat:0 }}%
+                                    <div
+                                        class="progress-bar bg-success d-flex justify-content-center"
+                                        role="progressbar"
+                                        style="width: {{ info.porcentaje|floatformat:0 }}%;"
+                                        aria-valuenow="{{ info.porcentaje }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100"
+                                    >
+                                        {{ info.porcentaje|floatformat:0 }}%
+                                    </div>
                                 </div>
-                                </div>
-
-
 
                                 {% if info.testers_por_region %}
                                     <p><strong>Testers por región:</strong></p>
@@ -125,6 +131,7 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
+
                                 <div class="mt-auto">
                                     <a href="{% url 'matrix_app:detalle_matriz' info.matriz.id %}" class="btn btn-success w-100 mb-2">
                                         Ver Matriz

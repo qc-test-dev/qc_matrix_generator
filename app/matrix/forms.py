@@ -5,6 +5,7 @@ from ..accounts.models import Equipo
 from django.utils import timezone
 User = get_user_model()
 
+
 class MatrizForm(forms.ModelForm):
     ALCANCE_CHOICES = [
         ('A', 'MVP (A)'),
@@ -37,7 +38,7 @@ class MatrizForm(forms.ModelForm):
     )
 
     testers = forms.ModelMultipleChoiceField(
-        queryset=User.objects.none(),
+        queryset=User.objects.none(),  
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label="Testers"
@@ -51,19 +52,19 @@ class MatrizForm(forms.ModelForm):
     )
 
     dispositivo = forms.ModelChoiceField(
-        queryset=Dispositivo.objects.none(),
+        queryset=Dispositivo.objects.none(), 
         required=True,
         label="Dispositivo",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     nombre = forms.CharField(
-    max_length=70,
-    widget=forms.TextInput(attrs={
-        'class': 'form-control',
-        'maxlength': '75'
-    })
-)
+        max_length=70,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'maxlength': '75'
+        })
+    )
 
     class Meta:
         model = Matriz
@@ -72,11 +73,15 @@ class MatrizForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         equipo_nuevo = kwargs.pop('equipo_nuevo', None)
         super().__init__(*args, **kwargs)
+
         if equipo_nuevo:
-            self.fields['testers'].queryset = User.objects.filter(equipo_nuevo=equipo_nuevo)
-            self.fields['dispositivo'].queryset = Dispositivo.objects.filter(equipo=equipo_nuevo)
-
-
+            self.fields['testers'].queryset = User.objects.filter(
+                equipo_nuevo=equipo_nuevo,
+                cargo__in=['Lider', 'Tester']
+            )
+            self.fields['dispositivo'].queryset = Dispositivo.objects.filter(
+                equipo=equipo_nuevo
+            )
 class CasoDePruebaForm(forms.ModelForm):
     ESTADO_CHOICES = [
         ('funciona', 'Funciona'),

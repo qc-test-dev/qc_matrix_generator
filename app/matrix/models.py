@@ -34,7 +34,11 @@ class SuperMatriz(models.Model):
                     'fecha_fin': "La fecha fin no puede ser anterior a la fecha de creación."
                 })
 class Matriz(models.Model):
-    super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='matrices')
+    super_matriz = models.ForeignKey(
+        'SuperMatriz',
+        on_delete=models.CASCADE,
+        related_name='matrices'
+    )
     nombre = models.CharField(max_length=70)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     alcances_utilizados = models.CharField(max_length=100, blank=True, null=True)
@@ -45,6 +49,12 @@ class Matriz(models.Model):
         blank=True,
         related_name='matrices'
     )
+    testers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='matrices_asignadas',
+        blank=True
+    )
+
     def __str__(self):
         return self.nombre
 class CasoDePrueba(models.Model):

@@ -66,11 +66,17 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz = form.save(commit=False)
                 nueva_matriz.super_matriz = super_matriz
 
+                # Guardar alcances seleccionados
                 alcance_seleccionado = request.POST.get('alcance', '')
                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
+                # 🔑 Guardar testers seleccionados en el ManyToMany
+                testers_seleccionados = form.cleaned_data.get('testers', [])
+                nueva_matriz.testers.set(testers_seleccionados)
+
+                # Validación de dispositivo y carga de Excel
                 dispositivo = form.cleaned_data.get('dispositivo')
                 if not dispositivo or not dispositivo.matriz_base:
                     messages.error(request, f"El dispositivo no tiene archivo base asociado.")
@@ -83,16 +89,18 @@ def detalle_super_matriz(request, super_matriz_id):
 
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
-                testers_seleccionados = list(form.cleaned_data.get('testers', []))
-                regiones_seleccionados = form.cleaned_data.get('regiones', [])
+                # Distribución de casos entre testers y regiones
+                testers_seleccionados = list(testers_seleccionados)
+                regiones_seleccionadas = form.cleaned_data.get('regiones', [])
                 casos = list(nueva_matriz.casos.all())
-                random.shuffle(regiones_seleccionados)
+
                 random.shuffle(testers_seleccionados)
+                random.shuffle(regiones_seleccionadas)
                 random.shuffle(casos)
 
                 for idx, caso in enumerate(casos):
                     tester = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else ''
-                    region = regiones_seleccionados[idx % len(regiones_seleccionados)] if regiones_seleccionados else ''
+                    region = regiones_seleccionadas[idx % len(regiones_seleccionadas)] if regiones_seleccionadas else ''
                     caso.tester = f"{tester.nombre}-{region}" if tester and region else ''
                     caso.save()
 
