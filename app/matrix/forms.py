@@ -144,6 +144,9 @@ class ValidateForm(forms.ModelForm):
         exclude = ['super_matriz']
 
 
+from django import forms
+from .models import TicketPorLevantar
+
 class TicketPorLevantarForm(forms.ModelForm):
     PRIORIDAD_CHOICES = [
         ('Bloqueante', 'Bloqueante'),
@@ -152,8 +155,8 @@ class TicketPorLevantarForm(forms.ModelForm):
     REGIONES = [
         ('Mexico', 'Mexico'),
         ('Dominicana','Dominicana'),
-        ('Colombia', 'Colombia'),
-        ('Ecuador', 'Ecuador'),
+        ('Colombia','Colombia'),
+        ('Ecuador','Ecuador'),
         ('Peru', 'Peru'), 
         ('Chile','Chile'),
         ('Argentina','Argentina'),
@@ -165,15 +168,11 @@ class TicketPorLevantarForm(forms.ModelForm):
         ('Costa Rica','Costa Rica'),
         ('Honduras','Honduras'),   
     ]
-
-    tester = forms.ModelChoiceField(
-        queryset=User.objects.none(),
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Tester"
-    )
     Region = forms.ChoiceField(choices=REGIONES, widget=forms.Select(attrs={'class': 'form-select'}))
     prioridad = forms.ChoiceField(choices=PRIORIDAD_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
-
+    class Meta:
+        model = TicketPorLevantar
+        exclude = ['super_matriz', 'tester', 'tester_asignado']
     class Meta:
         model = TicketPorLevantar
         fields = ['tester', 'ticket_SCT', 'BRF', 'Region', 'prioridad', 'desc', 'nota', 'url']

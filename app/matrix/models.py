@@ -2,6 +2,7 @@
 from django.db import models
 from ..accounts.models import Equipo
 from django.core.exceptions import ValidationError
+from django.conf import settings
 class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
@@ -74,7 +75,14 @@ class Validate(models.Model):
         return f"{self.tester} — <a href='{ticket_url}' target='_blank'>{ticket_url}</a>"
 class TicketPorLevantar(models.Model):
     super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='tickets_por_levantar')
-    tester = models.CharField(max_length=100)
+    tester = models.CharField(max_length=100, blank=True, null=True)
+    tester_asignado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,  
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tickets_asignados'
+    )
     ticket_SCT = models.CharField(max_length=10, blank=True, null=True)
     BRF = models.CharField(max_length=30, blank=True, null=True)
     Region = models.CharField(max_length=100)
@@ -82,8 +90,9 @@ class TicketPorLevantar(models.Model):
     prioridad = models.CharField(max_length=50)
     nota = models.TextField(max_length=70)
     url = models.URLField(null=True, blank=True)
+
     def __str__(self):
-        return f"{self.tester} - {self.ticket_SCT}"
+        return f"{self.tester_asignado or self.tester} - {self.ticket_SCT}"
 class DetallesValidate(models.Model):
     super_matriz = models.OneToOneField(SuperMatriz, on_delete=models.CASCADE, related_name='detalles_validate')   
     filtro_RN = models.CharField(max_length=100, blank=True, null=True)

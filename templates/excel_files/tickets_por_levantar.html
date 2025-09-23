@@ -16,28 +16,18 @@ Tickets por Levantar - {{ super_matriz.nombre }}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="fw-semibold mb-0">{{ super_matriz.nombre }}</h2>
-        <span class="badge bg-primary rounded-pill">{{ tickets|length }} tickets</span>
+        <span class="badge bg-success rounded-pill">{{ tickets|length }} tickets</span>
     </div>
     <div class="view-tickets row g-3">
         <!-- Formulario para nuevo ticket (lado izquierdo) -->
         <div class="col-md-4">
             <div class="form-card">
-                <div class="form-header">
+                <div class="form-header bg-success">
                     <i>➕</i> Nuevo Ticket
                 </div>
                 <form class="form-container" method="POST" action="">
                     {% csrf_token %}
                     {{ form.non_field_errors }}
-
-                    <div class="form-group">
-                        <label for="id_tester" class="form-label">Tester</label>
-                        <select name="tester" id="id_tester" class="form-select">
-                            {% for tester in form.fields.tester.queryset %}
-                                <option value="{{ tester.id }}">{{ tester.nombre }} {{ tester.apellido }}</option>
-                            {% endfor %}
-                        </select>
-                        {{ form.tester.errors }}
-                    </div>
 
                     <div class="form-group">
                         {{ form.ticket_SCT.label_tag }}
@@ -80,12 +70,7 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                         {{ form.url }}
                         {{ form.url.errors }}
                     </div>
-
-                    <div class="form-button">
-                        <button type="submit" class="btn btn-primary w-100">
-                            💾 Guardar Ticket
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-success mt-3">💾 Guardar Ticket</button>
                 </form>
             </div>
         </div>
@@ -93,7 +78,7 @@ Tickets por Levantar - {{ super_matriz.nombre }}
         <!-- Lista de tickets (lado derecho) -->
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center bg-success">
                     <h5 class="mb-0 fs-6">
                         <i class="bi bi-ticket-detailed me-2"></i>Tickets Registrados
                     </h5>
@@ -105,7 +90,13 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                                 <div class="list-group-item py-2 px-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <strong>{{ ticket.tester }}</strong>
+                                            <strong>
+                                                {% if ticket.tester_asignado %}
+                                                    {{ ticket.tester_asignado.nombre }} {{ ticket.tester_asignado.apellido }}
+                                                {% else %}
+                                                    Sin tester asignado
+                                                {% endif %}
+                                            </strong>
                                             <span class="badge 
                                                 {% if ticket.prioridad == 'Bloqueante' %} bg-danger 
                                                 {% else %} bg-warning text-dark {% endif %} ms-2">

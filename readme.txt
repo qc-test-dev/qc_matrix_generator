@@ -184,3 +184,6 @@ python manag_local.py makemigrations
 python manag_local.py migrate 
 para que se efectuen los cambios 
 
+
+##Se actualizo la db aplicar makemigrations y migrate para el modelo tickets por levantar 
+

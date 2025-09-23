@@ -335,20 +335,26 @@ def tickets_por_levantar_view(request, super_matriz_id):
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)
 
     if request.method == 'POST':
-        form = TicketPorLevantarForm(request.POST, super_matriz=super_matriz)
+        form = TicketPorLevantarForm(request.POST)
         if form.is_valid():
             nuevo_ticket = form.save(commit=False)
             nuevo_ticket.super_matriz = super_matriz
+            nuevo_ticket.tester_asignado = request.user
             nuevo_ticket.save()
             return redirect('matrix_app:tickets_por_levantar', super_matriz_id=super_matriz.id)
+        else:
+            
+            messages.error(request, f"Error al crear ticket: {form.errors}")
     else:
-        form = TicketPorLevantarForm(super_matriz=super_matriz)
+       
+        form = TicketPorLevantarForm()
 
     return render(request, 'excel_files/tickets_por_levantar.html', {
         'super_matriz': super_matriz,
         'tickets': tickets,
         'form': form,
     })
+
 @login_required
 def editar_ticket(request, ticket_id):
     ticket = get_object_or_404(TicketPorLevantar, id=ticket_id)
