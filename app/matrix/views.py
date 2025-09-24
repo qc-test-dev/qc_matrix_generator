@@ -46,8 +46,20 @@ from django.utils.timezone import localtime
 
 import locale, json
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import SuperMatriz, Matriz
+from .forms import MatrizForm, ValidateForm
+import os
+import random
+from django.conf import settings
+from .utils import importar_matriz_desde_excel, matriz_info
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
+    from collections import defaultdict
+
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     matrices = super_matriz.matrices.all()
     validates = super_matriz.validates.all()
@@ -55,12 +67,49 @@ def detalle_super_matriz(request, super_matriz_id):
 
     equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
+    # Función para obtener testers a mostrar
+    def obtener_testers(matriz):
+        testers_mostrar = []
+        for caso in matriz.casos.all():
+            if caso.tester:
+                testers_mostrar.append({
+                    'tester': caso.tester,
+                    'pais': caso.pais  # puede ser None
+                })
+        if testers_mostrar:
+            # Eliminamos duplicados manteniendo orden
+            seen = set()
+            unique_testers = []
+            for t in testers_mostrar:
+                key = (t['tester'], t['pais'])
+                if key not in seen:
+                    seen.add(key)
+                    unique_testers.append(t)
+            return unique_testers
+
+        # Si no hay testers en los casos, usamos tester_asignado
+        from collections import defaultdict
+        region_dict = defaultdict(set)
+        for caso in matriz.casos.all():
+            if caso.tester_asignado:
+                pais = caso.pais if caso.pais else None
+                region_dict[pais].add(caso.tester_asignado.nombre)
+
+        for pais, testers in region_dict.items():
+            for tester in sorted(testers):
+                testers_mostrar.append({'tester': tester, 'pais': pais})
+
+        return testers_mostrar
+
+    # Información vieja (progreso y demás)
     matrices_info = matriz_info(matrices)
+
+    # Añadir testers a mostrar a cada info
+    for info in matrices_info:
+        info['testers_mostrar'] = obtener_testers(info['matriz'])
+
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
-
-    # Inicializamos la variable siempre
-    testers_por_region_unicos = obtener_testers_por_region_unicos(matrices)
 
     if request.method == 'POST':
         if 'crear_matriz' in request.POST:
@@ -69,20 +118,19 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz = form.save(commit=False)
                 nueva_matriz.super_matriz = super_matriz
 
-                # Guardar alcances seleccionados
-                alcance_seleccionado = form.cleaned_data.get('alcance', '')
+                alcance_seleccionado = request.POST.get('alcance', '')
                 valores_a_incluir = set(alcance_seleccionado.split(',')) if alcance_seleccionado else set()
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                # Guardar testers seleccionados en el ManyToMany
+                # Agregar testers seleccionados al modelo Matriz
                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
-                nueva_matriz.testers.set(testers_seleccionados)
+                if testers_seleccionados:
+                    nueva_matriz.testers.set(testers_seleccionados)
 
-                # Validación de dispositivo y carga de Excel
                 dispositivo = form.cleaned_data.get('dispositivo')
                 if not dispositivo or not dispositivo.matriz_base:
-                    messages.error(request, "El dispositivo no tiene archivo base asociado.")
+                    messages.error(request, f"El dispositivo no tiene archivo base asociado.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
                 ruta_excel_matriz = os.path.join(settings.BASE_DIR, 'static', 'excel_files', dispositivo.matriz_base)
@@ -92,22 +140,21 @@ def detalle_super_matriz(request, super_matriz_id):
 
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
-                # Distribución de casos entre testers y regiones
+                # Asignación de testers y países a los casos
+                regiones_seleccionadas = form.cleaned_data.get('regiones', [])  # lista de países
                 casos = list(nueva_matriz.casos.all())
-                regiones_seleccionadas = list(form.cleaned_data.get('regiones', []))
-
-                random.shuffle(testers_seleccionados)
                 random.shuffle(regiones_seleccionadas)
+                random.shuffle(testers_seleccionados)
                 random.shuffle(casos)
 
                 for idx, caso in enumerate(casos):
-                    # Asignar tester de manera balanceada
-                    caso.tester_asignado = testers_seleccionados[idx % len(testers_seleccionados)] if testers_seleccionados else None
-                    # Asignar país de manera balanceada
-                    caso.pais = regiones_seleccionadas[idx % len(regiones_seleccionadas)] if regiones_seleccionadas else None
+                    if testers_seleccionados:
+                        caso.tester_asignado = testers_seleccionados[idx % len(testers_seleccionados)]
+                    if regiones_seleccionadas:
+                        caso.pais = regiones_seleccionadas[idx % len(regiones_seleccionadas)]
                     caso.save()
 
-                messages.success(request, "Matriz creada correctamente con testers y regiones asignadas.")
+                messages.success(request, "Matriz creada correctamente.")
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
         elif 'crear_validate' in request.POST:
@@ -127,8 +174,8 @@ def detalle_super_matriz(request, super_matriz_id):
         'validates': validates,
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
-        'testers_por_region_unicos': testers_por_region_unicos
     })
+
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)

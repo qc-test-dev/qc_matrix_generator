@@ -265,19 +265,28 @@ def matrices_fails(matrices):
         )
     return matrices_fails
 def obtener_testers_por_region_unicos(matrices):
-    testers_por_region = defaultdict(set)  # sets para evitar duplicados automáticamente
-    
+    testers_por_matriz = {}
+
     for matriz in matrices:
+        testers_por_region = {}
+
         for caso in matriz.casos.all():
             if caso.tester_asignado and caso.pais:
-                region = caso.pais
-                tester = caso.tester_asignado.nombre
-                testers_por_region[region].add(tester)  # set evita repetidos
+                region = caso.pais.strip()
+                tester = caso.tester_asignado.nombre.strip()
 
-    # Convertir sets a listas ordenadas para el template
-    testers_por_region = {region: sorted(list(testers)) for region, testers in testers_por_region.items()}
-    
-    return testers_por_region
-       
+                if region not in testers_por_region:
+                    testers_por_region[region] = set()
+
+                testers_por_region[region].add(tester)
+
+        # Convertimos los sets en listas ordenadas para no repetir
+        testers_por_matriz[matriz.id] = {
+            region: sorted(list(testers))
+            for region, testers in testers_por_region.items()
+        }
+
+    return testers_por_matriz
+
     
     
