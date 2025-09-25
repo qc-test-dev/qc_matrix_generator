@@ -24,7 +24,6 @@
             justify-content: space-between;
             align-items: stretch; 
         }
-
         .col {
             width: 47%;
             margin-bottom: 15px;
@@ -37,13 +36,13 @@
             flex-direction: column;
         }
         .card-header {
-        background-color: #28a745;
-        color: white;
-        padding: 8px;
-        font-size: 13px;
-        font-weight: bold;
-        word-wrap: break-word;
-        white-space: normal;
+            background-color: #28a745;
+            color: white;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            word-wrap: break-word;
+            white-space: normal;
         }
         .card-body {
             padding: 8px;
@@ -85,15 +84,17 @@
                         <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
                         <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
                         <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
-                        {% if info.testers_por_region %}
+
+                        {% if info.paises %}
                             <p><strong>Países:</strong></p>
                             <ul>
-                                {% for region, testers in info.testers_por_region.items %}
-                                    <li class="region">{{ region }}</li>
+                                {% for pais in info.paises %}
+                                    <li class="region">{{ pais }}</li>
                                 {% endfor %}
                             </ul>
                         {% endif %}
-                        <p><strong>Numero de fallas blocker:</strong> {{info.num_fallos}}</p>
+
+                        <p><strong>Número de fallas blocker:</strong> {{ info.num_fallos }}</p>
                     </div>
                 </div>
             </div>

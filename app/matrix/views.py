@@ -1,60 +1,47 @@
 import os
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 import random
+import json
+import locale
+from collections import defaultdict
+from datetime import datetime
+
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import get_template, render_to_string
+from django.urls import reverse
+from django.utils.timezone import localtime
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from weasyprint import HTML
+from xhtml2pdf import pisa
+
 from main_website import settings
+from app.accounts.models import User
+from app.matrix.models import SuperMatriz, Dispositivo
+
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
+    TicketPorLevantarForm, ValidateForm, SuperMatrizFechaFinForm
 )
-from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
-from django.urls import reverse
-from django.views.decorators.http import require_POST
-from django.contrib.auth import get_user_model
-from app.accounts.models import User
-from collections import defaultdict
-Usuario = get_user_model()
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from collections import defaultdict
-import random
-import os
-from django.contrib import messages
-from django.conf import settings
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from django.http import JsonResponse
-from .models import CasoDePrueba
+from .models import SuperMatriz, Matriz, Validate, TicketPorLevantar, DetallesValidate, Dispositivo, Equipo, CasoDePrueba
+from .utils import (
+    importar_matriz_desde_excel, importar_validates,
+    matriz_info, matriz_fails, matrices_fails,
+    obtener_testers_por_region_unicos, obtener_testers
+)
 
-from .models import SuperMatriz, Validate
-from .forms import MatrizForm, ValidateForm
-from .utils import importar_matriz_desde_excel
-from django.views.decorators.csrf import csrf_exempt
-from app.matrix.models import SuperMatriz, Dispositivo
-from collections import defaultdict
-from django.http import HttpResponse
-from django.template.loader import get_template
-from xhtml2pdf import pisa
-from weasyprint import HTML
-from django.template.loader import render_to_string
-from datetime import datetime
-from django.utils.timezone import localtime
-
-import locale, json
+# Configurar locale
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import SuperMatriz, Matriz
-from .forms import MatrizForm, ValidateForm
-import os
-import random
-from django.conf import settings
-from .utils import importar_matriz_desde_excel, matriz_info
+
+Usuario = get_user_model()
 
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
@@ -67,39 +54,6 @@ def detalle_super_matriz(request, super_matriz_id):
 
     equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
-    # Función para obtener testers a mostrar
-    def obtener_testers(matriz):
-        testers_mostrar = []
-        for caso in matriz.casos.all():
-            if caso.tester:
-                testers_mostrar.append({
-                    'tester': caso.tester,
-                    'pais': caso.pais  # puede ser None
-                })
-        if testers_mostrar:
-            # Eliminamos duplicados manteniendo orden
-            seen = set()
-            unique_testers = []
-            for t in testers_mostrar:
-                key = (t['tester'], t['pais'])
-                if key not in seen:
-                    seen.add(key)
-                    unique_testers.append(t)
-            return unique_testers
-
-        # Si no hay testers en los casos, usamos tester_asignado
-        from collections import defaultdict
-        region_dict = defaultdict(set)
-        for caso in matriz.casos.all():
-            if caso.tester_asignado:
-                pais = caso.pais if caso.pais else None
-                region_dict[pais].add(caso.tester_asignado.nombre)
-
-        for pais, testers in region_dict.items():
-            for tester in sorted(testers):
-                testers_mostrar.append({'tester': tester, 'pais': pais})
-
-        return testers_mostrar
 
     # Información vieja (progreso y demás)
     matrices_info = matriz_info(matrices)
@@ -469,60 +423,60 @@ def generar_pdf_supermatriz(request, supermatriz_id):
         total_global_casos += total_casos
         total_global_completados += casos_filtrados
 
-        # Determinar el tipo de alcance
+        # Determinar alcance
         alcance = {
             'A': "MVP (Minimum Viable Product:A)",
             'A,B': 'Smoke Test (A,B)',
             'A,B,C': 'No Afectación (NA:A,B,C)'
         }.get(matriz.alcances_utilizados, 'No definido')
+        
         num_fallos = matriz_fails(matriz)[0]['indice']
-        # Testers por región
-        testers_por_region = defaultdict(set)
-        for caso in casos:
-            if caso.tester:
-                partes = caso.tester.split('-')
-                if len(partes) == 2:
-                    nombre, region = partes
-                    testers_por_region[region.strip()].add(nombre.strip())
-                    paises.add(region.strip())
 
-        testers_por_region = {
-            region: sorted(nombres)
-            for region, nombres in testers_por_region.items()
-        }
+        paises_en_matriz = set()
+
+        for caso in casos:
+            if caso.tester and str(caso.tester).strip():
+                # Si tester existe, obtener país de tester
+                partes = str(caso.tester).split('-')
+                if len(partes) == 2:
+                    _, region = partes
+                    paises_en_matriz.add(region.strip())
+                    paises.add(region.strip())
+            else:
+                # Si tester está vacío, usar pais del caso
+                if caso.pais:
+                    pais = str(caso.pais).strip()
+                    paises_en_matriz.add(pais)
+                    paises.add(pais)
 
         matrices_info.append({
             'matriz': matriz,
             'total_casos': total_casos,
             'casos_filtrados': casos_filtrados,
             'porcentaje': round(porcentaje, 2),
-            'testers_por_region': testers_por_region,
+            'paises': sorted(paises_en_matriz),  # Solo países
             'alcance': alcance,
-            'num_fallos':num_fallos
+            'num_fallos': num_fallos
         })
 
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
     fecha_generacion = localtime().strftime('%d de %B de %Y')
 
-    # Renderizar HTML
     template = get_template('pdf/reporte_supermatriz.html')
     html_string = template.render({
         'super_matriz': super_matriz,
         'matrices_info': matrices_info,
-        'paises': sorted(paises),
+        'paises': sorted(paises),  # Países globales si los necesitas
         'porcentaje_total': porcentaje_total,
         'fecha_generacion': fecha_generacion,
     })
 
-    # Generar el PDF con WeasyPrint
     html = HTML(string=html_string)
     result = html.write_pdf()
 
-    # Devolver el PDF como respuesta
     response = HttpResponse(result, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
     return response
-User = get_user_model()
 
 @login_required
 def asignar_validates(request, super_matriz_id):

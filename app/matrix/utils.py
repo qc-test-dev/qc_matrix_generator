@@ -288,5 +288,36 @@ def obtener_testers_por_region_unicos(matrices):
 
     return testers_por_matriz
 
-    
-    
+# Función para obtener testers a mostrar
+def obtener_testers(matriz):
+    testers_mostrar = []
+    for caso in matriz.casos.all():
+        if caso.tester:
+            testers_mostrar.append({
+                'tester': caso.tester,
+                'pais': caso.pais  # puede ser None
+            })
+    if testers_mostrar:
+        # Eliminamos duplicados manteniendo orden
+        seen = set()
+        unique_testers = []
+        for t in testers_mostrar:
+            key = (t['tester'], t['pais'])
+            if key not in seen:
+                seen.add(key)
+                unique_testers.append(t)
+        return unique_testers
+
+    # Si no hay testers en los casos, usamos tester_asignado
+    from collections import defaultdict
+    region_dict = defaultdict(set)
+    for caso in matriz.casos.all():
+        if caso.tester_asignado:
+            pais = caso.pais if caso.pais else None
+            region_dict[pais].add(caso.tester_asignado.nombre)
+
+    for pais, testers in region_dict.items():
+        for tester in sorted(testers):
+            testers_mostrar.append({'tester': tester, 'pais': pais})
+
+    return testers_mostrar
