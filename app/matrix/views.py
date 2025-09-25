@@ -595,6 +595,12 @@ def asignar_validates(request, super_matriz_id):
     }
     return render(request, 'excel_files/asignar_validates.html', context)
 
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import Equipo, SuperMatriz
+from .utils import matriz_info  # Importar la función externa
+import json
+
 @login_required
 def dashboard(request):
     colores = ["#093FB4", "#dc3545", "#198754", "#E67514", "#6f42c1", "#4B352A", "#2F5249"]
@@ -617,6 +623,7 @@ def dashboard(request):
 
     # Agrupar supermatrices por equipo
     for sm in supermatrices:
+        # LLAMAR A LA FUNCIÓN EXTERNA
         info_matrices = matriz_info(sm.matrices.all())
 
         if sm.equipo_nuevo_id in equipos_dict:
@@ -634,8 +641,8 @@ def dashboard(request):
                         "casos_filtrados": m_info["casos_filtrados"] if m_info else 0,
                         "porcentaje": m_info["porcentaje"] if m_info else 0,
                         "testers_por_region": m_info["testers_por_region"] if m_info else {},
-                        "alcance": str(m_info["alcance"]) if m_info else "",
-                        "dispositivo": str(m_info["dispositivo"]) if m_info else ""
+                        "alcance": m_info["alcance"] if m_info else "",  # Ya viene formateado
+                        "dispositivo": m_info["dispositivo"] if m_info else ""  # Ya viene del modelo
                     }
                 })
 
@@ -654,7 +661,6 @@ def dashboard(request):
     matrices_data = []
     for eq in equipos_data:
         for sm in eq["supermatrices"]:
-            # Solo datos serializables a JSON
             matrices_data.append({
                 "equipo": eq["nombre"],
                 "supermatriz": sm["nombre"],
@@ -671,11 +677,11 @@ def dashboard(request):
             })
 
     context = {
-        "matrices_json": json.dumps(matrices_data),
-        "equipos_json": json.dumps(equipos_data),
+        "matrices_json": json.dumps(matrices_data, default=str),
+        "equipos_json": json.dumps(equipos_data, default=str),
     }
-
-    return render(request, "excel_files/dashboard.html", context)
+    
+    return render(request, 'excel_files/dashboard.html', context)
 @login_required
 def editar_fecha_fin(request, pk):
     supermatriz = get_object_or_404(SuperMatriz, pk=pk)

@@ -158,7 +158,7 @@ Dashboard - Avances de Equipos
         background-color: #d1ecf1;
     }
 
-    /* === Estilos cards === */
+    /* === Estilos cards mejorados === */
     .espacio-trabajo-card {
         border-radius: 8px;
         overflow: hidden;
@@ -185,6 +185,28 @@ Dashboard - Avances de Equipos
     .stat-value {
         font-weight: bold;
         font-size: 1.2rem;
+    }
+    
+    .progress-container {
+        margin-top: 10px;
+    }
+    
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+        color: #6c757d;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        border-radius: 4px;
     }
 
     #equiposContainer button {
@@ -394,6 +416,27 @@ Dashboard - Avances de Equipos
     let equipoActivoBtn = document.getElementById('btnTodos');
     let mesSeleccionado = 'actual';
 
+    // === Función para calcular el progreso general de un espacio de trabajo ===
+    function calcularProgresoGeneral(espacio) {
+        if (!espacio.matrices || espacio.matrices.length === 0) {
+            return 0;
+        }
+        
+        const sumaPorcentajes = espacio.matrices.reduce((total, matriz) => {
+            const porcentaje = matriz.info?.porcentaje || 0;
+            return total + porcentaje;
+        }, 0);
+        
+        return Math.round(sumaPorcentajes / espacio.matrices.length);
+    }
+
+    // === Función para obtener el color de la barra de progreso ===
+    function obtenerColorProgreso(porcentaje) {
+        if (porcentaje >= 80) return '#28a745'; // Verde
+        if (porcentaje >= 50) return '#ffc107'; // Amarillo
+        return '#dc3545'; // Rojo
+    }
+
     // === Función para cambiar entre mes actual y pasado ===
     function cambiarMes(tipoMes) {
         mesSeleccionado = tipoMes;
@@ -570,6 +613,9 @@ Dashboard - Avances de Equipos
         const colorEquipo = equipos.find(e => e.nombre === equipoNombre).color;
         matricesFiltradas.forEach(espacio => {
             const numMatrices = espacio.matrices ? espacio.matrices.length : 0;
+            const progresoGeneral = calcularProgresoGeneral(espacio);
+            const colorProgreso = obtenerColorProgreso(progresoGeneral);
+            
             container.innerHTML += `
                 <div class="col">
                     <div class="espacio-trabajo-card" onclick="mostrarDetallesMatrices('${espacio.supermatriz}')" style="border-color: ${colorEquipo}">
@@ -578,8 +624,25 @@ Dashboard - Avances de Equipos
                             <small>${espacio.fecha_creacion} - ${espacio.fecha_fin || 'Presente'}</small>
                         </div>
                         <div class="espacio-trabajo-body">
-                            <div class="stat-value">${numMatrices}</div>
-                            <div class="stat-label">Matrices</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="stat-value">${numMatrices}</div>
+                                    <div class="stat-label">Matrices</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="stat-value" style="color: ${colorProgreso}">${progresoGeneral}%</div>
+                                    <div class="stat-label">Progreso</div>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-label">
+                                    <span>Progreso General</span>
+                                    <span>${progresoGeneral}%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" style="width: ${progresoGeneral}%; background-color: ${colorProgreso}"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
