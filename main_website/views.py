@@ -7,21 +7,25 @@ from django.core.paginator import Paginator
 from app.accounts.forms import UserCreateForm
 from app.accounts.models import Equipo
 from django.db.models import Case, When, Value, IntegerField
+
 @login_required
 def home(request):
     equipo = request.GET.get('equipo')
     equipo_nuevo = request.GET.get('equipo_nuevo')
+    ver_todos = request.GET.get('ver_todos')
 
-    # Si el usuario NO es líder ni superusuario y no hay filtro, aplicar su equipo por defecto
-    if not (request.user.is_superuser or request.user.cargo == "Lider") and not equipo_nuevo:
+    # Si el usuario NO es líder ni superusuario y no hay filtro ni ver_todos, aplicar su equipo por defecto
+    if not ver_todos and not (request.user.is_superuser or request.user.cargo == "Lider") and not equipo_nuevo:
         equipo_nuevo = request.user.equipo_nuevo.id
 
+    # Filtrado de matrices
     if equipo_nuevo:
         super_matrices_list = SuperMatriz.objects.filter(equipo_nuevo=equipo_nuevo).order_by('-fecha_creacion')
     elif equipo:
         super_matrices_list = SuperMatriz.objects.filter(equipo=equipo).order_by('-fecha_creacion')
     else:
         super_matrices_list = SuperMatriz.objects.all().order_by('-fecha_creacion')
+
 
     paginator = Paginator(super_matrices_list, 5)
     page_number = request.GET.get('page')

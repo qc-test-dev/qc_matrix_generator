@@ -35,14 +35,19 @@
                         <i class="fas fa-list-check me-2"></i>Revisiones en curso
                     </h4>
                 </div>
-
                 <!-- Filtros -->
                 <div class="px-3 py-2 bg-white border-bottom">
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <strong class="me-2 mb-0">Filtrar por equipo:</strong>
-                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">Todos</a>
+                        <!-- Botón para ver todas las matrices -->
+                        <a href="{% url 'home' %}?ver_todos=1" 
+                        class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">
+                            Todos
+                        </a>
+                        <!-- Botones dinámicos de equipos -->
                         {% for eq in equipos %}
-                            <a href="?equipo_nuevo={{ eq.id }}" class="btn btn-outline-success btn-sm {% if equipo_filtrado|stringformat:"s" == eq.id|stringformat:"s" %}active{% endif %}">
+                            <a href="?equipo_nuevo={{ eq.id }}" 
+                            class="btn btn-outline-success btn-sm {% if equipo_filtrado|stringformat:"s" == eq.id|stringformat:"s" %}active{% endif %}">
                                 {{ eq.nombre }}
                             </a>
                         {% endfor %}
