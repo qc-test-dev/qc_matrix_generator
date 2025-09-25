@@ -14,26 +14,44 @@
     <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
 
     <h4 class="mt-4">Filtrar por tester:</h4>
-    <ul class="list-inline">
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-primary btn-sm">Todos</a>
-        </li>
-        <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if tester_filtrado %}&tester={{ tester_filtrado }}{% endif %}"
-            class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
-            Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
-            </a>
-        </li>
+<ul class="list-inline">
+    <li class="list-inline-item">
+        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-primary btn-sm">Todos</a>
+    </li>
+    <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
+    <li class="list-inline-item">
+        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if tester_filtrado %}&tester={{ tester_filtrado }}{% endif %}{% if tester_asignado_filtrado %}&tester_asignado={{ tester_asignado_filtrado }}{% endif %}{% if pais_filtrado %}&pais={{ pais_filtrado }}{% endif %}"
+        class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
+        Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
+        </a>
+    </li>
+    
+    <!-- Botones viejos (tester) -->
+    {% if mostrar_botones_viejos and testers_disponibles %}
         {% for tester in testers_disponibles %}
+            {% if tester %}
             <li class="list-inline-item">
-                <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}"
+                <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}{% if fallo_filtrado %}&fallo={{ fallo_filtrado }}{% endif %}"
                    class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
                     {{ tester }}
                 </a>
             </li>
+            {% endif %}
         {% endfor %}
-    </ul>
+    {% endif %}
+    
+    <!-- Botones nuevos (nombre completo - pais) -->
+    {% if mostrar_botones_nuevos and botones_nuevos %}
+        {% for boton in botones_nuevos %}
+            <li class="list-inline-item">
+                <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}{% if fallo_filtrado %}&fallo={{ fallo_filtrado }}{% endif %}"
+                   class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
+                    {{ boton.texto }}
+                </a>
+            </li>
+        {% endfor %}
+    {% endif %}
+</ul>
 
     <table class="table table-bordered table-striped">
         <thead>

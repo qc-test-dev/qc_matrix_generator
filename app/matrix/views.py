@@ -1,47 +1,60 @@
 import os
-import random
-import json
-import locale
-from collections import defaultdict
-from datetime import datetime
-
-from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.template.loader import get_template, render_to_string
-from django.urls import reverse
-from django.utils.timezone import localtime
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from weasyprint import HTML
-from xhtml2pdf import pisa
-
+from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+import random
 from main_website import settings
-from app.accounts.models import User
-from app.matrix.models import SuperMatriz, Dispositivo
-
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm, ValidateForm, SuperMatrizFechaFinForm
+    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
 )
-from .models import SuperMatriz, Matriz, Validate, TicketPorLevantar, DetallesValidate, Dispositivo, Equipo, CasoDePrueba
-from .utils import (
-    importar_matriz_desde_excel, importar_validates,
-    matriz_info, matriz_fails, matrices_fails,
-    obtener_testers_por_region_unicos, obtener_testers
-)
-
-# Configurar locale
-locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
-
+from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
+from django.urls import reverse
+from django.views.decorators.http import require_POST
+from django.contrib.auth import get_user_model
+from app.accounts.models import User
+from collections import defaultdict
 Usuario = get_user_model()
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from collections import defaultdict
+import random
+import os
+from django.contrib import messages
+from django.conf import settings
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.http import JsonResponse
+from .models import CasoDePrueba
+
+from .models import SuperMatriz, Validate
+from .forms import MatrizForm, ValidateForm
+from .utils import importar_matriz_desde_excel
+from django.views.decorators.csrf import csrf_exempt
+from app.matrix.models import SuperMatriz, Dispositivo
+from collections import defaultdict
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from weasyprint import HTML
+from django.template.loader import render_to_string
+from datetime import datetime
+from django.utils.timezone import localtime
+
+import locale, json
+locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import SuperMatriz, Matriz
+from .forms import MatrizForm, ValidateForm
+import os
+import random
+from django.conf import settings
+from .utils import importar_matriz_desde_excel, matriz_info
 
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
@@ -54,6 +67,39 @@ def detalle_super_matriz(request, super_matriz_id):
 
     equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
+    # Función para obtener testers a mostrar
+    def obtener_testers(matriz):
+        testers_mostrar = []
+        for caso in matriz.casos.all():
+            if caso.tester:
+                testers_mostrar.append({
+                    'tester': caso.tester,
+                    'pais': caso.pais  # puede ser None
+                })
+        if testers_mostrar:
+            # Eliminamos duplicados manteniendo orden
+            seen = set()
+            unique_testers = []
+            for t in testers_mostrar:
+                key = (t['tester'], t['pais'])
+                if key not in seen:
+                    seen.add(key)
+                    unique_testers.append(t)
+            return unique_testers
+
+        # Si no hay testers en los casos, usamos tester_asignado
+        from collections import defaultdict
+        region_dict = defaultdict(set)
+        for caso in matriz.casos.all():
+            if caso.tester_asignado:
+                pais = caso.pais if caso.pais else None
+                region_dict[pais].add(caso.tester_asignado.nombre)
+
+        for pais, testers in region_dict.items():
+            for tester in sorted(testers):
+                testers_mostrar.append({'tester': tester, 'pais': pais})
+
+        return testers_mostrar
 
     # Información vieja (progreso y demás)
     matrices_info = matriz_info(matrices)
@@ -137,14 +183,33 @@ def detalle_matriz(request, matriz_id):
 
     # Obtener parámetros de filtro desde la URL
     tester_filtrado = request.GET.get('tester')
+    tester_asignado_filtrado = request.GET.get('tester_asignado')
+    pais_filtrado = request.GET.get('pais')
     fallo_filtrado = request.GET.get('fallo')
     num_fallos = matriz_fails(matriz)[0]['indice']
+    
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
-    # Aplicar filtro por tester si existe
+    # Aplicar filtro por tester (viejo) si existe
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
+    
+    # Aplicar filtro por tester_asignado (nuevo) si existe - CORREGIDO
+    if tester_asignado_filtrado and pais_filtrado:
+        # Filtrar por nombre completo Y país
+        casos_de_prueba = casos_de_prueba.filter(
+            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],  # Primer nombre
+            pais=pais_filtrado
+        )
+    elif tester_asignado_filtrado:
+        # Solo filtrar por nombre
+        casos_de_prueba = casos_de_prueba.filter(
+            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
+        )
+    elif pais_filtrado:
+        # Solo filtrar por país
+        casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
 
     # Ordenar los casos
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
@@ -152,7 +217,6 @@ def detalle_matriz(request, matriz_id):
     # Aplicar filtro de fallo usando la función matriz_fails
     if fallo_filtrado == 'bloqueante':
         fallos = matriz_fails(matriz)
-        # Solo tomar los casos filtrados dentro de fallos
         casos_filtrados = fallos[0]['casos_filtrados']
     else:
         casos_filtrados = casos_de_prueba
@@ -175,8 +239,32 @@ def detalle_matriz(request, matriz_id):
 
     alcances_lista = matriz.alcances_utilizados.split(',') if matriz.alcances_utilizados else []
 
-    # Testers disponibles
-    testers_disponibles = matriz.casos.values_list('tester', flat=True).distinct()
+    # Testers disponibles (viejo - campo tester)
+    testers_disponibles = list(matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
+    
+    # NUEVO: Obtener los IDs de los testers asignados para filtrado preciso
+    combinaciones_tester_pais = matriz.casos.exclude(
+        tester_asignado__isnull=True
+    ).exclude(
+        pais__isnull=True
+    ).exclude(
+        pais=''
+    ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido', 'pais').distinct()
+    
+    botones_nuevos = []
+    for tester_id, nombre, apellido, pais in combinaciones_tester_pais:
+        nombre_completo = f"{nombre} {apellido}"
+        texto_boton = f"{nombre_completo} - {pais}"
+        botones_nuevos.append({
+            'texto': texto_boton,
+            'tester_id': tester_id, 
+            'tester_nombre': nombre,  
+            'pais': pais
+        })
+    
+    # Determinar qué botones mostrar
+    mostrar_botones_viejos = len(testers_disponibles) > 0
+    mostrar_botones_nuevos = not mostrar_botones_viejos and len(botones_nuevos) > 0
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -184,11 +272,16 @@ def detalle_matriz(request, matriz_id):
         'alcances_lista': alcances_lista,
         'formularios_casos_de_prueba': formularios_casos_de_prueba,
         'testers_disponibles': testers_disponibles,
+        'botones_nuevos': botones_nuevos,
         'tester_filtrado': tester_filtrado,
+        'tester_asignado_filtrado': tester_asignado_filtrado,
+        'pais_filtrado': pais_filtrado,
         'fallo_filtrado': fallo_filtrado,
         'alcance': alcance,
         'fallos': fallos if fallo_filtrado == 'bloqueante' else [],
-        'num_fallos':num_fallos
+        'num_fallos': num_fallos,
+        'mostrar_botones_viejos': mostrar_botones_viejos,
+        'mostrar_botones_nuevos': mostrar_botones_nuevos
     })
 @login_required
 def actualizar_estado_caso(request):
@@ -423,60 +516,60 @@ def generar_pdf_supermatriz(request, supermatriz_id):
         total_global_casos += total_casos
         total_global_completados += casos_filtrados
 
-        # Determinar alcance
+        # Determinar el tipo de alcance
         alcance = {
             'A': "MVP (Minimum Viable Product:A)",
             'A,B': 'Smoke Test (A,B)',
             'A,B,C': 'No Afectación (NA:A,B,C)'
         }.get(matriz.alcances_utilizados, 'No definido')
-        
         num_fallos = matriz_fails(matriz)[0]['indice']
-
-        paises_en_matriz = set()
-
+        # Testers por región
+        testers_por_region = defaultdict(set)
         for caso in casos:
-            if caso.tester and str(caso.tester).strip():
-                # Si tester existe, obtener país de tester
-                partes = str(caso.tester).split('-')
+            if caso.tester:
+                partes = caso.tester.split('-')
                 if len(partes) == 2:
-                    _, region = partes
-                    paises_en_matriz.add(region.strip())
+                    nombre, region = partes
+                    testers_por_region[region.strip()].add(nombre.strip())
                     paises.add(region.strip())
-            else:
-                # Si tester está vacío, usar pais del caso
-                if caso.pais:
-                    pais = str(caso.pais).strip()
-                    paises_en_matriz.add(pais)
-                    paises.add(pais)
+
+        testers_por_region = {
+            region: sorted(nombres)
+            for region, nombres in testers_por_region.items()
+        }
 
         matrices_info.append({
             'matriz': matriz,
             'total_casos': total_casos,
             'casos_filtrados': casos_filtrados,
             'porcentaje': round(porcentaje, 2),
-            'paises': sorted(paises_en_matriz),  # Solo países
+            'testers_por_region': testers_por_region,
             'alcance': alcance,
-            'num_fallos': num_fallos
+            'num_fallos':num_fallos
         })
 
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
     fecha_generacion = localtime().strftime('%d de %B de %Y')
 
+    # Renderizar HTML
     template = get_template('pdf/reporte_supermatriz.html')
     html_string = template.render({
         'super_matriz': super_matriz,
         'matrices_info': matrices_info,
-        'paises': sorted(paises),  # Países globales si los necesitas
+        'paises': sorted(paises),
         'porcentaje_total': porcentaje_total,
         'fecha_generacion': fecha_generacion,
     })
 
+    # Generar el PDF con WeasyPrint
     html = HTML(string=html_string)
     result = html.write_pdf()
 
+    # Devolver el PDF como respuesta
     response = HttpResponse(result, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
     return response
+User = get_user_model()
 
 @login_required
 def asignar_validates(request, super_matriz_id):
