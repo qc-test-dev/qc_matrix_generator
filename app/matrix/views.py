@@ -570,9 +570,19 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     html = HTML(string=html_string)
     result = html.write_pdf()
 
-    # Devolver el PDF como respuesta
+    # Devolver el PDF como respuesta - CORREGIDO
     response = HttpResponse(result, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="reporte_{super_matriz.nombre}.pdf"'
+    
+    # Forzar la descarga con el nombre del archivo
+    filename = f"reporte_{super_matriz.nombre.replace(' ', '_')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Agregar headers adicionales para forzar descarga
+    response['Content-Transfer-Encoding'] = 'binary'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
     return response
 User = get_user_model()
 
