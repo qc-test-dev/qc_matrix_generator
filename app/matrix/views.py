@@ -104,9 +104,15 @@ def detalle_super_matriz(request, super_matriz_id):
     # Información vieja (progreso y demás)
     matrices_info = matriz_info(matrices)
 
-    # Añadir testers a mostrar a cada info
+    # Añadir testers a mostrar y fallas a cada info
     for info in matrices_info:
         info['testers_mostrar'] = obtener_testers(info['matriz'])
+        # Obtener información de fallas para esta matriz
+        fallas_info = matriz_fails(info['matriz'])
+        if fallas_info:
+            info['fallas'] = fallas_info[0]  # Tomar el primer elemento del array
+        else:
+            info['fallas'] = {'indice': 0, 'casos_filtrados': []}
 
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
@@ -175,7 +181,6 @@ def detalle_super_matriz(request, super_matriz_id):
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
     })
-
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)

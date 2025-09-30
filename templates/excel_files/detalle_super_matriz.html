@@ -87,10 +87,25 @@
                             <div class="card-body d-flex flex-column">
 
                                 <p><strong>Dispositivo:</strong> {{ info.dispositivo.nombre }}</p>
-                                <p>Tipo de alcance: {{ info.alcance }}</p>
-                                <p>Casos Totales: {{ info.total_casos }}</p>
-                                <p>Casos Completos: {{ info.casos_filtrados }}</p>
-                                <p>Porcentaje: {{ info.porcentaje|floatformat:2 }}%</p>
+                                <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
+                                <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
+                                <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
+                                <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
+
+                                <!-- Mostrar información de fallas -->
+                                <div class="mb-3">
+                                    <p class="mb-1">
+                                        <strong>Fallas Bloqueantes:</strong> 
+                                        <span class="badge {% if info.fallas.indice > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ info.fallas.indice }}
+                                        </span>
+                                    </p>
+                                    {% if info.fallas.indice > 0 %}
+                                        <small class="text-muted">
+                                            Fallas nuevas/persistentes de criticidad Bloqueante
+                                        </small>
+                                    {% endif %}
+                                </div>
 
                                 <div class="progress mb-3 d-flex align-items-center">
                                     <div class="progress-bar bg-success d-flex justify-content-center"
@@ -103,19 +118,26 @@
                                     </div>
                                 </div>
 
-                                {% comment %} Mostrar testers agrupados por país {% endcomment %}
+                                <!-- Mostrar testers agrupados por país con scroll -->
                                 {% if info.testers_mostrar %}
-                                    {% regroup info.testers_mostrar by pais as testers_por_pais %}
-                                    {% for group in testers_por_pais %}
-                                        {% if group.grouper %}
-                                            <p><strong>{{ group.grouper }}</strong></p>
-                                        {% endif %}
-                                        <ul class="list-unstyled ms-3 mb-2">
-                                            {% for t in group.list %}
-                                                <li>• {{ t.tester }}</li>
+                                    <div class="mb-3">
+                                        <strong>Testers:</strong>
+                                        <div style="max-height: 150px; overflow-y: auto;">
+                                            {% regroup info.testers_mostrar by pais as testers_por_pais %}
+                                            {% for group in testers_por_pais %}
+                                                {% if group.grouper %}
+                                                    <p class="mb-1 mt-2"><strong>{{ group.grouper }}</strong></p>
+                                                {% else %}
+                                                    <p class="mb-1 mt-2"><strong>Sin región asignada</strong></p>
+                                                {% endif %}
+                                                <ul class="list-unstyled ms-3 mb-2">
+                                                    {% for t in group.list %}
+                                                        <li>• {{ t.tester }}</li>
+                                                    {% endfor %}
+                                                </ul>
                                             {% endfor %}
-                                        </ul>
-                                    {% endfor %}
+                                        </div>
+                                    </div>
                                 {% endif %}
 
                                 <div class="mt-auto">
