@@ -600,12 +600,6 @@ def asignar_validates(request, super_matriz_id):
     }
     return render(request, 'excel_files/asignar_validates.html', context)
 
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from .models import Equipo, SuperMatriz
-from .utils import matriz_info  # Importar la función externa
-import json
-
 @login_required
 def dashboard(request):
     colores = ["#093FB4", "#dc3545", "#198754", "#E67514", "#6f42c1", "#4B352A", "#2F5249"]
@@ -637,6 +631,13 @@ def dashboard(request):
             for m in sm.matrices.all():
                 # Buscar la info correspondiente a esta matriz
                 m_info = next((info for info in info_matrices if info["matriz"].id == m.id), None)
+                
+                # Obtener información de fallas para esta matriz
+                fallas_info = matriz_fails(m)
+                if fallas_info:
+                    fallas_data = fallas_info[0]  # Tomar el primer elemento del array
+                else:
+                    fallas_data = {'indice': 0, 'casos_filtrados': []}
 
                 matrices_list.append({
                     "id": m.id,
@@ -646,8 +647,9 @@ def dashboard(request):
                         "casos_filtrados": m_info["casos_filtrados"] if m_info else 0,
                         "porcentaje": m_info["porcentaje"] if m_info else 0,
                         "testers_por_region": m_info["testers_por_region"] if m_info else {},
-                        "alcance": m_info["alcance"] if m_info else "",  # Ya viene formateado
-                        "dispositivo": m_info["dispositivo"] if m_info else ""  # Ya viene del modelo
+                        "alcance": m_info["alcance"] if m_info else "",
+                        "dispositivo": m_info["dispositivo"] if m_info else "",
+                        "fallas": fallas_data  # Nueva información de fallas
                     }
                 })
 

@@ -649,130 +649,163 @@ Dashboard - Avances de Equipos
         });
     }
 
-    // === Modal detalle matrices - Con color del equipo ===
-    function mostrarDetallesMatrices(supermatrizNombre) {
-        const espacio = matrices.find(esp => esp.supermatriz === supermatrizNombre);
-        if (!espacio) return;
+   // === Modal detalle matrices - Con color del equipo ===
+function mostrarDetallesMatrices(supermatrizNombre) {
+    const espacio = matrices.find(esp => esp.supermatriz === supermatrizNombre);
+    if (!espacio) return;
 
-        const equipo = equipos.find(e => e.nombre === espacio.equipo);
-        const colorEquipo = equipo ? equipo.color : '#6c757d';
+    const equipo = equipos.find(e => e.nombre === espacio.equipo);
+    const colorEquipo = equipo ? equipo.color : '#6c757d';
 
-        // Aplicar el color del equipo al header del modal
-        const modalHeader = document.getElementById('modalHeader');
-        modalHeader.style.backgroundColor = colorEquipo;
+    // Aplicar el color del equipo al header del modal
+    const modalHeader = document.getElementById('modalHeader');
+    modalHeader.style.backgroundColor = colorEquipo;
 
-        const porcentajeCompletado = espacio.matrices && espacio.matrices.length > 0 ? 
-            espacio.matrices.reduce((acc, matriz) => acc + (matriz.info?.porcentaje || 0), 0) / espacio.matrices.length : 0;
+    const porcentajeCompletado = espacio.matrices && espacio.matrices.length > 0 ? 
+        espacio.matrices.reduce((acc, matriz) => acc + (matriz.info?.porcentaje || 0), 0) / espacio.matrices.length : 0;
 
-        let html = `
-        <div class="modal-matriz-header rounded-top" style="background: ${colorEquipo}">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h4 class="mb-1 text-white"><i class="bi bi-collection-play-fill me-2"></i>${espacio.supermatriz}</h4>
-                    <div class="d-flex flex-wrap gap-2 mt-2">
-                        <span class="badge bg-light text-dark badge-custom">
-                            <i class="bi bi-people-fill me-1"></i>${espacio.equipo}
-                        </span>
-                        <span class="badge bg-light text-dark badge-custom">
-                            <i class="bi bi-calendar-event me-1"></i><b>Inicio: ${espacio.fecha_creacion}</b> - <b>Fin: ${espacio.fecha_fin || 'Presente'}</b>
-                        </span>
-                        <span class="badge bg-light text-dark badge-custom">
-                            <i class="bi bi-clipboard-data me-1"></i>${espacio.matrices ? espacio.matrices.length : 0} Matrices
-                        </span>
-                    </div>
+    let html = `
+    <div class="modal-matriz-header rounded-top" style="background: ${colorEquipo}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h4 class="mb-1 text-white"><i class="bi bi-collection-play-fill me-2"></i>${espacio.supermatriz}</h4>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span class="badge bg-light text-dark badge-custom">
+                        <i class="bi bi-people-fill me-1"></i>${espacio.equipo}
+                    </span>
+                    <span class="badge bg-light text-dark badge-custom">
+                        <i class="bi bi-calendar-event me-1"></i><b>Inicio: ${espacio.fecha_creacion}</b> - <b>Fin: ${espacio.fecha_fin || 'Presente'}</b>
+                    </span>
+                    <span class="badge bg-light text-dark badge-custom">
+                        <i class="bi bi-clipboard-data me-1"></i>${espacio.matrices ? espacio.matrices.length : 0} Matrices
+                    </span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row mt-4">
-            <div class="col-md-4 mb-3">
-                <div class="stat-card">
-                    <div class="stat-number" style="color: ${colorEquipo}">${espacio.matrices ? espacio.matrices.length : 0}</div>
-                    <div class="stat-label">Total de Matrices</div>
-                </div>
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <div class="stat-card">
+                <div class="stat-number" style="color: ${colorEquipo}">${espacio.matrices ? espacio.matrices.length : 0}</div>
+                <div class="stat-label">Total de Matrices</div>
             </div>
-            <div class="col-md-4 mb-3">
-                <div class="stat-card">
-                    <div class="stat-number" style="color: ${porcentajeCompletado >= 80 ? '#28a745' : porcentajeCompletado >= 50 ? '#ffc107' : '#dc3545'}">
-                        ${porcentajeCompletado.toFixed(1)}%
-                    </div>
-                    <div class="stat-label">Progreso General</div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="stat-card">
+                <div class="stat-number" style="color: ${porcentajeCompletado >= 80 ? '#28a745' : porcentajeCompletado >= 50 ? '#ffc107' : '#dc3545'}">
+                    ${porcentajeCompletado.toFixed(1)}%
                 </div>
+                <div class="stat-label">Progreso General</div>
             </div>
+        </div>
+    </div>`;
+
+    if (!espacio.matrices || espacio.matrices.length === 0) {
+        html += `
+        <div class="empty-state">
+            <i class="bi bi-inboxes"></i>
+            <h5>No hay matrices asociadas</h5>
+            <p class="text-muted">Este Espacio de trabajo no contiene matrices de prueba</p>
         </div>`;
-
-        if (!espacio.matrices || espacio.matrices.length === 0) {
-            html += `
-            <div class="empty-state">
-                <i class="bi bi-inboxes"></i>
-                <h5>No hay matrices asociadas</h5>
-                <p class="text-muted">Este Espacio de trabajo no contiene matrices de prueba</p>
-            </div>`;
-        } else {
-            html += `<h5 class="d-flex justify-content-center mb-3 mt-4 fs-1"><i class="bi bi-list-check me-2"></i>Matrices de Prueba</h5>`;
+    } else {
+        html += `<h5 class="d-flex justify-content-center mb-3 mt-4 fs-1"><i class="bi bi-list-check me-2"></i>Matrices de Prueba</h5>`;
+        
+        espacio.matrices.forEach((matriz, index) => {
+            const info = matriz.info || {};
+            const porcentaje = info.porcentaje || 0;
+            const progressColor = porcentaje >= 80 ? 'bg-success' : porcentaje >= 50 ? 'bg-warning' : 'bg-danger';
             
-            espacio.matrices.forEach((matriz, index) => {
-                const info = matriz.info || {};
-                const porcentaje = info.porcentaje || 0;
-                const progressColor = porcentaje >= 80 ? 'bg-success' : porcentaje >= 50 ? 'bg-warning' : 'bg-danger';
-                
-                let testersHTML = '';
-                if (info.testers_por_region) {
-                    for (const region in info.testers_por_region) {
-                        testersHTML += `
-                        <div class="d-flex justify-content-around mb-2">
-                            <h6 class="region-title"><i class="bi bi-geo-alt me-1"></i>${region}</h6>
-                        </div>`;
-                    }
+            // Información de fallas
+            const fallas = info.fallas || {};
+            const numFallas = fallas.indice || 0;
+            const fallasBadgeClass = numFallas > 0 ? 'bg-danger' : 'bg-success';
+            
+            let testersHTML = '';
+            if (info.testers_por_region) {
+                for (const region in info.testers_por_region) {
+                    testersHTML += `
+                    <div class="d-flex justify-content-around mb-2">
+                        <h6 class="region-title"><i class="bi bi-geo-alt me-1"></i>${region}</h6>
+                    </div>`;
                 }
+            }
 
-                html += `
-                <div class="matriz-card">
-                    <div class="matriz-card-header d-flex justify-content-between align-items-center" style="border-left: 4px solid ${colorEquipo}">
-                        <span><i class="bi bi-clipboard-data me-2"></i>${matriz.nombre}</span>
-                        <span class="badge ${progressColor}">${porcentaje}% Completado</span>
+            html += `
+            <div class="matriz-card">
+                <div class="matriz-card-header d-flex justify-content-between align-items-center" style="border-left: 4px solid ${colorEquipo}">
+                    <span><i class="bi bi-clipboard-data me-2"></i>${matriz.nombre}</span>
+                    <div>
+                        <span class="badge ${progressColor} me-1">${porcentaje}% Completado</span>
+                        <span class="badge ${fallasBadgeClass}">
+                            <i class="bi bi-exclamation-triangle me-1"></i>${numFallas} Bloqueantes
+                        </span>
                     </div>
-                    <div class="matriz-card-body">
-                        <div class="info-grid">
-                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
-                                <h6><i class="bi bi-list-ol me-1"></i>Total de Casos</h6>
-                                <p>${info.total_casos || 0}</p>
-                            </div>
-                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
-                                <h6><i class="bi bi-check-circle me-1"></i>Casos Probados</h6>
-                                <p>${info.casos_filtrados || 0}</p>
-                            </div>
-                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
-                                <h6><i class="bi bi-bullseye me-1"></i>Alcance</h6>
-                                <p>${info.alcance || 'N/A'}</p>
-                            </div>
-                            <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
-                                <h6><i class="bi bi-phone me-1"></i>Dispositivo</h6>
-                                <p>${info.dispositivo || 'N/A'}</p>
-                            </div>
+                </div>
+                <div class="matriz-card-body">
+                    <div class="info-grid">
+                        <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                            <h6><i class="bi bi-list-ol me-1"></i>Total de Casos</h6>
+                            <p>${info.total_casos || 0}</p>
                         </div>
-                        
-                        ${testersHTML ? `
-                        <div class="d-flex flex-row bd-highlight">
-                            <h6 class="d-flex flex-row bd-highlight mb-3 mt-3"><i class="bi bi-people-fill me-1"></i>Regiones</h6>
-                            ${testersHTML}
-                        </div>` : ''}
+                        <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                            <h6><i class="bi bi-check-circle me-1"></i>Casos Probados</h6>
+                            <p>${info.casos_filtrados || 0}</p>
+                        </div>
+                        <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                            <h6><i class="bi bi-exclamation-triangle me-1"></i>Fallas Bloqueantes</h6>
+                            <p class="${numFallas > 0 ? 'text-danger fw-bold' : 'text-success'}">
+                                ${numFallas}
+                            </p>
+                        </div>
+                        <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                            <h6><i class="bi bi-bullseye me-1"></i>Alcance</h6>
+                            <p>${info.alcance || 'N/A'}</p>
+                        </div>
+                        <div class="info-item" style="border-left: 4px solid ${colorEquipo}">
+                            <h6><i class="bi bi-phone me-1"></i>Dispositivo</h6>
+                            <p>${info.dispositivo || 'N/A'}</p>
+                        </div>
                     </div>
-                </div>`;
-            });
-        }
-
-        document.getElementById('modalMatricesContent').innerHTML = html;
-        
-        // Mostrar el modal
-        const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
-        modal.show();
-        
-        // Restaurar el color por defecto cuando se cierra el modal
-        document.getElementById('matricesModal').addEventListener('hidden.bs.modal', function () {
-            modalHeader.style.backgroundColor = '';
+                    
+                    <!-- Información adicional sobre fallas -->
+                    ${numFallas > 0 ? `
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>${numFallas} falla(s) bloqueante(s) detectada(s)</strong>
+                        <br>
+                        <small class="text-muted">Fallas nuevas/persistentes de criticidad Bloqueante que requieren atención</small>
+                    </div>
+                    ` : `
+                    <div class="alert alert-success mt-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>Sin fallas bloqueantes</strong>
+                        <br>
+                        <small class="text-muted">No se detectaron fallas de criticidad Bloqueante</small>
+                    </div>
+                    `}
+                    
+                    ${testersHTML ? `
+                    <div class="d-flex flex-row bd-highlight">
+                        <h6 class="d-flex flex-row bd-highlight mb-3 mt-3"><i class="bi bi-people-fill me-1"></i>Regiones</h6>
+                        ${testersHTML}
+                    </div>` : ''}
+                </div>
+            </div>`;
         });
     }
+
+    document.getElementById('modalMatricesContent').innerHTML = html;
+    
+    // Mostrar el modal
+    const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
+    modal.show();
+    
+    // Restaurar el color por defecto cuando se cierra el modal
+    document.getElementById('matricesModal').addEventListener('hidden.bs.modal', function () {
+        modalHeader.style.backgroundColor = '';
+    });
+}
 
     mostrarEspaciosTrabajo(null);
     
