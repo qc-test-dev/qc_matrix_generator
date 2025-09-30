@@ -13,45 +13,50 @@
     <p><strong>Alcance: {{alcance}}</strong></p>
     <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
 
-    <h4 class="mt-4">Filtrar por tester:</h4>
-<ul class="list-inline">
-    <li class="list-inline-item">
-        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-primary btn-sm">Todos</a>
-    </li>
-    <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
-    <li class="list-inline-item">
-        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if tester_filtrado %}&tester={{ tester_filtrado }}{% endif %}{% if tester_asignado_filtrado %}&tester_asignado={{ tester_asignado_filtrado }}{% endif %}{% if pais_filtrado %}&pais={{ pais_filtrado }}{% endif %}"
-        class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
-        Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
-        </a>
-    </li>
-    
-    <!-- Botones viejos (tester) -->
-    {% if mostrar_botones_viejos and testers_disponibles %}
-        {% for tester in testers_disponibles %}
-            {% if tester %}
-            <li class="list-inline-item">
-                <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}{% if fallo_filtrado %}&fallo={{ fallo_filtrado }}{% endif %}"
-                   class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
-                    {{ tester }}
-                </a>
-            </li>
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-    
-    <!-- Botones nuevos (nombre completo - pais) -->
-    {% if mostrar_botones_nuevos and botones_nuevos %}
-        {% for boton in botones_nuevos %}
-            <li class="list-inline-item">
-                <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}{% if fallo_filtrado %}&fallo={{ fallo_filtrado }}{% endif %}"
-                   class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
-                    {{ boton.texto }}
-                </a>
-            </li>
-        {% endfor %}
-    {% endif %}
-</ul>
+    <h4 class="mt-4">Filtrar por:</h4>
+    <ul class="list-inline">
+        <!-- Botón Todos (limpia todos los filtros) -->
+        <li class="list-inline-item">
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" 
+               class="btn btn-outline-primary btn-sm {% if not fallo_filtrado and not tester_filtrado and not tester_asignado_filtrado and not pais_filtrado %}active{% endif %}">
+                Todos
+            </a>
+        </li>
+        
+        <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
+        <li class="list-inline-item">
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante"
+               class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
+                Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
+            </a>
+        </li>
+        
+        <!-- Botones viejos (tester) -->
+        {% if mostrar_botones_viejos and testers_disponibles %}
+            {% for tester in testers_disponibles %}
+                {% if tester %}
+                <li class="list-inline-item">
+                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}"
+                       class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
+                        {{ tester }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Botones nuevos (nombre completo - pais) -->
+        {% if mostrar_botones_nuevos and botones_nuevos %}
+            {% for boton in botones_nuevos %}
+                <li class="list-inline-item">
+                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}"
+                       class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
+                        {{ boton.texto }}
+                    </a>
+                </li>
+            {% endfor %}
+        {% endif %}
+    </ul>
 
     <table class="table table-bordered table-striped">
         <thead>
@@ -63,40 +68,40 @@
                 <th class="col-nota">Nota</th>
             </tr>
         </thead>
-            <tbody id="tabla-casos">
-                {% for caso, form in formularios_casos_de_prueba %}
-                    <tr data-id="{{ caso.id }}">
-                        <td>{{ caso.fase }}</td>
-                        <td>{{ caso.caso_de_prueba }}</td>
-                        <td id="estado-caso-{{ caso.id }}">
-                            {% render_field form.estado class="estado-input form-control" %}
-                        </td>
-                        <td>
-                            {% if caso.criticidad|lower == "bloqueante" %}
-                                <span class="badge bg-danger">🛑 Bloqueante</span>
-                            {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
-                                <span class="badge bg-warning text-dark">⚠️ Critico</span>
-                            {% endif %}
-                        </td>
-                        <td id="nota-caso-{{ caso.id }}">
-                            {% render_field form.nota class="nota-input form-control" %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-
+        <tbody id="tabla-casos">
+            {% for caso, form in formularios_casos_de_prueba %}
+                <tr data-id="{{ caso.id }}">
+                    <td>{{ caso.fase }}</td>
+                    <td>{{ caso.caso_de_prueba }}</td>
+                    <td id="estado-caso-{{ caso.id }}">
+                        {% render_field form.estado class="estado-input form-control" %}
+                    </td>
+                    <td>
+                        {% if caso.criticidad|lower == "bloqueante" %}
+                            <span class="badge bg-danger">🛑 Bloqueante</span>
+                        {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
+                            <span class="badge bg-warning text-dark">⚠️ Critico</span>
+                        {% endif %}
+                    </td>
+                    <td id="nota-caso-{{ caso.id }}">
+                        {% render_field form.nota class="nota-input form-control" %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
     </table>
 
     <div class="sticky-action-bar">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
+
 <script>
 const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
-const reconnectDelayBase = 2000; // 2 segundos base
+const reconnectDelayBase = 2000;
 let heartbeatInterval;
 
 function createWebSocketConnection() {
@@ -290,6 +295,7 @@ function handleNotaBlur(event) {
         body: `caso_id=${caseId}&nota=${encodeURIComponent(newNote)}`
     }).catch(console.error);
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 Inicializando aplicación...");
 
@@ -357,7 +363,7 @@ function actualizarTablaCasos() {
                     }
                 });
 
-                setupEventListeners(); // Reaplica listeners tras refresco
+                setupEventListeners();
                 console.log("✅ Tabla actualizada sin recarga completa.");
             }
         })
@@ -366,27 +372,22 @@ function actualizarTablaCasos() {
         });
 }
 
+// Auto‐reload cada 60 s
+setInterval(() => {
+    actualizarTablaCasos();
+}, 6 * 1000);
 
+function actualizarFallos() {
+    fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("num-fallos").textContent = data.num_fallos;
+        })
+        .catch(error => console.error("Error al actualizar fallos:", error));
+}
 
-    // 5) Auto‐reload cada 60 s
-    setInterval(() => {
-        actualizarTablaCasos();
-    }, 6 * 1000);
-
-
-</script>
-<script>
-    function actualizarFallos() {
-        fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("num-fallos").textContent = data.num_fallos;
-            })
-            .catch(error => console.error("Error al actualizar fallos:", error));
-    }
-
-    // Actualizar cada 6 segundos
-    setInterval(actualizarFallos, 6000);
+// Actualizar cada 6 segundos
+setInterval(actualizarFallos, 6000);
 </script>
 
 <style>
