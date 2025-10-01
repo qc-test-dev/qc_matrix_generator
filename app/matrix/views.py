@@ -617,8 +617,8 @@ def dashboard(request):
     # Obtener todos los equipos
     equipos = Equipo.objects.all().order_by("id")
 
-    # Obtener todas las supermatrices con sus matrices
-    supermatrices = SuperMatriz.objects.select_related("equipo_nuevo").prefetch_related("matrices").all()
+    # Obtener todas las supermatrices NO ARCHIVADAS con sus matrices
+    supermatrices = SuperMatriz.objects.filter(archivado=False).select_related("equipo_nuevo").prefetch_related("matrices").all()
 
     # Diccionario temporal para agrupar la información
     equipos_dict = {}
