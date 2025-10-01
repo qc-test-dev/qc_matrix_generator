@@ -8,7 +8,7 @@ from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
+    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
 from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
@@ -723,3 +723,20 @@ def obtener_num_fallos(request, matriz_id):
     data = matriz_fails(matriz)
     num_fallos = data[0]['indice']
     return JsonResponse({"num_fallos": num_fallos})
+def editar_descripcion(request, pk):
+    supermatriz = get_object_or_404(SuperMatriz, pk=pk)
+
+    if request.method == "POST":
+        form = SuperMatrizDescripcionForm(request.POST, instance=supermatriz)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Descripción actualizada correctamente.")
+            return redirect('home')
+    else:
+        form = SuperMatrizDescripcionForm(instance=supermatriz)
+
+    context = {
+        "form": form,
+        "supermatriz": supermatriz
+    }
+    return render(request, "home.html", context)

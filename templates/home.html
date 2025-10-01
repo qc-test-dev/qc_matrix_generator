@@ -87,6 +87,12 @@
                                                     onclick="cargarMatrizModal({{ matriz.id }}, '{{ matriz.nombre }}', '{{ matriz.fecha_fin|date:"Y-m-d"|default_if_none:"" }}')">
                                                 <i class="fas fa-calendar-alt me-1"></i>Editar Fecha
                                             </button>
+                                            <button class="btn btn-sm btn-secondary" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editarDescripcionModal"
+                                                    onclick="cargarDescripcionModal({{ matriz.id }}, '{{ matriz.nombre }}', `{{ matriz.descripcion|default_if_none:""|escapejs }}`)">
+                                                <i class="fas fa-edit me-1"></i>Editar Filtro y labels
+                                            </button>
 
                                             <!-- Botón Eliminar -->
                                             <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" class="d-inline">
@@ -219,7 +225,44 @@
     </div>
   </div>
 </div>
-
+<!-- Modal Editar Descripción -->
+<div class="modal fade" id="editarDescripcionModal" tabindex="-1" aria-labelledby="editarDescripcionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success">
+        <h5 class="modal-title" id="editarDescripcionModalLabel">
+            <i class="fas fa-edit me-2"></i>Editar Descripción
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" id="formEditarDescripcion" action="">
+        {% csrf_token %}
+        <div class="modal-body">
+            <input type="hidden" name="supermatriz_id" id="modalDescripcionSupermatrizId">
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Matriz:</label>
+                <p class="text-muted" id="modalMatrizNombre"></p>
+            </div>
+            
+            <div class="mb-3">
+                <label for="id_descripcion_modal" class="form-label fw-bold">Descripción:</label>
+                <textarea name="descripcion" class="form-control" id="id_descripcion_modal" 
+                          rows="6" placeholder="Ingrese la descripción de la matriz..." 
+                          maxlength="200">{{ matriz.descripcion }}</textarea>
+                <div class="form-text">
+                    <span id="contadorCaracteres">0</span>/200 caracteres
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success text-white">Guardar Descripción</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% if request.user.is_superuser %}
 <!-- Modal Crear Usuario -->
 <div class="modal fade" id="crearUsuarioModal" tabindex="-1" aria-labelledby="crearUsuarioModalLabel" aria-hidden="true">
@@ -270,15 +313,74 @@
 {% endif %}
 
 <script>
-function cargarMatrizModal(id, nombre, fechaFin) {
-    document.getElementById('modalSupermatrizId').value = id;
-    document.getElementById('id_fecha_fin_modal').value = fechaFin;
-    document.getElementById('formEditarFecha').action = "{% url 'matrix_app:editar_fecha_fin' 0 %}".replace('0', id);
+function cargarDescripcionModal(id, nombre, descripcion) {
+    document.getElementById('modalDescripcionSupermatrizId').value = id;
+    document.getElementById('modalMatrizNombre').textContent = nombre;
+    document.getElementById('id_descripcion_modal').value = descripcion;
     
-    // Asegurar que la fecha mínima sea hoy
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('id_fecha_fin_modal').setAttribute('min', today);
+    // Actualizar contador de caracteres
+    actualizarContadorCaracteres();
+    
+    // Configurar la acción del formulario
+    document.getElementById('formEditarDescripcion').action = "{% url 'matrix_app:editar_descripcion' 0 %}".replace('0', id);
 }
+
+// Contador de caracteres para la descripción
+function actualizarContadorCaracteres() {
+    const textarea = document.getElementById('id_descripcion_modal');
+    const contador = document.getElementById('contadorCaracteres');
+    
+    if (textarea && contador) {
+        // Actualizar al cargar
+        contador.textContent = textarea.value.length;
+        
+        // Actualizar al escribir
+        textarea.addEventListener('input', function() {
+            // Limitar a 200 caracteres
+            if (this.value.length > 200) {
+                this.value = this.value.substring(0, 200);
+            }
+            contador.textContent = this.value.length;
+            
+            // Cambiar color si se acerca o alcanza el límite
+            if (this.value.length >= 190) {
+                contador.classList.add('text-danger');
+                contador.classList.remove('text-warning');
+            } else if (this.value.length >= 180) {
+                contador.classList.add('text-warning');
+                contador.classList.remove('text-danger');
+            } else {
+                contador.classList.remove('text-danger', 'text-warning');
+            }
+        });
+        
+        // Prevenir pegar texto que exceda el límite
+        textarea.addEventListener('paste', function(e) {
+            const pastedText = e.clipboardData.getData('text');
+            if (this.value.length + pastedText.length > 200) {
+                e.preventDefault();
+                const remaining = 200 - this.value.length;
+                if (remaining > 0) {
+                    this.value += pastedText.substring(0, remaining);
+                    contador.textContent = this.value.length;
+                }
+            }
+        });
+    }
+}
+
+// Inicializar contador cuando se abre el modal
+document.getElementById('editarDescripcionModal').addEventListener('show.bs.modal', function() {
+    setTimeout(actualizarContadorCaracteres, 100);
+});
+
+// También inicializar para el formulario de creación
+document.addEventListener('DOMContentLoaded', function() {
+    const crearDescripcion = document.getElementById('id_descripcion');
+    if (crearDescripcion) {
+        crearDescripcion.setAttribute('maxlength', '200');
+    }
+});
 </script>
 
 {% endblock content %}

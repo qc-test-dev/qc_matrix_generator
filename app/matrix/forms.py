@@ -282,3 +282,14 @@ class SuperMatrizFechaFinForm(forms.ModelForm):
         if fecha_fin and fecha_fin < timezone.now().date():
             raise forms.ValidationError("La fecha fin no puede ser anterior a la fecha de hoy.")
         return fecha_fin
+class SuperMatrizDescripcionForm(forms.ModelForm):
+    class Meta:
+        model = SuperMatriz
+        fields = ['descripcion']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Ingrese la descripción...'
+            }),
+        }
