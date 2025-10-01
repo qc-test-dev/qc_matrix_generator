@@ -79,7 +79,6 @@ Dashboard - Avances de Equipos
 </div>
 
 <style>
-    /* === Estilos calendario mejorados === */
     .calendar-wrapper {
         overflow-x: auto;
         padding-bottom: 10px;
@@ -158,7 +157,6 @@ Dashboard - Avances de Equipos
         background-color: #d1ecf1;
     }
 
-    /* === Estilos cards mejorados === */
     .espacio-trabajo-card {
         border-radius: 8px;
         overflow: hidden;
@@ -221,7 +219,6 @@ Dashboard - Avances de Equipos
         box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
     }
 
-    /* === Estilos mejorados para el modal === */
     .modal-matriz-header {
         color: white;
         border-bottom: none;
@@ -351,7 +348,6 @@ Dashboard - Avances de Equipos
         margin-bottom: 1rem;
     }
 
-    /* Estilos para fallas bloqueantes */
     .badge.bg-danger {
         background-color: #dc3545 !important;
     }
@@ -384,14 +380,37 @@ Dashboard - Avances de Equipos
         color: #28a745 !important;
     }
 
-    /* Botón PDF en cards */
     .pdf-btn-container {
         margin-top: 15px;
         padding-top: 15px;
         border-top: 1px solid #e9ecef;
     }
 
-    /* Responsividad para móviles */
+    /* Nuevos estilos para fallas blocker en cards */
+    .fallas-container {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 6px;
+        background-color: #f8f9fa;
+    }
+
+    .fallas-badge {
+        font-size: 0.75rem;
+        padding: 0.4em 0.6em;
+    }
+
+    .fallas-warning {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+
+    .fallas-success {
+        background-color: #d1edff;
+        border: 1px solid #b8daff;
+        color: #0c5460;
+    }
+
     @media (max-width: 768px) {
         .calendar-container {
             min-width: 100%;
@@ -453,7 +472,6 @@ Dashboard - Avances de Equipos
     const matrices = {{ matrices_json|safe }};
     const equipos = {{ equipos_json|safe }};
     
-    // DEBUG: Ver la estructura de datos
     console.log('=== DEBUG: Estructura de datos ===');
     console.log('Equipos:', equipos);
     console.log('Matrices:', matrices);
@@ -464,29 +482,22 @@ Dashboard - Avances de Equipos
 
     // === Función para obtener el ID de la supermatriz ===
     function obtenerSupermatrizId(espacio) {
-        console.log('Buscando ID para espacio:', espacio.supermatriz);
-        
-        // Primero intentamos con supermatriz_id
         if (espacio.supermatriz_id) {
-            console.log('ID encontrado en espacio.supermatriz_id:', espacio.supermatriz_id);
             return espacio.supermatriz_id;
         }
         
-        // Si no existe, buscamos en la estructura de equipos
         for (let eq of equipos) {
             for (let sm of eq.supermatrices) {
                 if (sm.nombre === espacio.supermatriz) {
-                    console.log('ID encontrado en equipos:', sm.id);
                     return sm.id;
                 }
             }
         }
         
-        console.warn('No se encontró ID para:', espacio.supermatriz);
         return null;
     }
 
-    // === Función para calcular el progreso general de un espacio de trabajo ===
+    // === Función para calcular el progreso general ===
     function calcularProgresoGeneral(espacio) {
         if (!espacio.matrices || espacio.matrices.length === 0) {
             return 0;
@@ -502,16 +513,30 @@ Dashboard - Avances de Equipos
 
     // === Función para obtener el color de la barra de progreso ===
     function obtenerColorProgreso(porcentaje) {
-        if (porcentaje >= 80) return '#28a745'; // Verde
-        if (porcentaje >= 50) return '#ffc107'; // Amarillo
-        return '#dc3545'; // Rojo
+        if (porcentaje >= 80) return '#28a745';
+        if (porcentaje >= 50) return '#ffc107';
+        return '#dc3545';
+    }
+
+    // === Función para contar fallas blocker totales del espacio ===
+    function contarFallasBlockerTotales(espacio) {
+        if (!espacio.matrices || espacio.matrices.length === 0) {
+            return 0;
+        }
+        
+        let totalFallas = 0;
+        espacio.matrices.forEach(matriz => {
+            const fallas = matriz.info?.fallas || {};
+            totalFallas += fallas.indice || 0;
+        });
+        
+        return totalFallas;
     }
 
     // === Función para cambiar entre mes actual y pasado ===
     function cambiarMes(tipoMes) {
         mesSeleccionado = tipoMes;
         
-        // Actualizar visualización de pestañas
         document.getElementById('actual-tab').classList.toggle('active', tipoMes === 'actual');
         document.getElementById('pasado-tab').classList.toggle('active', tipoMes === 'pasado');
         document.getElementById('mes-actual').classList.toggle('show', tipoMes === 'actual');
@@ -519,25 +544,22 @@ Dashboard - Avances de Equipos
         document.getElementById('mes-pasado').classList.toggle('show', tipoMes === 'pasado');
         document.getElementById('mes-pasado').classList.toggle('active', tipoMes === 'pasado');
         
-        // Actualizar calendarios
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
-        
-        // Actualizar espacios de trabajo
         mostrarEspaciosTrabajo(equipoFiltrado);
     }
 
-    // === Obtener matrices filtradas por mes ===
+    // === Obtener matrices filtradas por mes - SOLUCIÓN ROBUSTA ===
     function obtenerMatricesPorMes(equipoNombre) {
         const ahora = new Date();
-        let mes, año;
+        let mesObjetivo, añoObjetivo;
         
         if (mesSeleccionado === 'actual') {
-            mes = ahora.getMonth();
-            año = ahora.getFullYear();
+            mesObjetivo = ahora.getMonth();
+            añoObjetivo = ahora.getFullYear();
         } else {
-            mes = ahora.getMonth() === 0 ? 11 : ahora.getMonth() - 1;
-            año = ahora.getMonth() === 0 ? ahora.getFullYear() - 1 : ahora.getFullYear();
+            mesObjetivo = ahora.getMonth() === 0 ? 11 : ahora.getMonth() - 1;
+            añoObjetivo = ahora.getMonth() === 0 ? ahora.getFullYear() - 1 : ahora.getFullYear();
         }
         
         let matricesFiltradas = matrices;
@@ -545,101 +567,153 @@ Dashboard - Avances de Equipos
             matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
         }
         
-        return matricesFiltradas.filter(matriz => {
-            const fechaCreacion = new Date(matriz.fecha_creacion);
-            const fechaFin = matriz.fecha_fin ? new Date(matriz.fecha_fin) : new Date(); // Si no hay fecha fin, usar hoy
-            
-            // Verificar si el espacio de trabajo está activo durante el mes seleccionado
-            const inicioMes = new Date(año, mes, 1);
-            const finMes = new Date(año, mes + 1, 0);
-            
-            return (fechaCreacion <= finMes) && (fechaFin >= inicioMes);
-        });
-    }
-
-    // === Render calendario ===
-    function renderCalendar(containerId, monthOffset) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        const today = new Date();
-        today.setMonth(today.getMonth() + monthOffset);
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        console.log(`=== FILTRADO MES ${mesSeleccionado.toUpperCase()} ===`);
+        console.log('Mes objetivo:', mesObjetivo + 1, 'Año:', añoObjetivo);
+        console.log('Total matrices a filtrar:', matricesFiltradas.length);
         
-        const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        
-        daysOfWeek.forEach(d => {
-            const dayElement = document.createElement('div');
-            dayElement.textContent = d;
-            container.appendChild(dayElement);
-        });
-
-        for (let i = 0; i < firstDay; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.classList.add('calendar-day');
-            if (i === 0) emptyCell.classList.add('weekend-day');
-            container.appendChild(emptyCell);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateObj = new Date(year, month, day);
-            const dayOfWeek = dateObj.getDay();
+        const matricesResultado = matricesFiltradas.filter(matriz => {
+            // Crear fechas sin problemas de zona horaria
+            const fechaInicio = new Date(matriz.fecha_creacion + 'T12:00:00');
+            let fechaFin = matriz.fecha_fin ? 
+                new Date(matriz.fecha_fin + 'T23:59:59') : 
+                new Date();
             
-            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-            const cell = document.createElement('div');
-            cell.classList.add('calendar-day');
+            // Extraer componentes de fecha de manera segura
+            const añoInicio = fechaInicio.getFullYear();
+            const mesInicio = fechaInicio.getMonth();
+            const añoFin = fechaFin.getFullYear();
+            const mesFin = fechaFin.getMonth();
+            const diaFin = fechaFin.getDate();
             
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                cell.classList.add('weekend-day');
+            // LÓGICA PRINCIPAL MEJORADA:
+            const comienzaAntesDelFin = 
+                añoInicio < añoObjetivo || 
+                (añoInicio === añoObjetivo && mesInicio <= mesObjetivo);
+            
+            const terminaDespuesDelInicio = 
+                añoFin > añoObjetivo || 
+                (añoFin === añoObjetivo && mesFin >= mesObjetivo);
+            
+            // CONDICIÓN ESPECIAL: Si termina en la primera semana del mes siguiente
+            let terminaEnPrimeraSemanaDelMesSiguiente = false;
+            
+            if (matriz.fecha_fin) {
+                const fechaFinObj = new Date(matriz.fecha_fin + 'T12:00:00');
+                const mesSiguiente = mesObjetivo === 11 ? 0 : mesObjetivo + 1;
+                const añoSiguiente = mesObjetivo === 11 ? añoObjetivo + 1 : añoObjetivo;
+                
+                if (fechaFinObj.getFullYear() === añoSiguiente && 
+                    fechaFinObj.getMonth() === mesSiguiente && 
+                    fechaFinObj.getDate() <= 7) {
+                    terminaEnPrimeraSemanaDelMesSiguiente = true;
+                }
             }
             
-            cell.innerHTML = `<div class="day-number">${day}</div><div class="dots-container"></div>`;
-            const dotsContainer = cell.querySelector('.dots-container');
+            const activoEnMes = comienzaAntesDelFin && 
+                               (terminaDespuesDelInicio || terminaEnPrimeraSemanaDelMesSiguiente);
+            
+            console.log(`Matriz: ${matriz.supermatriz}`);
+            console.log('  - Inicio:', añoInicio + '-' + (mesInicio + 1));
+            console.log('  - Fin:', añoFin + '-' + (mesFin + 1) + '- día ' + diaFin);
+            console.log('  - Mes objetivo:', añoObjetivo + '-' + (mesObjetivo + 1));
+            console.log('  - Comienza antes del fin:', comienzaAntesDelFin);
+            console.log('  - Termina después del inicio:', terminaDespuesDelInicio);
+            console.log('  - Termina en primera semana del mes siguiente:', terminaEnPrimeraSemanaDelMesSiguiente);
+            console.log('  - ACTIVO EN ESTE MES:', activoEnMes);
+            
+            return activoEnMes;
+        });
+        
+        console.log('Matrices encontradas:', matricesResultado.length);
+        console.log('Matrices activas:', matricesResultado.map(m => m.supermatriz));
+        return matricesResultado;
+    }
 
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                equipos.forEach(eq => {
-                    if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
+ // === Render calendario - SIN ACTIVIDADES EN SÁBADOS Y DOMINGOS ===
+function renderCalendar(containerId, monthOffset) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const today = new Date();
+    today.setMonth(today.getMonth() + monthOffset);
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    
+    daysOfWeek.forEach(d => {
+        const dayElement = document.createElement('div');
+        dayElement.textContent = d;
+        container.appendChild(dayElement);
+    });
+
+    for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.classList.add('calendar-day');
+        if (i === 0) emptyCell.classList.add('weekend-day');
+        container.appendChild(emptyCell);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        const dayOfWeek = dateObj.getDay();
+        
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const cell = document.createElement('div');
+        cell.classList.add('calendar-day');
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            cell.classList.add('weekend-day');
+        }
+        
+        cell.innerHTML = `<div class="day-number">${day}</div><div class="dots-container"></div>`;
+        const dotsContainer = cell.querySelector('.dots-container');
+
+        // SOLO MOSTRAR PUNTOS EN DÍAS LABORABLES (Lunes a Viernes)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            equipos.forEach(eq => {
+                if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
+                
+                const activo = matrices.some(m => {
+                    if (m.equipo !== eq.nombre) return false;
                     
-                    // Verificar si hay algún espacio de trabajo activo en esta fecha
-                    const activo = matrices.some(m => m.equipo === eq.nombre &&
-                        new Date(m.fecha_creacion) <= new Date(dateStr) &&
-                        (!m.fecha_fin || new Date(dateStr) <= new Date(m.fecha_fin))
-                    );
+                    // Usar la misma lógica de fechas que en obtenerMatricesPorMes
+                    const fechaInicio = new Date(m.fecha_creacion + 'T12:00:00');
+                    let fechaFin = m.fecha_fin ? 
+                        new Date(m.fecha_fin + 'T23:59:59') : 
+                        new Date();
                     
-                    if (activo) {
-                        const dot = document.createElement('span');
-                        dot.classList.add('event-dot');
-                        dot.style.backgroundColor = eq.color;
-                        dotsContainer.appendChild(dot);
-                    }
+                    const fechaActual = new Date(dateStr + 'T12:00:00');
+                    
+                    return fechaInicio <= fechaActual && fechaActual <= fechaFin;
                 });
-            }
-            container.appendChild(cell);
+                
+                if (activo) {
+                    const dot = document.createElement('span');
+                    dot.classList.add('event-dot');
+                    dot.style.backgroundColor = eq.color;
+                    dotsContainer.appendChild(dot);
+                }
+            });
         }
+        
+        container.appendChild(cell);
     }
-
-    // === Función para descargar PDF usando la URL name de Django ===
+}
+    // === Función para descargar PDF ===
     function descargarPDF(supermatrizId, event) {
         if (event) {
             event.preventDefault();
             event.stopPropagation();
         }
         
-        console.log('Descargando PDF para supermatriz ID:', supermatrizId);
-        
-        // Verificar que el ID sea válido
         if (!supermatrizId || supermatrizId === 'null' || supermatrizId === 'undefined') {
             alert('Error: No se puede generar el PDF. ID no válido.');
             return;
         }
         
-        // Usar la URL name de Django - esta es la forma correcta
         const url = "{% url 'matrix_app:reporte_pdf_supermatriz' 0 %}".replace('0', supermatrizId);
-        console.log('URL de descarga:', url);
-        
-        // Abrir en nueva pestaña para descargar el PDF
         window.open(url, '_blank');
     }
 
@@ -709,6 +783,7 @@ Dashboard - Avances de Equipos
             const progresoGeneral = calcularProgresoGeneral(espacio);
             const colorProgreso = obtenerColorProgreso(progresoGeneral);
             const supermatrizId = obtenerSupermatrizId(espacio);
+            const totalFallasBlocker = contarFallasBlockerTotales(espacio);
             
             container.innerHTML += `
                 <div class="col">
@@ -728,10 +803,24 @@ Dashboard - Avances de Equipos
                                     <div class="stat-label">Progreso</div>
                                 </div>
                             </div>
+                            
+                            <!-- SECCIÓN DE FALLAS BLOCKER -->
+                            <div class="fallas-container ${totalFallasBlocker > 0 ? 'fallas-warning' : 'fallas-success'}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="fw-bold">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Fallas Blocker
+                                    </small>
+                                    <span class="badge ${totalFallasBlocker > 0 ? 'bg-danger' : 'bg-success'} fallas-badge">
+                                        ${totalFallasBlocker}
+                                    </span>
+                                </div>
+                                
+                            </div>
+                            
                             <div class="progress-container">
                                 <div class="progress-label">
-                                    <span>Progreso General</span>
-                                    <span>${progresoGeneral}%</span>
+                                    <span>Progreso General: </span>
+                                    <b>${progresoGeneral}%</b>
                                 </div>
                                 <div class="progress">
                                     <div class="progress-bar" style="width: ${progresoGeneral}%; background-color: ${colorProgreso}"></div>
@@ -756,9 +845,8 @@ Dashboard - Avances de Equipos
         });
     }
 
-    // === Modal detalle matrices - Sin botón PDF ===
+    // === Modal detalle matrices ===
     function mostrarDetallesMatrices(event, supermatrizNombre) {
-        // Prevenir el comportamiento por defecto y la propagación
         if (event) {
             event.preventDefault();
             event.stopPropagation();
@@ -770,7 +858,6 @@ Dashboard - Avances de Equipos
         const equipo = equipos.find(e => e.nombre === espacio.equipo);
         const colorEquipo = equipo ? equipo.color : '#6c757d';
 
-        // Aplicar el color del equipo al header del modal
         const modalHeader = document.getElementById('modalHeader');
         modalHeader.style.backgroundColor = colorEquipo;
 
@@ -829,7 +916,6 @@ Dashboard - Avances de Equipos
                 const porcentaje = info.porcentaje || 0;
                 const progressColor = porcentaje >= 80 ? 'bg-success' : porcentaje >= 50 ? 'bg-warning' : 'bg-danger';
                 
-                // Información de fallas
                 const fallas = info.fallas || {};
                 const numFallas = fallas.indice || 0;
                 const fallasBadgeClass = numFallas > 0 ? 'bg-danger' : 'bg-success';
@@ -881,7 +967,6 @@ Dashboard - Avances de Equipos
                             </div>
                         </div>
                         
-                        <!-- Información adicional sobre fallas -->
                         ${numFallas > 0 ? `
                         <div class="alert alert-warning mt-3">
                             <i class="bi bi-exclamation-triangle me-2"></i>
@@ -892,8 +977,7 @@ Dashboard - Avances de Equipos
                         <div class="alert alert-success mt-3">
                             <i class="bi bi-check-circle me-2"></i>
                             <strong>Sin fallas bloqueantes</strong>
-                            <br>
-                            <small class="text-muted">No se detectaron fallas de criticidad Bloqueante</small>
+                        
                         </div>
                         `}
                         
@@ -909,11 +993,9 @@ Dashboard - Avances de Equipos
 
         document.getElementById('modalMatricesContent').innerHTML = html;
         
-        // Mostrar el modal
         const modal = new bootstrap.Modal(document.getElementById('matricesModal'));
         modal.show();
         
-        // Restaurar el color por defecto cuando se cierra el modal
         document.getElementById('matricesModal').addEventListener('hidden.bs.modal', function () {
             modalHeader.style.backgroundColor = '';
         });
@@ -921,7 +1003,6 @@ Dashboard - Avances de Equipos
 
     mostrarEspaciosTrabajo(null);
     
-    // Re-renderizar calendarios al redimensionar la ventana
     window.addEventListener('resize', function() {
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
