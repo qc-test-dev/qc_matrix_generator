@@ -18,7 +18,7 @@
             </div>
         </div>
         <a href="{% url 'home' %}" class="home-btn">Home</a>
-        {% if es_lider %}
+        {% if request.user.cargo == "Lider" %}
         <a href="{% url 'accounts_app:list_teams' %}" class="home-btn">Actualizar Matrix</a>
         {%endif%}
         <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn ">Calendario</a>

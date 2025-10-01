@@ -7,6 +7,12 @@ class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
     matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
+    operativo = models.BooleanField(
+        default=False,
+        blank=True,
+        null=True,
+        verbose_name="Operativo"
+    )
 
     def __str__(self):
         return f"{self.nombre}"

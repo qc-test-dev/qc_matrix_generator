@@ -33,16 +33,12 @@ Equipos
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-start mb-3">
                                         <div class="flex-grow-1">
-                                            <h5 class="card-title fw-bold mb-0 text-dark">{{ equipo.nombre }}</h5>
+                                            <h5 class="card-title fw-bold mb-0 text-dark"> Equipo:  {{ equipo.nombre }}</h5>
                                         </div>
                                     </div>
-                                    <p class="card-text text-muted small mb-3">
-                                        Gestionar matrices operativas y normativas del equipo.
-                                    </p>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="text-muted small">Matrices pendientes</span>
-                                        <a href="#equipo-{{ equipo.id }}" class="btn btn-success btn-sm rounded-pill px-3">
-                                            Gestionar <i class="fas fa-arrow-right ms-1"></i>
+                                        <a href="{% url 'accounts_app:dispositivos_equipo' equipo.id %}" class="btn btn-success btn-sm rounded-pill px-3">
+                                            Ver Dispositivos <i class="fas fa-arrow-right ms-1"></i>
                                         </a>
                                     </div>
                                 </div>

@@ -8,7 +8,7 @@ from django.utils.translation import activate
 
 from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
 from .models import Equipo
-from django.views.generic import ListView
+from django.views.generic import ListView,DetailView
 User = get_user_model()
 
 
@@ -105,3 +105,21 @@ class ListTeamsView(ListView):
         return render(request, 'teams/list_teams.html', {
             'equipos': teams
         })
+class DispositivosEquipoView(DetailView):
+    model = Equipo
+    template_name = 'teams/dispositivos_equipo.html'
+    context_object_name = 'equipo'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo = self.get_object()
+        
+        # Obtener todos los dispositivos del equipo
+        dispositivos = equipo.dispositivos.all()
+        
+        # Separar por estado operativo
+        context['dispositivos_operativos'] = dispositivos.filter(operativo=True)
+        context['dispositivos_no_operativos'] = dispositivos.filter(operativo=False)
+        context['total_dispositivos'] = dispositivos.count()
+        
+        return context
