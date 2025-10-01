@@ -17,7 +17,11 @@
     {% endif %}
 
     <h1 class="mb-3">{{ super_matriz.nombre }}</h1>
-    <p class="text-muted">{{ super_matriz.descripcion }}</p>
+    <div>
+    <p class="text-muted text-wrap" style="word-break: break-word;">
+        {{ super_matriz.descripcion }}
+    </p>
+</div>
 
     <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn-success mb-3">Validates</a>
     <a href="{% url 'matrix_app:tickets_por_levantar' super_matriz.id %}" class="btn btn-success mb-3">Seguimiento de tickets</a>

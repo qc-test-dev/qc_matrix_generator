@@ -12,7 +12,7 @@ class Dispositivo(models.Model):
         return f"{self.nombre}"
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
-    descripcion = models.TextField(blank=True, null=True, max_length=100)
+    descripcion = models.TextField(blank=True, null=True, max_length=200)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     equipo = models.CharField('Equipo', max_length=150, blank=True, null=True)  # Campo antiguo (temporal)
     equipo_nuevo = models.ForeignKey(

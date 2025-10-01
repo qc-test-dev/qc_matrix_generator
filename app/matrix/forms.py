@@ -130,10 +130,9 @@ class SuperMatrizForm(forms.ModelForm):
     )
 
     descripcion = forms.CharField(
-        max_length=100,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'maxlength': '100'})
+        max_length=200,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'maxlength': '200'})
     )
-
     equipo_nuevo = forms.ModelChoiceField(
         queryset=None,
         widget=forms.Select(attrs={'class': 'form-select'}),
