@@ -23,8 +23,11 @@ class SuperMatriz(models.Model):
         related_name='supermatrices'
     )
     fecha_fin = models.DateField("Fecha Tentativa", null=True, blank=True)
+    archivado = models.BooleanField(default=False, blank=True, null=True)  # Nuevo campo
+    
     def __str__(self):
         return self.nombre
+    
     def clean(self):
         super().clean()
         # Validación segura
@@ -33,6 +36,11 @@ class SuperMatriz(models.Model):
                 raise ValidationError({
                     'fecha_fin': "La fecha fin no puede ser anterior a la fecha de creación."
                 })
+    
+    def archivar(self):
+        """Función para archivar la matriz"""
+        self.archivado = True
+        self.save()
 class Matriz(models.Model):
     super_matriz = models.ForeignKey(
         'SuperMatriz',

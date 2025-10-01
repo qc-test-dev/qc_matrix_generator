@@ -18,14 +18,13 @@ def home(request):
     if not ver_todos and not (request.user.is_superuser or request.user.cargo == "Lider") and not equipo_nuevo:
         equipo_nuevo = request.user.equipo_nuevo.id
 
-    # Filtrado de matrices
+    # Filtrado de matrices - APLICAR archivado=False EN TODAS LAS CONSULTAS
     if equipo_nuevo:
-        super_matrices_list = SuperMatriz.objects.filter(equipo_nuevo=equipo_nuevo).order_by('-fecha_creacion')
+        super_matrices_list = SuperMatriz.objects.filter(equipo_nuevo=equipo_nuevo, archivado=False).order_by('-fecha_creacion')
     elif equipo:
-        super_matrices_list = SuperMatriz.objects.filter(equipo=equipo).order_by('-fecha_creacion')
+        super_matrices_list = SuperMatriz.objects.filter(equipo=equipo, archivado=False).order_by('-fecha_creacion')
     else:
-        super_matrices_list = SuperMatriz.objects.all().order_by('-fecha_creacion')
-
+        super_matrices_list = SuperMatriz.objects.filter(archivado=False).order_by('-fecha_creacion')
 
     paginator = Paginator(super_matrices_list, 5)
     page_number = request.GET.get('page')

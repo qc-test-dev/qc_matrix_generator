@@ -723,3 +723,9 @@ def obtener_num_fallos(request, matriz_id):
     data = matriz_fails(matriz)
     num_fallos = data[0]['indice']
     return JsonResponse({"num_fallos": num_fallos})
+def archivar_super_matriz(request, matriz_id):
+    if request.method == 'POST':
+        matriz = get_object_or_404(SuperMatriz, id=matriz_id)
+        matriz.archivar()
+        messages.success(request, f'La matriz "{matriz.nombre}" ha sido archivada correctamente.')
+    return redirect('home')

@@ -23,5 +23,6 @@ urlpatterns = [
     path("dashboard",views.dashboard,name="dashboard"),
     path('supermatriz/<int:pk>/editar-fecha-fin/', views.editar_fecha_fin, name='editar_fecha_fin'),
     path('matriz/<int:matriz_id>/num-fallos/', views.obtener_num_fallos, name='obtener_num_fallos'),
+    path('archivar-super-matriz/<int:matriz_id>/', views.archivar_super_matriz, name='archivar_super_matriz'),
 ]   
 
