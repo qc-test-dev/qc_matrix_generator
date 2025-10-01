@@ -18,6 +18,9 @@
             </div>
         </div>
         <a href="{% url 'home' %}" class="home-btn">Home</a>
+        {% if es_lider %}
+        <a href="{% url 'accounts_app:list_teams' %}" class="home-btn">Actualizar Matrix</a>
+        {%endif%}
         <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn ">Calendario</a>
     <form method="post" action="{% url 'accounts_app:logout' %}">
         {% csrf_token %}

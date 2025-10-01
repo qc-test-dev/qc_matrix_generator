@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.utils.translation import activate
 
 from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
-from .models import Equipo  # <-- Nuevo
-
+from .models import Equipo
+from django.views.generic import ListView
 User = get_user_model()
 
 
@@ -97,3 +97,11 @@ def lista_usuarios(request):
         'equipos': equipos,
         'equipo_seleccionado': equipo_seleccionado
     })
+
+
+class ListTeamsView(ListView):
+    def get(self, request):
+        teams = Equipo.objects.all().order_by('nombre')
+        return render(request, 'teams/list_teams.html', {
+            'equipos': teams
+        })

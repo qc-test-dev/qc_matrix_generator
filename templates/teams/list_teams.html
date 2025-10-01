@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Equipos
+{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container mt-4">
+    <!-- Header con título y descripción -->
+    <div class="row mb-5">
+        <div class="col">
+            <div class="text-center">
+                <h1 class="display-6 fw-bold text-success mb-3">Actualización de Matrices por Equipo</h1>
+                <p class="lead text-muted">
+                    Seleccione un equipo para gestionar y actualizar sus matrices operativas y normativas.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Equipos - Diseño Simplificado -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            {% if equipos %}
+                <div class="row g-4">
+                    {% for equipo in equipos %}
+                        {# Excluir equipos visitors y gerencia #}
+                        {% if equipo.nombre|lower != "visitors" and equipo.nombre|lower != "gerencia" %}
+                        <div class="col-md-6">
+                            <div class="card equipo-card h-100 border-0 shadow-sm hover-shadow">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title fw-bold mb-0 text-dark">{{ equipo.nombre }}</h5>
+                                        </div>
+                                    </div>
+                                    <p class="card-text text-muted small mb-3">
+                                        Gestionar matrices operativas y normativas del equipo.
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small">Matrices pendientes</span>
+                                        <a href="#equipo-{{ equipo.id }}" class="btn btn-success btn-sm rounded-pill px-3">
+                                            Gestionar <i class="fas fa-arrow-right ms-1"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No hay equipos registrados</h4>
+                        <p class="text-muted">Comience agregando equipos para la gestión de matrices.</p>
+                        <button class="btn btn-success mt-3">
+                            <i class="fas fa-plus me-2"></i>Agregar Primer Equipo
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .equipo-card {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        border: 1px solid #f0f0f0;
+    }
+    
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
+{% endblock content %}
