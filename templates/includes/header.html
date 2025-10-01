@@ -6,6 +6,13 @@
     </div>
     </div>
     <div class="group-btn">
+        {% if es_lider or request.user.cargo == 'Lider'%}
+        <div class="mt-3">
+            <a href="{% url 'matrix_app:matrices_archivadas' %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-archive me-1"></i>Ver Matrices Archivadas
+            </a>
+        </div>
+        {% endif %}
         <div class="d-flex align-items-center gap-3">
             <!-- Menú de engranaje -->
             <div class="dropdown me-3">
@@ -19,6 +26,7 @@
         </div>
         <a href="{% url 'home' %}" class="home-btn">Home</a>
         <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn ">Calendario</a>
+        
     <form method="post" action="{% url 'accounts_app:logout' %}">
         {% csrf_token %}
         

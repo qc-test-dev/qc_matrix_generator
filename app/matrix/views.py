@@ -55,7 +55,7 @@ import os
 import random
 from django.conf import settings
 from .utils import importar_matriz_desde_excel, matriz_info
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     from collections import defaultdict
@@ -729,3 +729,50 @@ def archivar_super_matriz(request, matriz_id):
         matriz.archivar()
         messages.success(request, f'La matriz "{matriz.nombre}" ha sido archivada correctamente.')
     return redirect('home')
+@login_required
+def matrices_archivadas(request):
+    """Vista para ver y gestionar matrices archivadas"""
+    # Solo líderes y superusuarios pueden ver las matrices archivadas
+    if not (request.user.is_superuser or request.user.cargo == "Lider"):
+        messages.error(request, "No tienes permisos para ver las matrices archivadas.")
+        return redirect('home')
+    
+    equipo = request.GET.get('equipo')
+    equipo_nuevo = request.GET.get('equipo_nuevo')
+    ver_todos = request.GET.get('ver_todos')
+
+    # Filtrado de matrices archivadas
+    matrices_archivadas_list = SuperMatriz.objects.filter(archivado=True)
+
+    # Aplicar filtros de equipo
+    if equipo_nuevo:
+        matrices_archivadas_list = matrices_archivadas_list.filter(equipo_nuevo=equipo_nuevo)
+    elif equipo:
+        matrices_archivadas_list = matrices_archivadas_list.filter(equipo=equipo)
+
+    # Ordenar por fecha de creación (más recientes primero)
+    matrices_archivadas_list = matrices_archivadas_list.order_by('-fecha_creacion')
+    
+    # Paginación
+    paginator = Paginator(matrices_archivadas_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    equipos = Equipo.objects.all()
+    
+    return render(request, "excel_files/matrices_archivadas.html", {
+        'page_obj': page_obj,
+        'matrices_count': matrices_archivadas_list.count(),
+        'equipos': equipos,
+        'equipo_filtrado': equipo_nuevo or equipo,
+    })
+
+@login_required
+def desarchivar_super_matriz(request, matriz_id):
+    """Vista para desarchivar una matriz"""
+    if request.method == 'POST':
+        matriz = get_object_or_404(SuperMatriz, id=matriz_id)
+        matriz.archivado = False
+        matriz.save()
+        messages.success(request, f'La matriz "{matriz.nombre}" ha sido desarchivada correctamente.')
+    return redirect('matrix_app:matrices_archivadas')

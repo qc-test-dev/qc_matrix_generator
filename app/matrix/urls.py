@@ -24,5 +24,7 @@ urlpatterns = [
     path('supermatriz/<int:pk>/editar-fecha-fin/', views.editar_fecha_fin, name='editar_fecha_fin'),
     path('matriz/<int:matriz_id>/num-fallos/', views.obtener_num_fallos, name='obtener_num_fallos'),
     path('archivar-super-matriz/<int:matriz_id>/', views.archivar_super_matriz, name='archivar_super_matriz'),
+    path('matrices-archivadas/', views.matrices_archivadas, name='matrices_archivadas'),
+    path('desarchivar-super-matriz/<int:matriz_id>/', views.desarchivar_super_matriz, name='desarchivar_super_matriz'),
 ]   
 

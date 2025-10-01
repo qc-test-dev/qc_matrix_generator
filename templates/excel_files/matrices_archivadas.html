@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    Matrices Archivadas
+{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<style>
+    .bg-amarillo-solido {
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+    }
+    .btn-amarillo-solido {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000;
+    }
+    .btn-amarillo-solido:hover {
+        background-color: #e0a800;
+        border-color: #e0a800;
+        color: #000;
+    }
+    .text-amarillo {
+        color: #ffc107 !important;
+    }
+    .border-amarillo {
+        border-color: #ffc107 !important;
+    }
+</style>
+
+<div class="container mt-4">
+
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-archive me-2"></i>Matrices Archivadas
+        </h2>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver al Inicio
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-amarillo">
+        <div class="card-header bg-amarillo-solido text-dark d-flex justify-content-between align-items-center">
+            <h4 class="card-title mb-0">
+                <i class="fas fa-box-archive me-2"></i>Matrices Archivadas ({{ matrices_count }})
+            </h4>
+        </div>
+
+        <!-- Filtros -->
+        <div class="px-3 py-2 bg-white border-bottom">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <strong class="me-2 mb-0">Filtrar por equipo:</strong>
+                <!-- Botón para ver todas las matrices archivadas -->
+                <a href="{% url 'matrix_app:matrices_archivadas' %}?ver_todos=1" 
+                class="btn btn-outline-secondary btn-sm {% if not equipo_filtrado %}active{% endif %}">
+                    Todos
+                </a>
+                <!-- Botones dinámicos de equipos -->
+                {% for eq in equipos %}
+                    <a href="?equipo_nuevo={{ eq.id }}" 
+                    class="btn btn-amarillo-solido btn-sm {% if equipo_filtrado|stringformat:"s" == eq.id|stringformat:"s" %}active{% endif %}">
+                        {{ eq.nombre }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for matriz in page_obj %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div class="w-100">
+                            <h5 class="mb-1 text-dark">
+                                <i class="fas fa-archive me-2 text-amarillo"></i>{{ matriz.nombre }}
+                            </h5>
+                            <p class="mb-0 text-muted small">{{ matriz.descripcion|truncatechars:100 }}</p>
+                            <p class="mb-0 text-muted small">
+                                <strong>Equipo:</strong> {{ matriz.equipo_nuevo.nombre }}
+                            </p>
+                            <div class="d-flex justify-content-between mt-2 flex-wrap gap-2">
+                                <span class="badge bg-light text-dark small">
+                                    <i class="far fa-calendar me-1"></i>
+                                    Fecha de inicio: {{ matriz.fecha_creacion|date:"d/m/Y" }}
+                                </span>
+                                {% if matriz.fecha_fin %}
+                                <span class="badge bg-light text-dark small">
+                                    <i class="far fa-calendar-check me-1"></i>
+                                    Fecha Final: {{ matriz.fecha_fin|date:"d/m/Y" }}
+                                </span>
+                                {% endif %}
+                                <span class="badge bg-amarillo-solido text-dark small">
+                                    <i class="fas fa-archive me-1"></i>
+                                    Archivada
+                                </span>
+                                
+                                <div class="d-flex gap-2">
+                                    <!-- Botón Ver -->
+                                    <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </a>
+
+                                    <!-- Botón Desarchivar -->
+                                    <form action="{% url 'matrix_app:desarchivar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas desarchivar esta matriz? Se mostrará nuevamente en el dashboard.');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-amarillo-solido" title="Desarchivar">
+                                            <i class="fas fa-box-open me-1"></i>Desarchivar
+                                        </button>
+                                    </form>
+
+                                    <!-- Botón Eliminar -->
+                                    <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar permanentemente esta matriz archivada?');" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Eliminar Permanentemente">
+                                            <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center py-4">
+                        <i class="fas fa-archive fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay matrices archivadas</h5>
+                        <p class="text-muted mb-0">Todas las matrices están activas en el sistema.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if page_obj.paginator.num_pages > 1 %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link text-amarillo" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page=1">&laquo;&laquo;</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link text-amarillo" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
+                                </li>
+                            {% endif %}
+
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <a class="page-link bg-amarillo-solido border-amarillo" href="#">{{ num }}</a>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link text-amarillo" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link text-amarillo" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link text-amarillo" href="?{% if equipo_filtrado %}equipo_nuevo={{ equipo_filtrado }}&{% endif %}page={{ page_obj.paginator.num_pages }}">&raquo;&raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    <div class="text-center small text-amarillo mt-2">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}
