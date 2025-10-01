@@ -46,10 +46,13 @@
                         </a>
                         <!-- Botones dinámicos de equipos -->
                         {% for eq in equipos %}
+                            {# Excluir equipos gerencia y visitors #}
+                            {% if eq.nombre|lower != "gerencia" and eq.nombre|lower != "visitors" %}
                             <a href="?equipo_nuevo={{ eq.id }}" 
                             class="btn btn-outline-success btn-sm {% if equipo_filtrado|stringformat:"s" == eq.id|stringformat:"s" %}active{% endif %}">
                                 {{ eq.nombre }}
                             </a>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>
