@@ -169,8 +169,8 @@ class ValidateForm(forms.ModelForm):
 
 class TicketPorLevantarForm(forms.ModelForm):
     PRIORIDAD_CHOICES = [
-        ('Bloqueante', 'Bloqueante'),
-        ('Crítico', 'Crítico'),
+        ('bloqueante', 'bloqueante'),
+        ('critico', 'critico'),
     ]
     REGIONES = [
         ('Mexico', 'Mexico'),
