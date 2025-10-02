@@ -326,23 +326,25 @@ def obtener_testers(matriz):
 
 def obtener_informacion_matriz(matriz_id):
     """
-    Obtiene información completa de una matriz incluyendo conteo de casos bloqueantes
-    
-    Args:
-        matriz_id (int): ID de la matriz
-    
-    Returns:
-        dict: Información de la matriz o None si no existe
+    Obtiene información completa de una matriz incluyendo conteo de casos bloqueantes y porcentaje de avance
     """
     try:
-        matriz = Matriz.objects.select_related(
-            'dispositivo'
-        ).prefetch_related(
-            'testers'
-        ).get(id=matriz_id)
+        matriz = Matriz.objects.select_related('dispositivo').prefetch_related('testers').get(id=matriz_id)
         
-        # Contar casos bloqueantes
-        casos_bloqueantes_count = matriz.casos.filter(criticidad='Bloqueante').count()
+        # Obtener todos los casos de la matriz
+        casos = matriz.casos.all()
+        total_casos = casos.count()
+        
+        # Filtro CORREGIDO con estados específicos para casos bloqueantes
+        casos_bloqueantes_filtrados = casos.filter(
+            criticidad='Bloqueante',
+            estado__in=['falla_persistente', 'falla_nueva']
+        )
+        
+        # Calcular porcentaje de avance
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na"]
+        casos_filtrados = casos.filter(estado__in=estados_interes).count()
+        porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
         
         # Obtener información de testers
         testers_info = list(matriz.testers.values('id', 'nombre', 'apellido'))
@@ -353,7 +355,10 @@ def obtener_informacion_matriz(matriz_id):
             'alcance': matriz.alcances_utilizados,
             'dispositivo': matriz.dispositivo.nombre if matriz.dispositivo else None,
             'testers': testers_info,
-            'casos_bloqueantes': casos_bloqueantes_count
+            'casos_bloqueantes': casos_bloqueantes_filtrados.count(),
+            'porcentaje': round(porcentaje, 2),
+            'total_casos': total_casos,  # Para referencia
+            'casos_ejecutados': casos_filtrados  # Para referencia
         }
         
     except Matriz.DoesNotExist:

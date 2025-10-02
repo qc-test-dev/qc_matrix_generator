@@ -97,6 +97,26 @@
         .badge-danger {
             background-color: #dc3545;
         }
+        .badge-info {
+            background-color: #17a2b8;
+        }
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            height: 12px;
+            margin: 3px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background-color: #28a745;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .avance-text {
+            font-size: 10px;
+            font-weight: bold;
+            margin: 2px 0;
+        }
         .page-break {
             page-break-after: always;
         }
@@ -134,11 +154,26 @@
                                 <p><strong>Alcance:</strong> {{ matriz.alcance|default:"N/A" }}</p>
                                 <p><strong>Dispositivo:</strong> {{ matriz.dispositivo|default:"N/A" }}</p>
                                 <p><strong>Fecha Creación:</strong> {{ matriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                                
                                 <p><strong>Casos Bloqueantes:</strong> 
                                     <span class="badge {% if matriz.casos_bloqueantes > 0 %}badge-danger{% else %}badge-success{% endif %}">
                                         {{ matriz.casos_bloqueantes }}
                                     </span>
                                 </p>
+                                
+                                <p><strong>Avance:</strong> 
+                                    <span class="badge badge-info">{{ matriz.porcentaje }}%</span>
+                                </p>
+                                
+                                <!-- Barra de progreso mini -->
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ matriz.porcentaje }}%"></div>
+                                </div>
+                                
+                                <p class="avance-text">
+                                    {{ matriz.casos_ejecutados|default:0 }}/{{ matriz.total_casos|default:0 }} casos
+                                </p>
+                                
                                 <!-- <p><strong>Testers:</strong> 
                                     {% if matriz.testers %}
                                         {% for tester in matriz.testers %}

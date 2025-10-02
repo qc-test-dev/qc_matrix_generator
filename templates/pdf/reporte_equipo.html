@@ -103,11 +103,36 @@
             color: #dc3545;
             font-weight: bold;
         }
+        .porcentaje-avance {
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            height: 20px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background-color: #28a745;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
         .no-matrices {
             text-align: center;
             font-style: italic;
             color: #6c757d;
             padding: 20px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin: 8px 0;
+        }
+        .stat-item {
+            padding: 3px;
         }
     </style>
 </head>
@@ -147,7 +172,22 @@
                             <p><strong>Fecha Creación:</strong> {{ matriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
                             <p><strong>Alcance:</strong> {{ matriz.alcance|default:"N/A" }}</p>
                             <p><strong>Dispositivo:</strong> {{ matriz.dispositivo|default:"N/A" }}</p>
-                            <p class="casos-bloqueantes"><strong>Casos Bloqueantes:</strong> {{ matriz.casos_bloqueantes }}</p>
+                            
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <p class="casos-bloqueantes"><strong>Casos Bloqueantes:</strong> {{ matriz.casos_bloqueantes }}</p>
+                                </div>
+                                <div class="stat-item">
+                                    <p class="porcentaje-avance"><strong>Avance:</strong> {{ matriz.porcentaje }}%</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Barra de progreso -->
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ matriz.porcentaje }}%"></div>
+                            </div>
+                            
+                            <p><strong>Casos:</strong> {{ matriz.casos_ejecutados|default:0 }}/{{ matriz.total_casos|default:0 }}</p>
                             
                             {% if matriz.testers %}
                                 <p><strong>Testers:</strong></p>
