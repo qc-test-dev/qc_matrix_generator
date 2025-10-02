@@ -9,7 +9,8 @@ import re
 import requests
 import random
 import os,json
-
+from .models import Matriz,SuperMatriz
+from app.accounts.models import Equipo
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
 print(JIRA_API_TOKEN,JIRA_EMAIL)
@@ -321,3 +322,125 @@ def obtener_testers(matriz):
             testers_mostrar.append({'tester': tester, 'pais': pais})
 
     return testers_mostrar
+
+
+def obtener_informacion_matriz(matriz_id):
+    """
+    Obtiene información completa de una matriz incluyendo conteo de casos bloqueantes
+    
+    Args:
+        matriz_id (int): ID de la matriz
+    
+    Returns:
+        dict: Información de la matriz o None si no existe
+    """
+    try:
+        matriz = Matriz.objects.select_related(
+            'dispositivo'
+        ).prefetch_related(
+            'testers'
+        ).get(id=matriz_id)
+        
+        # Contar casos bloqueantes
+        casos_bloqueantes_count = matriz.casos.filter(criticidad='Bloqueante').count()
+        
+        # Obtener información de testers
+        testers_info = list(matriz.testers.values('id', 'nombre', 'apellido'))
+        
+        return {
+            'nombre': matriz.nombre,
+            'fecha_creacion': matriz.fecha_creacion,
+            'alcance': matriz.alcances_utilizados,
+            'dispositivo': matriz.dispositivo.nombre if matriz.dispositivo else None,
+            'testers': testers_info,
+            'casos_bloqueantes': casos_bloqueantes_count
+        }
+        
+    except Matriz.DoesNotExist:
+        return None
+    except Exception as e:
+        print(f"Error obteniendo información de matriz: {e}")
+        return None
+def obtener_matrices_por_supermatriz(supermatriz_id):
+    """
+    Obtiene todas las matrices de una supermatriz con su información completa
+    
+    Args:
+        supermatriz_id (int): ID de la supermatriz
+    
+    Returns:
+        list: Lista de diccionarios con información de cada matriz
+    """
+    try:
+        from .models import SuperMatriz
+        
+        # Verificar que la supermatriz existe
+        supermatriz = SuperMatriz.objects.get(id=supermatriz_id)
+        
+        # Obtener todas las matrices de esta supermatriz
+        matrices_ids = supermatriz.matrices.values_list('id', flat=True)
+        
+        # Usar la función anterior para obtener información de cada matriz
+        matrices_info = []
+        for matriz_id in matrices_ids:
+            info_matriz = obtener_informacion_matriz(matriz_id)
+            if info_matriz:
+                # Agregar el ID de la matriz a la información
+                info_matriz['id'] = matriz_id
+                matrices_info.append(info_matriz)
+        
+        return {
+            'supermatriz_nombre': supermatriz.nombre,
+            'matrices': matrices_info,
+        }
+        
+    except SuperMatriz.DoesNotExist:
+        return None
+    except Exception as e:
+        print(f"Error obteniendo matrices de supermatriz: {e}")
+        return None
+def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
+    """
+    Obtiene supermatrices por equipo con filtros adicionales
+    
+    Args:
+        equipo_id (int): ID del equipo
+        solo_activas (bool): Si True, solo retorna supermatrices no archivadas
+    
+    Returns:
+        list: Lista de supermatrices filtradas
+    """
+    try:
+        
+        
+        equipo = Equipo.objects.get(id=equipo_id)
+        
+        # Query base
+        supermatrices = SuperMatriz.objects.filter(equipo_nuevo_id=equipo_id)
+        
+        # Aplicar filtro de archivado si se solicita
+        if solo_activas:
+            supermatrices = supermatrices.filter(archivado=False)
+        
+        supermatrices = supermatrices.order_by('-fecha_creacion')
+        
+        supermatrices_info = []
+        for supermatriz in supermatrices:
+            supermatrices_info.append({
+                'id': supermatriz.id,
+                'nombre': supermatriz.nombre,
+                'descripcion': supermatriz.descripcion,
+                'fecha_creacion': supermatriz.fecha_creacion,
+                'fecha_fin': supermatriz.fecha_fin,
+                'archivado': supermatriz.archivado,
+                'cantidad_matrices': supermatriz.matrices.count()
+            })
+        
+        return {
+            'equipo_nombre': equipo.nombre,
+            'supermatrices': supermatrices_info,
+            'total_supermatrices': len(supermatrices_info),
+        }
+        
+    except Equipo.DoesNotExist:
+        return None
