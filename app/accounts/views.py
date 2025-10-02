@@ -7,8 +7,12 @@ from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.utils.translation import activate
 
 from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
-from .models import Equipo  # <-- Nuevo
-
+from .models import Equipo
+from django.views.generic import ListView,DetailView,CreateView
+from app.matrix.forms import Dispositivo
+from .forms import DispositivoForm
+from django.conf import settings
+import os
 User = get_user_model()
 
 
@@ -97,3 +101,89 @@ def lista_usuarios(request):
         'equipos': equipos,
         'equipo_seleccionado': equipo_seleccionado
     })
+
+
+class ListTeamsView(ListView):
+    def get(self, request):
+        teams = Equipo.objects.all().order_by('nombre')
+        return render(request, 'teams/list_teams.html', {
+            'equipos': teams
+        })
+class DispositivosEquipoView(DetailView):
+    model = Equipo
+    template_name = 'teams/dispositivos_equipo.html'
+    context_object_name = 'equipo'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo = self.get_object()
+        
+        # Obtener todos los dispositivos del equipo
+        dispositivos = equipo.dispositivos.all()
+        
+        # Separar por estado operativo
+        context['dispositivos_operativos'] = dispositivos.filter(operativo=True)
+        context['dispositivos_no_operativos'] = dispositivos.filter(operativo=False)
+        context['total_dispositivos'] = dispositivos.count()
+        
+        return context
+class CrearDispositivoView(CreateView):
+    model = Dispositivo
+    form_class = DispositivoForm
+    template_name = 'teams/dispositivos_equipo.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('accounts_app:dispositivos_equipo', kwargs={'pk': self.object.equipo.id})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo_id = self.kwargs.get('equipo_id')
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+        
+        # Agregar el contexto necesario para el template de lista
+        context['equipo'] = equipo
+        context['dispositivos_operativos'] = equipo.dispositivos.filter(operativo=True)
+        context['dispositivos_no_operativos'] = equipo.dispositivos.filter(operativo=False)
+        context['total_dispositivos'] = equipo.dispositivos.count()
+        
+        return context
+    
+    def form_valid(self, form):
+        # Guardar el dispositivo sin commit para agregar el nombre del archivo
+        dispositivo = form.save(commit=False)
+        
+        # Obtener el archivo Excel y nombre del formulario
+        archivo_excel = form.cleaned_data['archivo_excel']
+        nombre_archivo = form.cleaned_data.get('nombre_archivo', archivo_excel.name)
+        
+        # Asignar el nombre del archivo al campo matriz_base
+        dispositivo.matriz_base = nombre_archivo
+        
+        # Guardar el dispositivo
+        dispositivo.save()
+        
+        # Guardar el archivo en static/excel_files/ (no en staticfiles/)
+        self.guardar_archivo_excel(archivo_excel, nombre_archivo)
+        
+        messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" creado exitosamente.')
+        return redirect('accounts_app:dispositivos_equipo', pk=dispositivo.equipo.id)
+    
+    def form_invalid(self, form):
+        # Si el formulario es inválido, mostrar errores
+        messages.error(self.request, 'Por favor corrija los errores en el formulario.')
+        return super().form_invalid(form)
+    
+    def guardar_archivo_excel(self, archivo, nombre_archivo):
+        """Guarda el archivo Excel en la carpeta static/excel_files/"""
+        # Ruta de destino específicamente en static/excel_files/
+        excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
+        os.makedirs(excel_dir, exist_ok=True)
+        
+        destino_path = os.path.join(excel_dir, nombre_archivo)
+        
+        # Guardar el archivo
+        with open(destino_path, 'wb+') as destino:
+            for chunk in archivo.chunks():
+                destino.write(chunk)
+        
+        print(f"Archivo guardado en: {destino_path}")  # Para debug

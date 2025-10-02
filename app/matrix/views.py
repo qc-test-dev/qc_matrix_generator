@@ -8,7 +8,7 @@ from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm
+    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
 from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
@@ -777,3 +777,21 @@ def desarchivar_super_matriz(request, matriz_id):
         matriz.save()
         messages.success(request, f'La matriz "{matriz.nombre}" ha sido desarchivada correctamente.')
     return redirect('matrix_app:matrices_archivadas')
+def editar_descripcion(request, pk):
+    supermatriz = get_object_or_404(SuperMatriz, pk=pk)
+
+    if request.method == "POST":
+        form = SuperMatrizDescripcionForm(request.POST, instance=supermatriz)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Descripción actualizada correctamente.")
+            return redirect('home')
+    else:
+        form = SuperMatrizDescripcionForm(instance=supermatriz)
+
+    context = {
+        "form": form,
+        "supermatriz": supermatriz
+    }
+    return render(request, "home.html", context)
+

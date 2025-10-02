@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}
+Dispositivos - {{ equipo.nombre }}
+{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container mt-4">
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 fw-bold text-success mb-2">Dispositivos del Equipo</h1>
+                    <h2 class="h4 text-muted">{{ equipo.nombre }}</h2>
+                    <p class="text-muted mb-0">Total: {{ total_dispositivos }} dispositivo{{ total_dispositivos|pluralize }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'accounts_app:list_teams' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver a Equipos
+                    </a>
+                    <!-- Botón para agregar dispositivo -->
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#crearDispositivoModal">
+                        <i class="fas fa-plus me-2"></i>Agregar Dispositivo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs de Navegación -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="dispositivosTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="operativos-tab" data-bs-toggle="tab" data-bs-target="#operativos" type="button" role="tab">
+                        <i class="fas fa-check-circle me-2 text-success"></i>
+                        Operativos
+                        <span class="badge bg-success ms-2">{{ dispositivos_operativos.count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="no-operativos-tab" data-bs-toggle="tab" data-bs-target="#no-operativos" type="button" role="tab">
+                        <i class="fas fa-times-circle me-2 text-secondary"></i>
+                        No Operativos
+                        <span class="badge bg-secondary ms-2">{{ dispositivos_no_operativos.count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="todos-tab" data-bs-toggle="tab" data-bs-target="#todos" type="button" role="tab">
+                        <i class="fas fa-list me-2 text-primary"></i>
+                        Todos
+                        <span class="badge bg-primary ms-2">{{ total_dispositivos }}</span>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Contenido de los Tabs -->
+            <div class="tab-content" id="dispositivosTabsContent">
+                <!-- Tab Operativos -->
+                <div class="tab-pane fade show active" id="operativos" role="tabpanel">
+                    {% if dispositivos_operativos %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for dispositivo in dispositivos_operativos %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-1 text-dark">
+                                                <i class="fas fa-check-circle text-success me-2"></i>
+                                                {{ dispositivo.nombre }}
+                                            </h5>
+                                            <p class="mb-1 text-muted small">
+                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
+                                            </p>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No hay dispositivos operativos</h5>
+                                <p class="text-muted">Todos los dispositivos están marcados como no operativos.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab No Operativos -->
+                <div class="tab-pane fade" id="no-operativos" role="tabpanel">
+                    {% if dispositivos_no_operativos %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for dispositivo in dispositivos_no_operativos %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-1 text-dark">
+                                                <i class="fas fa-times-circle text-secondary me-2"></i>
+                                                {{ dispositivo.nombre }}
+                                            </h5>
+                                            <p class="mb-1 text-muted small">
+                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
+                                            </p>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No hay dispositivos no operativos</h5>
+                                <p class="text-muted">Todos los dispositivos están operativos.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab Todos -->
+                <div class="tab-pane fade" id="todos" role="tabpanel">
+                    {% if total_dispositivos > 0 %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    {% for dispositivo in equipo.dispositivos.all %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-1 text-dark">
+                                                <i class="fas fa-{% if dispositivo.operativo %}check-circle text-success{% else %}times-circle text-secondary{% endif %} me-2"></i>
+                                                {{ dispositivo.nombre }}
+                                            </h5>
+                                            <p class="mb-1 text-muted small">
+                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
+                                            </p>
+                                            <span class="badge {% if dispositivo.operativo %}bg-success{% else %}bg-secondary{% endif %} small">
+                                                {% if dispositivo.operativo %}Operativo{% else %}No Operativo{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="card border-top-0 rounded-0">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-microchip fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No hay dispositivos registrados</h5>
+                                <p class="text-muted">Este equipo no tiene dispositivos asociados.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear dispositivo -->
+<div class="modal fade" id="crearDispositivoModal" tabindex="-1" aria-labelledby="crearDispositivoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="crearDispositivoModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Dispositivo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Mostrar errores del formulario -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Por favor corrija los siguientes errores:</strong>
+                        <ul class="mb-0">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_nombre" class="form-label">Nombre del Dispositivo</label>
+                                <input type="text" name="nombre" class="form-control" id="id_nombre" 
+                                       value="{{ form.nombre.value|default:'' }}" required>
+                                {% if form.nombre.errors %}
+                                <div class="text-danger small">{{ form.nombre.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_equipo" class="form-label">Equipo</label>
+                                <select name="equipo" class="form-control" id="id_equipo" required>
+                                    <option value="{{ equipo.id }}" selected>{{ equipo.nombre }}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_archivo_excel" class="form-label">Archivo Excel</label>
+                        <input type="file" name="archivo_excel" class="form-control" id="id_archivo_excel" accept=".xlsx" required>
+                        <div class="form-text">Seleccione el archivo .xlsx de la matriz base</div>
+                        {% if form.archivo_excel.errors %}
+                        <div class="text-danger small">{{ form.archivo_excel.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo"
+                                   {% if form.operativo.value %}checked{% endif %}>
+                            <label class="form-check-label" for="id_operativo">
+                                ¿Es operativo?
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            <strong>No operativo:</strong> El Excel debe tener los encabezados: Alcance Evaluación, Fase, Caso de prueba, Estado, Criticidad, Nota sobre la prueba<br>
+                            <strong>Operativo:</strong> Validación específica (pendiente de implementar)
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Crear Dispositivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 12px 20px;
+}
+
+.nav-tabs .nav-link.active {
+    border-bottom: 3px solid #198754;
+    color: #198754;
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom: 3px solid #dee2e6;
+    color: #198754;
+}
+
+.card.border-top-0 {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+</style>
+
+{% endblock content %}

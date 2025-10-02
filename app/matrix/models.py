@@ -7,12 +7,54 @@ class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
     matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
+    operativo = models.BooleanField(
+        default=False,
+        blank=True,
+        null=True,
+        verbose_name="Operativo"
+    )
 
     def __str__(self):
         return f"{self.nombre}"
+    
+    def get_excel_url(self):
+        """Retorna la URL estática del archivo Excel"""
+        if self.matriz_base:
+            filename = self.matriz_base
+            if not filename.lower().endswith('.xlsx'):
+                filename += '.xlsx'
+            return f"{settings.STATIC_URL}excel_files/{filename}"
+        return None
+    
+    def get_excel_path(self):
+        """Retorna la ruta física del archivo Excel"""
+        if self.matriz_base:
+            filename = self.matriz_base
+            if not filename.lower().endswith('.xlsx'):
+                filename += '.xlsx'
+            
+            # Buscar específicamente en static/excel_files/
+            static_path = os.path.join(settings.BASE_DIR, 'static', 'excel_files', filename)
+            if os.path.exists(static_path):
+                return static_path
+            
+            # Fallback: usar staticfiles finder
+            found_path = find(f'excel_files/{filename}')
+            return found_path
+        
+        return None
+    
+    def excel_exists(self):
+        """Verifica si el archivo Excel existe en static/excel_files/"""
+        path = self.get_excel_path()
+        exists = path is not None and os.path.exists(path)
+        print(f"Buscando archivo: {self.matriz_base}")
+        print(f"Ruta: {path}")
+        print(f"¿Existe?: {exists}")
+        return exists
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
-    descripcion = models.TextField(blank=True, null=True, max_length=100)
+    descripcion = models.TextField(blank=True, null=True, max_length=200)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     equipo = models.CharField('Equipo', max_length=150, blank=True, null=True)  # Campo antiguo (temporal)
     equipo_nuevo = models.ForeignKey(
