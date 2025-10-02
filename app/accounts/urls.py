@@ -1,6 +1,5 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
-from .views import CustomLoginView, CustomLogoutView, crear_usuario,cambiar_contrasena_usuario,lista_usuarios,cambiar_contraseña, ListTeamsView,DispositivosEquipoView
+from .views import CustomLoginView, CustomLogoutView, crear_usuario,cambiar_contrasena_usuario,lista_usuarios,cambiar_contraseña, ListTeamsView,DispositivosEquipoView,CrearDispositivoView
 
 app_name = 'accounts_app'
 urlpatterns = [
@@ -12,4 +11,5 @@ urlpatterns = [
     path('admin/cambiar-contrasena/<int:user_id>/',cambiar_contrasena_usuario, name='cambiar_contrasena_usuario'),
     path('equipos/', ListTeamsView.as_view(), name='list_teams'),
     path('equipo/<int:pk>/dispositivos/', DispositivosEquipoView.as_view(), name='dispositivos_equipo'),
+    path('equipo/<int:equipo_id>/dispositivos/crear/', CrearDispositivoView.as_view(), name='crear_dispositivo'),
 ]
