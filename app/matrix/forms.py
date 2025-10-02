@@ -165,8 +165,8 @@ class ValidateForm(forms.ModelForm):
         exclude = ['super_matriz']
 
 
-from django import forms
-from .models import TicketPorLevantar
+# from django import forms
+# from .models import TicketPorLevantar
 
 class TicketPorLevantarForm(forms.ModelForm):
     PRIORIDAD_CHOICES = [

@@ -132,8 +132,8 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                                         <div class="modal-content">
                                             <form method="post" action="{% url 'matrix_app:editar_ticket' ticket.id %}">
                                                 {% csrf_token %}
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Editar Ticket #{{ ticket.id }}</h5>
+                                                <div class="modal-header bg-success">
+                                                    <h5 class="modal-title text-white">Editar Ticket #{{ ticket.id }}</h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                                                         aria-label="Cerrar"></button>
                                                 </div>
@@ -147,6 +147,13 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                                                         <label class="form-label">BRF</label>
                                                         <input type="text" name="BRF" class="form-control"
                                                             value="{{ ticket.BRF|default_if_none:'' }}">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Prioridad</label>
+                                                        <select name="prioridad" class="form-control">
+                                                            <option value="Bloqueante" {% if ticket.prioridad == 'Bloqueante' %}selected{% endif %}>Bloqueante</option>
+                                                            <option value="Critico" {% if ticket.prioridad == 'Critico' %}selected{% endif %}>Critico</option>
+                                                        </select>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Descripción</label>
@@ -165,9 +172,9 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary"
+                                                    <button type="button" class="btn btn-danger"
                                                         data-bs-dismiss="modal">Cancelar</button>
-                                                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                                    <button type="submit" class="btn btn-success">Guardar cambios</button>
                                                 </div>
                                             </form>
                                         </div>

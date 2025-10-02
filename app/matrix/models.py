@@ -100,6 +100,10 @@ class Validate(models.Model):
         ticket_url = f"https://dlatvarg.atlassian.net/browse/{self.ticket}" if self.ticket else "Sin Ticket"
         return f"{self.tester} — <a href='{ticket_url}' target='_blank'>{ticket_url}</a>"
 class TicketPorLevantar(models.Model):
+    PRIORIDAD_CHOICES = [
+        ('bloqueante', 'Bloqueante'),
+        ('critico', 'Critico'),
+    ]
     super_matriz = models.ForeignKey(SuperMatriz, on_delete=models.CASCADE, related_name='tickets_por_levantar')
     tester = models.CharField(max_length=100, blank=True, null=True)
     tester_asignado = models.ForeignKey(
@@ -113,7 +117,7 @@ class TicketPorLevantar(models.Model):
     BRF = models.CharField(max_length=30, blank=True, null=True)
     Region = models.CharField(max_length=100)
     desc = models.TextField(max_length=70)
-    prioridad = models.CharField(max_length=50)
+    prioridad = models.CharField(max_length=50, choices=PRIORIDAD_CHOICES)  
     nota = models.TextField(max_length=70)
     url = models.URLField(null=True, blank=True)
 

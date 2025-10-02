@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espacios de Trabajo por Equipo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .espacio-trabajo {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 5px solid #28a745;
+        }
+        .espacio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .espacio-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        .espacio-meta {
+            text-align: right;
+            color: #666;
+        }
+        .matrices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .matriz-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            transition: transform 0.2s;
+        }
+        .matriz-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .matriz-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #495057;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #28a745;
+        }
+        .matriz-info {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .porcentaje-alto { color: #28a745; font-weight: bold; }
+        .porcentaje-medio { color: #ffc107; font-weight: bold; }
+        .porcentaje-bajo { color: #dc3545; font-weight: bold; }
+        .fallos-badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .estadisticas-globales {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Espacios de Trabajo por Equipo</h1>
+        
+        {% if espacios_info %}
+            {% for espacio_data in espacios_info %}
+            <div class="espacio-trabajo">
+                <div class="espacio-header">
+                    <div>
+                        <h2 class="espacio-title">{{ espacio_data.espacio.nombre }}</h2>
+                        <p>{{ espacio_data.espacio.descripcion }}</p>
+                        <small><strong>Equipo:</strong> 
+                            {% if espacio_data.espacio.equipo_nuevo %}
+                                {{ espacio_data.espacio.equipo_nuevo.nombre }}
+                            {% else %}
+                                {{ espacio_data.espacio.equipo|default:"Sin equipo asignado" }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="espacio-meta">
+                        <div>Fecha creación: {{ espacio_data.espacio.fecha_creacion|date:"d/m/Y" }}</div>
+                        {% if espacio_data.espacio.fecha_fin %}
+                            <div>Fecha fin: {{ espacio_data.espacio.fecha_fin|date:"d/m/Y" }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="estadisticas-globales">
+                    Total Matrices: {{ espacio_data.total_matrices }} | 
+                    Casos Totales: {{ espacio_data.total_global_casos }} | 
+                    Completados: {{ espacio_data.total_global_completados }} | 
+                    Avance Global: 
+                    <span class="{% if espacio_data.porcentaje_total >= 80 %}porcentaje-alto{% elif espacio_data.porcentaje_total >= 50 %}porcentaje-medio{% else %}porcentaje-bajo{% endif %}">
+                        {{ espacio_data.porcentaje_total }}%
+                    </span>
+                </div>
+
+                {% if espacio_data.matrices_info %}
+                    <div class="matrices-grid">
+                        {% for matriz_info in espacio_data.matrices_info %}
+                        <div class="matriz-card">
+                            <div class="matriz-header">{{ matriz_info.matriz.nombre }}</div>
+                            
+                            <div class="matriz-info">
+                                <strong>Alcance:</strong> {{ matriz_info.alcance }}
+                            </div>
+                            
+                            <div class="matriz-info">
+                                <strong>Casos Totales:</strong> {{ matriz_info.total_casos }}
+                            </div>
+                            
+                            <div class="matriz-info">
+                                <strong>Completados:</strong> {{ matriz_info.casos_filtrados }}
+                            </div>
+                            
+                            <div class="matriz-info">
+                                <strong>Avance:</strong> 
+                                <span class="{% if matriz_info.porcentaje >= 80 %}porcentaje-alto{% elif matriz_info.porcentaje >= 50 %}porcentaje-medio{% else %}porcentaje-bajo{% endif %}">
+                                    {{ matriz_info.porcentaje }}%
+                                </span>
+                            </div>
+                            
+                            <div class="matriz-info">
+                                <strong>Fallos Blocker:</strong> 
+                                {% if matriz_info.num_fallos > 0 %}
+                                    <span class="fallos-badge">{{ matriz_info.num_fallos }}</span>
+                                {% else %}
+                                    <span style="color: #28a745;">0</span>
+                                {% endif %}
+                            </div>
+
+                            {% if matriz_info.matriz.dispositivo %}
+                            <div class="matriz-info">
+                                <strong>Dispositivo:</strong> {{ matriz_info.matriz.dispositivo }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        No hay matrices en este espacio de trabajo
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                No hay espacios de trabajo disponibles
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

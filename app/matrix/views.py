@@ -444,6 +444,7 @@ def actualizar_estado_validate(request):
             return JsonResponse({"success": False, "error": "Validate no encontrado"})
     return JsonResponse({"success": False, "error": "Método no permitido"})
 def tickets_por_levantar_view(request, super_matriz_id):
+    
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
     tickets = TicketPorLevantar.objects.filter(super_matriz=super_matriz)
 
@@ -476,11 +477,11 @@ def editar_ticket(request, ticket_id):
         ticket.ticket_SCT = request.POST.get('ticket_SCT', '').strip()
         ticket.BRF = request.POST.get('BRF', '').strip()
         ticket.desc = request.POST.get('desc', '').strip()
+        ticket.prioridad = request.POST.get('prioridad', '')  # Nueva línea
         ticket.nota = request.POST.get('nota', '').strip()
         ticket.url = request.POST.get('url', '').strip()
         ticket.save()
         
-        # Redirige a la página de lista de tickets de la supermatriz
         return redirect('matrix_app:tickets_por_levantar', super_matriz_id=ticket.super_matriz.id)
 
 @login_required
