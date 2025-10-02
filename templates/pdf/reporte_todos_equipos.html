@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1, h3 {
+            text-align: center;
+            margin: 5px 0;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: stretch; 
+        }
+        .col {
+            width: 47%;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column; 
+        }
+        .card {
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            background-color: #28a745;
+            color: white;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        .card-body {
+            padding: 8px;
+        }
+        p {
+            margin: 4px 0;
+        }
+        ul {
+            margin: 5px 0 0 15px;
+            padding: 0;
+        }
+        li.region {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        hr {
+            margin: 10px 0;
+            border: 0;
+            border-top: 1px solid #ccc;
+        }
+        .equipo-header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin: 8px 0;
+        }
+        .info-item {
+            padding: 3px;
+            border-left: 3px solid #28a745;
+        }
+        .badge {
+            background-color: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            margin: 1px;
+        }
+        .badge-success {
+            background-color: #28a745;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="equipo-header">
+            <h1>Reporte Completo de Todos los Equipos</h1>
+            <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
+            <p><strong>Total de Equipos:</strong> {{ total_equipos }}</p>
+            <p><strong>Total de Espacios de Trabajo:</strong> {{ total_supermatrices }}</p>
+        </div>
+
+        {% for equipo in equipos %}
+        <div class="equipo-section {% if not forloop.first %}page-break{% endif %}">
+            <h3>Equipo: {{ equipo.nombre }}</h3>
+            <p><strong>Total de Espacios de Trabajo:</strong> {{ equipo.supermatrices|length }}</p>
+            <hr>
+
+            {% for supermatriz in equipo.supermatrices %}
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">{{ supermatriz.nombre }}</div>
+                    <div class="card-body">
+                        <p><strong>Fecha Creación:</strong> {{ supermatriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Fecha Tentativa Fin:</strong> {{ supermatriz.fecha_fin|date:"d/m/Y"|default:"No definida" }}</p>
+                        <p><strong>Total Matrices:</strong> {{ supermatriz.cantidad_matrices }}</p>
+
+                        {% if supermatriz.matrices_detalladas %}
+                        <div class="info-grid">
+                            {% for matriz in supermatriz.matrices_detalladas %}
+                            <div class="info-item">
+                                <p><strong>Matriz:</strong> {{ matriz.nombre }}</p>
+                                <p><strong>Alcance:</strong> {{ matriz.alcance|default:"N/A" }}</p>
+                                <p><strong>Dispositivo:</strong> {{ matriz.dispositivo|default:"N/A" }}</p>
+                                <p><strong>Fecha Creación:</strong> {{ matriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                                <p><strong>Casos Bloqueantes:</strong> 
+                                    <span class="badge {% if matriz.casos_bloqueantes > 0 %}badge-danger{% else %}badge-success{% endif %}">
+                                        {{ matriz.casos_bloqueantes }}
+                                    </span>
+                                </p>
+                                <!-- <p><strong>Testers:</strong> 
+                                    {% if matriz.testers %}
+                                        {% for tester in matriz.testers %}
+                                            {{ tester.nombre }} {{ tester.apellido }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        Sin asignar
+                                    {% endif %}
+                                </p> -->
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p><em>No hay matrices en este espacio de trabajo</em></p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        
+        {% if not equipos %}
+        <div class="text-center">
+            <p>No hay equipos para mostrar</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -830,7 +830,7 @@ def descargar_pdf_equipo(request, equipo_id):
         # Crear el contenido HTML para el PDF
         html_string = render_to_string('pdf/reporte_equipo.html', {
             'equipo': equipo_info_detallado,
-            'fecha_generacion': timezone.now().strftime("%d/%m/%Y %H:%M"),
+            'fecha_generacion': timezone.now().strftime("%d/%m/%Y"),
         })
         
         # Crear PDF
@@ -848,3 +848,43 @@ def descargar_pdf_equipo(request, equipo_id):
     except Exception as e:
         print(f"Error generando PDF: {e}")
         return HttpResponse("Error generando el PDF", status=500)
+def descargar_pdf_todos_equipos(request):
+    """
+    View para descargar un PDF con TODOS los equipos y sus supermatrices completas
+    """
+    try:
+        # Usar nuestra función para obtener todos los equipos completos
+        resultado_completo = obtener_todos_los_equipos_completo(solo_activas=True)
+        
+        if not resultado_completo or not resultado_completo['equipos']:
+            return HttpResponse("No hay datos para generar el PDF", status=404)
+        
+        # Filtrar equipos excluyendo "Gerencia" y "Visitors"
+        equipos_filtrados = [
+            equipo for equipo in resultado_completo['equipos'] 
+            if equipo['nombre'] not in ['Gerencia', 'Visitors']
+        ]
+        
+        # Crear el contenido HTML para el PDF
+        html_string = render_to_string('pdf/reporte_todos_equipos.html', {
+            'equipos': equipos_filtrados,
+            'fecha_generacion': timezone.now().strftime("%d/%m/%Y"),
+            'total_equipos': len(equipos_filtrados),
+            'total_supermatrices': sum(len(equipo['supermatrices']) for equipo in equipos_filtrados)
+        })
+        
+        # Crear PDF
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_completo_equipos.pdf"'
+        
+        # Generar PDF
+        html.write_pdf(response)
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error generando PDF completo: {e}")
+        return HttpResponse("Error generando el PDF completo", status=500)

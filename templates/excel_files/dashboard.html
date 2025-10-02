@@ -54,7 +54,12 @@ Dashboard - Avances de Equipos
                         <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#descargasModal">
                             <i class="bi bi-file-earmark-pdf me-2"></i>Descargar Reportes PDF Por Equipo
                         </button>
+                        <!-- NUEVO BOTÓN PARA DESCARGAR TODO -->
+                        <button class="btn btn-primary btn-lg" onclick="descargarPDFTodosEquipos()">
+                            <i class="bi bi-download me-2"></i>Descargar Reporte Completo
+                        </button>
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -684,5 +689,9 @@ Dashboard - Avances de Equipos
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
     });
+    function descargarPDFTodosEquipos() {
+    const url = "{% url 'matrix_app:descargar_pdf_todos_equipos' %}";
+    window.open(url, '_blank');
+}
 </script>
 {% endblock content %}
