@@ -30,6 +30,8 @@
     --button-color: #3f51b5;
     --input-padding: 8px;
     --input-radius: 6px;
+    --butto-archive:#FEB21A;
+    ---button-update:#08CB00;
 }
 
 body {
@@ -88,13 +90,17 @@ body {
     background: var(--button-danger-hover);
 }
 
-.home-btn {
-    display: inline-block;
+.home-btn,.update-btn,.archive-btn,.dashboard-btn{
+    min-width: 7.5em;
+    display: flexbox;
+    align-items: center;
+    align-content: center;
+    text-align: center;
     text-decoration: none;
-    padding: 12px 24px;
-    font-size: 16px;
+    padding: .8em 1.5em;
+    font-size: 1em;
     font-weight: bold;
-    border-radius: 8px;
+    border-radius: 0.5em;
     cursor: pointer;
     transition: all 0.3s ease-in-out;
 }
@@ -111,17 +117,6 @@ body {
     box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);
 }
 .dashboard-btn {
-    display: inline-block;
-    text-decoration: none;
-    padding: 12px 24px;
-    font-size: 16px;
-    font-weight: bold;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-}
-
-.dashboard-btn {
     background-color: var(--button-dashboard);
     color: var(--header-color);
     box-shadow: 0 4px 6px rgba(11, 25, 44, 0.5);
@@ -132,6 +127,31 @@ body {
     color: var(--header-color);
     box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);
 }
+
+.archive-btn {
+    background-color: var(--butto-archive);
+    color: var(--header-color);
+    box-shadow: 0 4px 6px rgba(11, 25, 44, 0.5);
+}
+
+.archive-btn:hover {
+    background-color: var(--matrix-btn-hover);
+    color: var(--header-color);
+    box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);
+}
+.update-btn {
+    background-color: var(---button-update);
+    color: var(--header-color);
+    box-shadow: 0 4px 6px rgba(11, 25, 44, 0.5);
+}
+
+.update-btn:hover {
+    background-color: var(--matrix-btn-hover);
+    color: var(--header-color);
+    box-shadow: 0 6px 10px rgba(11, 25, 44, 0.5);
+}
+
+
 
 /*Estilos de Detalle Super Matriz */
 .progress {
