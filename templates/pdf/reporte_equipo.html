@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1, h3 {
+            text-align: center;
+            margin: 5px 0;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: stretch; 
+        }
+        .col {
+            width: 47%;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column; 
+        }
+        .card {
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .card-header {
+            background-color: #28a745;
+            color: white;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        .card-body {
+            padding: 8px;
+            flex-grow: 1;
+        }
+        p {
+            margin: 4px 0;
+        }
+        ul {
+            margin: 5px 0 0 15px;
+            padding: 0;
+        }
+        li.region {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        hr {
+            margin: 10px 0;
+            border: 0;
+            border-top: 1px solid #ccc;
+        }
+        .equipo-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .supermatriz-section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .supermatriz-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+        }
+        .testers-list {
+            background-color: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+        .casos-bloqueantes {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .no-matrices {
+            text-align: center;
+            font-style: italic;
+            color: #6c757d;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="equipo-header">
+            <h1>Reporte de Equipo: {{ equipo.equipo_nombre }}</h1>
+            <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
+            <p><strong>Total de SuperMatrices:</strong> {{ equipo.supermatrices|length }}</p>
+        </div>
+
+        {% for supermatriz in equipo.supermatrices %}
+        <div class="supermatriz-section">
+            <div class="supermatriz-header">
+                <h3>{{ supermatriz.nombre }}</h3>
+            </div>
+            
+            <div class="info-row">
+                <div>
+                    <p><strong>Fecha Creación:</strong> {{ supermatriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div>
+                    <p><strong>Fecha Tentativa Fin:</strong> {{ supermatriz.fecha_fin|date:"d/m/Y"|default:"No definida" }}</p>
+                    <p><strong>Total Matrices:</strong> {{ supermatriz.matrices_info|length }}</p>
+                </div>
+            </div>
+            
+            <hr>
+            
+            {% if supermatriz.matrices_info %}
+            <div class="row">
+                {% for matriz in supermatriz.matrices_info %}
+                <div class="col">
+                    <div class="card">
+                        <div class="card-header">{{ matriz.nombre }}</div>
+                        <div class="card-body">
+                            <p><strong>Fecha Creación:</strong> {{ matriz.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                            <p><strong>Alcance:</strong> {{ matriz.alcance|default:"N/A" }}</p>
+                            <p><strong>Dispositivo:</strong> {{ matriz.dispositivo|default:"N/A" }}</p>
+                            <p class="casos-bloqueantes"><strong>Casos Bloqueantes:</strong> {{ matriz.casos_bloqueantes }}</p>
+                            
+                            {% if matriz.testers %}
+                                <p><strong>Testers:</strong></p>
+                                <div class="testers-list">
+                                    {% for tester in matriz.testers %}
+                                        • {{ tester.nombre }} {{ tester.apellido }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p><strong>Testers:</strong> Sin asignar</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-matrices">
+                <p>No hay matrices en esta SuperMatriz</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if not forloop.last %}
+        <div style="page-break-after: always;"></div>
+        {% endif %}
+        {% endfor %}
+        
+        {% if not equipo.supermatrices %}
+        <div class="no-matrices">
+            <p>No hay SuperMatrices activas en este equipo</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -51,6 +51,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import SuperMatriz, Matriz
 from .forms import MatrizForm, ValidateForm
+from django.utils import timezone
 import os
 import random
 @login_required
@@ -791,13 +792,12 @@ def editar_descripcion(request, pk):
         "supermatriz": supermatriz
     }
     return render(request, "home.html", context)
-
 def descargar_pdf_equipo(request, equipo_id):
     """
-    View para descargar un PDF con la información de un equipo en el formato específico
+    View para descargar un PDF con todas las supermatrices de un equipo
     """
     try:
-        # Obtener información del equipo usando nuestras funciones
+        # Obtener información completa del equipo usando nuestras funciones
         resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(
             equipo_id, 
             solo_activas=True
@@ -806,7 +806,7 @@ def descargar_pdf_equipo(request, equipo_id):
         if not resultado_equipo:
             return HttpResponse("Equipo no encontrado", status=404)
         
-        # Procesar cada supermatriz para obtener información detallada
+        # Obtener información detallada de cada supermatriz y sus matrices
         equipo_info_detallado = {
             'equipo_nombre': resultado_equipo['equipo_nombre'],
             'supermatrices': []
@@ -816,45 +816,19 @@ def descargar_pdf_equipo(request, equipo_id):
             # Obtener matrices de esta supermatriz
             matrices_info = obtener_matrices_por_supermatriz(supermatriz['id'])
             
-            if matrices_info:
-                # Procesar cada matriz para calcular porcentajes y otra información
-                matrices_detalladas = []
-                for matriz in matrices_info['matrices']:
-                    # Calcular porcentaje (simulado - ajusta según tu lógica)
-                    total_casos = matriz.get('total_casos', 0)  # Necesitarías agregar esta info
-                    casos_completos = matriz.get('casos_completos', 0)  # Necesitarías agregar esta info
-                    porcentaje = (casos_completos / total_casos * 100) if total_casos > 0 else 0
-                    
-                    # Obtener países (simulado - ajusta según tu modelo)
-                    paises = matriz.get('paises', [])  # Necesitarías agregar esta info
-                    
-                    matriz_detallada = {
-                        'matriz': {
-                            'nombre': matriz['nombre'],
-                            'alcance': matriz['alcance'],
-                            'total_casos': total_casos,
-                            'casos_completos': casos_completos,
-                            'porcentaje': porcentaje,
-                            'paises': paises,
-                            'num_fallos': matriz['casos_bloqueantes']  # Usamos los casos bloqueantes como fallos
-                        }
-                    }
-                    matrices_detalladas.append(matriz_detallada)
-                
-                # Calcular porcentaje total para la supermatriz (simulado)
-                porcentaje_total = sum(m['matriz']['porcentaje'] for m in matrices_detalladas) / len(matrices_detalladas) if matrices_detalladas else 0
-                
-                supermatriz_detallada = {
-                    'nombre': supermatriz['nombre'],
-                    'descripcion': supermatriz['descripcion'],
-                    'porcentaje_total': porcentaje_total,
-                    'matrices_info': matrices_detalladas
-                }
-                
-                equipo_info_detallado['supermatrices'].append(supermatriz_detallada)
+            supermatriz_detallada = {
+                'id': supermatriz['id'],
+                'nombre': supermatriz['nombre'],
+                'descripcion': supermatriz['descripcion'],
+                'fecha_creacion': supermatriz['fecha_creacion'],
+                'fecha_fin': supermatriz['fecha_fin'],
+                'matrices_info': matrices_info['matrices'] if matrices_info else []
+            }
+            
+            equipo_info_detallado['supermatrices'].append(supermatriz_detallada)
         
-        # Crear el contenido HTML para el PDF usando tu template específico
-        html_string = render_to_string('pdf/reporte_avance_equipo.html', {
+        # Crear el contenido HTML para el PDF
+        html_string = render_to_string('pdf/reporte_equipo.html', {
             'equipo': equipo_info_detallado,
             'fecha_generacion': timezone.now().strftime("%d/%m/%Y %H:%M"),
         })

@@ -27,6 +27,7 @@ urlpatterns = [
     path('archivar-super-matriz/<int:matriz_id>/', views.archivar_super_matriz, name='archivar_super_matriz'),
     path('matrices-archivadas/', views.matrices_archivadas, name='matrices_archivadas'),
     path('desarchivar-super-matriz/<int:matriz_id>/', views.desarchivar_super_matriz, name='desarchivar_super_matriz'),
+    path('equipo/<int:equipo_id>/descargar-pdf/', views.descargar_pdf_equipo, name='descargar_pdf_equipo'),
 
 ]   
 
