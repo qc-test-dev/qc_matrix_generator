@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -43,7 +43,7 @@ from weasyprint import HTML
 from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import locale, json
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 from django.shortcuts import render, get_object_or_404, redirect
@@ -53,9 +53,6 @@ from .models import SuperMatriz, Matriz
 from .forms import MatrizForm, ValidateForm
 import os
 import random
-from django.conf import settings
-from .utils import importar_matriz_desde_excel, matriz_info
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     from collections import defaultdict
@@ -795,3 +792,85 @@ def editar_descripcion(request, pk):
     }
     return render(request, "home.html", context)
 
+def descargar_pdf_equipo(request, equipo_id):
+    """
+    View para descargar un PDF con la información de un equipo en el formato específico
+    """
+    try:
+        # Obtener información del equipo usando nuestras funciones
+        resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(
+            equipo_id, 
+            solo_activas=True
+        )
+        
+        if not resultado_equipo:
+            return HttpResponse("Equipo no encontrado", status=404)
+        
+        # Procesar cada supermatriz para obtener información detallada
+        equipo_info_detallado = {
+            'equipo_nombre': resultado_equipo['equipo_nombre'],
+            'supermatrices': []
+        }
+        
+        for supermatriz in resultado_equipo['supermatrices']:
+            # Obtener matrices de esta supermatriz
+            matrices_info = obtener_matrices_por_supermatriz(supermatriz['id'])
+            
+            if matrices_info:
+                # Procesar cada matriz para calcular porcentajes y otra información
+                matrices_detalladas = []
+                for matriz in matrices_info['matrices']:
+                    # Calcular porcentaje (simulado - ajusta según tu lógica)
+                    total_casos = matriz.get('total_casos', 0)  # Necesitarías agregar esta info
+                    casos_completos = matriz.get('casos_completos', 0)  # Necesitarías agregar esta info
+                    porcentaje = (casos_completos / total_casos * 100) if total_casos > 0 else 0
+                    
+                    # Obtener países (simulado - ajusta según tu modelo)
+                    paises = matriz.get('paises', [])  # Necesitarías agregar esta info
+                    
+                    matriz_detallada = {
+                        'matriz': {
+                            'nombre': matriz['nombre'],
+                            'alcance': matriz['alcance'],
+                            'total_casos': total_casos,
+                            'casos_completos': casos_completos,
+                            'porcentaje': porcentaje,
+                            'paises': paises,
+                            'num_fallos': matriz['casos_bloqueantes']  # Usamos los casos bloqueantes como fallos
+                        }
+                    }
+                    matrices_detalladas.append(matriz_detallada)
+                
+                # Calcular porcentaje total para la supermatriz (simulado)
+                porcentaje_total = sum(m['matriz']['porcentaje'] for m in matrices_detalladas) / len(matrices_detalladas) if matrices_detalladas else 0
+                
+                supermatriz_detallada = {
+                    'nombre': supermatriz['nombre'],
+                    'descripcion': supermatriz['descripcion'],
+                    'porcentaje_total': porcentaje_total,
+                    'matrices_info': matrices_detalladas
+                }
+                
+                equipo_info_detallado['supermatrices'].append(supermatriz_detallada)
+        
+        # Crear el contenido HTML para el PDF usando tu template específico
+        html_string = render_to_string('pdf/reporte_avance_equipo.html', {
+            'equipo': equipo_info_detallado,
+            'fecha_generacion': timezone.now().strftime("%d/%m/%Y %H:%M"),
+        })
+        
+        # Crear PDF
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="reporte_equipo_{resultado_equipo["equipo_nombre"]}.pdf"'
+        
+        # Generar PDF
+        html.write_pdf(response)
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error generando PDF: {e}")
+        return HttpResponse("Error generando el PDF", status=500)

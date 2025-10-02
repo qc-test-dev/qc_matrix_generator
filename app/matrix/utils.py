@@ -432,7 +432,6 @@ def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
                 'descripcion': supermatriz.descripcion,
                 'fecha_creacion': supermatriz.fecha_creacion,
                 'fecha_fin': supermatriz.fecha_fin,
-                'archivado': supermatriz.archivado,
                 'cantidad_matrices': supermatriz.matrices.count()
             })
         
@@ -443,4 +442,52 @@ def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
         }
         
     except Equipo.DoesNotExist:
+        return None
+def obtener_todos_los_equipos_completo(solo_activas=True):
+    """
+    Obtiene todos los equipos con todas sus supermatrices y matrices completas
+    
+    Args:
+        solo_activas (bool): Si True, solo retorna supermatrices no archivadas
+    
+    Returns:
+        list: Lista de equipos con toda su información anidada
+    """
+    try:
+        equipos = Equipo.objects.all().order_by('nombre')
+        
+        equipos_completos = []
+        
+        for equipo in equipos:
+            # Obtener supermatrices del equipo
+            resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(equipo.id, solo_activas)
+            
+            if resultado_equipo:
+                equipo_info = {
+                    'id': equipo.id,
+                    'nombre': equipo.nombre,
+                    'supermatrices': []
+                }
+                
+                # Para cada supermatriz, obtener sus matrices completas
+                for supermatriz in resultado_equipo['supermatrices']:
+                    # Obtener matrices de esta supermatriz
+                    matrices_resultado = obtener_matrices_por_supermatriz(supermatriz['id'])
+                    
+                    supermatriz_completa = {
+                        **supermatriz,
+                        'matrices_detalladas': matrices_resultado['matrices'] if matrices_resultado else []
+                    }
+                    
+                    equipo_info['supermatrices'].append(supermatriz_completa)
+                
+                equipos_completos.append(equipo_info)
+        
+        return {
+            'total_equipos': len(equipos_completos),
+            'equipos': equipos_completos
+        }
+        
+    except Exception as e:
+        print(f"Error obteniendo todos los equipos completos: {e}")
         return None
