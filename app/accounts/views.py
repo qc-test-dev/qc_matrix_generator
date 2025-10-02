@@ -1,3 +1,4 @@
+import pandas as pd
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect
@@ -8,11 +9,14 @@ from django.utils.translation import activate
 
 from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
 from .models import Equipo
-from django.views.generic import ListView,DetailView,CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from app.matrix.forms import Dispositivo
 from .forms import DispositivoForm
 from django.conf import settings
 import os
+
+from .utils import validar_formato_operativo, validar_formato_no_operativo
+
 User = get_user_model()
 
 
@@ -187,3 +191,105 @@ class CrearDispositivoView(CreateView):
                 destino.write(chunk)
         
         print(f"Archivo guardado en: {destino_path}")  # Para debug
+
+
+class EditarDispositivoView(UpdateView):
+    model = Dispositivo
+    form_class = DispositivoForm
+    template_name = 'teams/dispositivos_equipo.html'  # Usar el mismo template
+
+    def get_object(self, queryset=None):
+        dispositivo_id = self.kwargs.get('pk')
+        equipo_id = self.kwargs.get('equipo_id')
+        return get_object_or_404(Dispositivo, id=dispositivo_id, equipo_id=equipo_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        equipo_id = self.kwargs.get('equipo_id')
+        equipo = get_object_or_404(Equipo, id=equipo_id)
+
+        # Agregar el mismo contexto que DispositivosEquipoView
+        context['equipo'] = equipo
+        context['dispositivos_operativos'] = equipo.dispositivos.filter(operativo=True)
+        context['dispositivos_no_operativos'] = equipo.dispositivos.filter(operativo=False)
+        context['total_dispositivos'] = equipo.dispositivos.count()
+        context['abrir_modal_edicion'] = True
+
+        return context
+
+    def get_success_url(self):
+        equipo_id = self.kwargs.get('equipo_id')
+        return reverse_lazy('accounts_app:dispositivos_equipo', kwargs={'pk': equipo_id})
+
+    def form_valid(self, form):
+        try:
+            dispositivo = form.save(commit=False)
+            archivo_excel = self.request.FILES.get('archivo_excel')
+
+            # Si se subió un nuevo archivo
+            if archivo_excel:
+                # Validar el archivo
+                df = pd.read_excel(archivo_excel)
+
+                if dispositivo.operativo:
+                    validar_formato_operativo(df)
+                else:
+                    validar_formato_no_operativo(df)
+
+
+                nombre_archivo = archivo_excel.name
+                dispositivo.matriz_base = nombre_archivo
+
+
+                self.guardar_archivo_excel(archivo_excel, nombre_archivo)
+
+
+            dispositivo.save()
+            messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" actualizado correctamente.')
+            return redirect(self.get_success_url())
+
+        except Exception as e:
+            messages.error(self.request, f"Error al procesar el archivo: {str(e)}")
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Por favor corrige los errores del formulario.')
+        return super().form_invalid(form)
+
+    def guardar_archivo_excel(self, archivo, nombre_archivo):
+
+        excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
+        os.makedirs(excel_dir, exist_ok=True)
+
+        destino_path = os.path.join(excel_dir, nombre_archivo)
+
+        # Guardar el archivo
+        with open(destino_path, 'wb+') as destino:
+            for chunk in archivo.chunks():
+                destino.write(chunk)
+
+        print(f"Archivo actualizado en: {destino_path}")
+
+
+@login_required
+@user_passes_test(is_admin)
+def eliminar_dispositivo(request, equipo_id, dispositivo_id):
+    """Vista para eliminar un dispositivo (sin eliminar el archivo Excel)"""
+    dispositivo = get_object_or_404(Dispositivo, id=dispositivo_id, equipo_id=equipo_id)
+
+    if request.method == 'POST':
+        nombre_dispositivo = dispositivo.nombre
+        nombre_archivo = dispositivo.matriz_base
+
+        # Solo eliminar el dispositivo, NO el archivo Excel
+        dispositivo.delete()
+
+        messages.success(
+            request,
+            f'Dispositivo "{nombre_dispositivo}" eliminado correctamente. '
+            f'El archivo "{nombre_archivo}" se mantiene en el sistema.'
+        )
+        return redirect('accounts_app:dispositivos_equipo', pk=equipo_id)
+
+    # Si no es POST, redirigir a la lista
+    return redirect('accounts_app:dispositivos_equipo', pk=equipo_id)

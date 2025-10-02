@@ -89,13 +89,18 @@ Dispositivos - {{ equipo.nombre }}
                                                 <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
                                             </p>
                                         </div>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <div class="btn-group">
+                                                <button
+                                                     class="btn btn-sm btn-outline-primary"
+                                                     data-bs-toggle="modal"
+                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
+                                                   <i class="fas fa-edit">Editar</i>
+                                               </button>
+                                                  <button class="btn btn-sm btn-outline-danger"
+                                                          data-bs-toggle="modal"
+                                                          data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                                        <i class="fas fa-trash me-1"></i>Eliminar
+                                                  </button>
                                         </div>
                                     </div>
                                     {% endfor %}
@@ -131,11 +136,16 @@ Dispositivos - {{ equipo.nombre }}
                                             </p>
                                         </div>
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
+                                            <button
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-edit">Editar</i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-trash me-1"></i>Eliminar
                                             </button>
                                         </div>
                                     </div>
@@ -175,11 +185,16 @@ Dispositivos - {{ equipo.nombre }}
                                             </span>
                                         </div>
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
+                                            <button
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-edit">Editar</i>
                                             </button>
-                                            <button class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-trash me-1"></i>Eliminar
                                             </button>
                                         </div>
                                     </div>
@@ -282,6 +297,101 @@ Dispositivos - {{ equipo.nombre }}
     </div>
 </div>
 
+{% for dispositivo in equipo.dispositivos.all %}
+<div class="modal fade" id="editarDispositivoModal{{ dispositivo.id }}" tabindex="-1" aria-labelledby="editarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarDispositivoModalLabel{{ dispositivo.id }}">
+                    <i class="fas fa-edit me-2"></i>Editar Dispositivo: {{ dispositivo.nombre }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Dispositivo</label>
+                                <input type="text" name="nombre" class="form-control" value="{{ dispositivo.nombre }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado Operativo</label>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" name="operativo" class="form-check-input" id="operativo_edit{{ dispositivo.id }}"
+                                           {% if dispositivo.operativo %}checked{% endif %}>
+                                    <label class="form-check-label" for="operativo_edit{{ dispositivo.id }}">
+                                        ¿Es operativo?
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Archivo Excel (opcional)</label>
+                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx">
+                        <div class="form-text">
+                            <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
+                            Si no seleccionas un archivo nuevo, se mantendrá el actual.
+                        </div>
+                    </div>
+
+                    <!-- Campo oculto para el equipo -->
+                    <input type="hidden" name="equipo" value="{{ equipo.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal de confirmación para eliminar dispositivo -->
+{% for dispositivo in equipo.dispositivos.all %}
+<div class="modal fade" id="eliminarDispositivoModal{{ dispositivo.id }}" tabindex="-1" aria-labelledby="eliminarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="eliminarDispositivoModalLabel{{ dispositivo.id }}">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>¡Advertencia!</strong> Esta acción no se puede deshacer.
+                </div>
+                <p>¿Estás seguro de que deseas eliminar el dispositivo <strong>"{{ dispositivo.nombre }}"</strong>?</p>
+                <p class="text-muted small">
+                    <strong>Matriz base asociada:</strong> {{ dispositivo.matriz_base }}<br>
+                    <strong>Nota:</strong> El archivo Excel se mantendrá en el sistema y podrá ser utilizado por otros dispositivos.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <form method="post" action="{% url 'accounts_app:eliminar_dispositivo' equipo.id dispositivo.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Eliminar Dispositivo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
 <style>
 .nav-tabs .nav-link {
     border: none;
@@ -307,5 +417,48 @@ Dispositivos - {{ equipo.nombre }}
     border-top-right-radius: 0;
 }
 </style>
+
+
+{% block extra_js %}
+<script>
+// Abrir automáticamente el modal de edición si hay errores
+{% if form.errors and abrir_modal_edicion %}
+    document.addEventListener('DOMContentLoaded', function() {
+        // Encontrar el modal de edición correspondiente al dispositivo que se está editando
+        {% if form.instance.id %}
+            var modal = new bootstrap.Modal(document.getElementById('editarDispositivoModal{{ form.instance.id }}'));
+            modal.show();
+        {% endif %}
+    });
+{% endif %}
+
+// Mostrar errores específicos en el modal de edición
+{% if form.errors %}
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mostrar alerta de errores
+        const errorAlert = document.createElement('div');
+        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+        errorAlert.innerHTML = `
+            <strong>Errores en el formulario:</strong>
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        // Insertar en el modal activo
+        const activeModal = document.querySelector('.modal.show');
+        if (activeModal) {
+            const modalBody = activeModal.querySelector('.modal-body');
+            modalBody.insertBefore(errorAlert, modalBody.firstChild);
+        }
+    });
+{% endif %}
+</script>
+{% endblock %}
 
 {% endblock content %}
