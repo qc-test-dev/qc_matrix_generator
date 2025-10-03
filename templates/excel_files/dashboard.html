@@ -7,7 +7,6 @@ Dashboard - Avances de Equipos
 
 {% block content %}
 {% include 'includes/header.html' %}
-
 <div class="container-lg">
     <div class="row">
         <!-- Columna lateral: Equipos -->
@@ -48,15 +47,26 @@ Dashboard - Avances de Equipos
                 <div id="espaciosTrabajoContainer" class="row row-cols-1 row-cols-md-2 g-4"></div>
                 <div id="emptyMessage" class="text-center py-5 d-none">
                     <i class="bi bi-calendar-x fs-1 text-muted"></i>
-                    <h4 class="mt-3 text-muted" id="emptyMessageText">No hay espacios de trabajo para mostrar</h4>
-                    <p id="emptyMessageSubtext">Selecciona un equipo para ver sus espacios de trabajo</p>
+                    <h4 class="mt-3 text-muted" id="emptyMessageText"></h4>
+                    <p id="emptyMessageSubtext"></p>
+                    <!-- BOTÓN PARA DESCARGAR PDFS - SOLO SE MUESTRA EN "TODOS" -->
+                    <div class="mt-4" id="descargaTodosContainer">
+                        <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#descargasModal">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>Descargar Reportes PDF Por Equipo
+                        </button>
+                        <!-- NUEVO BOTÓN PARA DESCARGAR TODO -->
+                        <button class="btn btn-primary btn-lg" onclick="descargarPDFTodosEquipos()">
+                            <i class="bi bi-download me-2"></i>Descargar Reporte Completo
+                        </button>
+                    </div>
+                    
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal detalle de matrices - Versión Mejorada -->
+<!-- Modal detalle de matrices -->
 <div class="modal fade" id="matricesModal" tabindex="-1" aria-labelledby="matricesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
@@ -78,395 +88,36 @@ Dashboard - Avances de Equipos
     </div>
 </div>
 
-<style>
-    .calendar-wrapper {
-        overflow-x: auto;
-        padding-bottom: 10px;
-    }
-    
-    .calendar-container {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 6px;
-        text-align: center;
-        font-size: 1rem;
-        padding: 15px;
-        background-color: #cce5ff;
-        border-radius: 8px;
-        min-width: 600px;
-        min-height: 450px;
-        max-height: 450px;
-        overflow: hidden;
-    }
-    
-    .calendar-day {
-        padding: 8px 5px;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        background: #fff;
-        min-height: 70px;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .weekend-day {
-        background-color: #f8f9fa;
-    }
-    
-    .day-number {
-        font-weight: bold;
-        margin-bottom: 5px;
-        color: #495057;
-        font-size: 0.9rem;
-        line-height: 1.2;
-    }
-    
-    .weekend-day .day-number {
-        color: #6c757d;
-    }
-    
-    .event-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin: 1px;
-        display: inline-block;
-    }
-    
-    .dots-container {
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 2px;
-        margin-top: auto;
-        padding-top: 5px;
-    }
-    
-    .calendar-container > div:not(.calendar-day) {
-        font-weight: bold;
-        padding: 8px 5px;
-        background-color: #e9ecef;
-        border-radius: 4px;
-        font-size: 0.85rem;
-    }
-    
-    .calendar-container > div:nth-child(7),
-    .calendar-container > div:nth-child(1) {
-        background-color: #d1ecf1;
-    }
-
-    .espacio-trabajo-card {
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        cursor: pointer;
-        transition: transform 0.2s;
-    }
-    
-    .espacio-trabajo-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .espacio-trabajo-header {
-        padding: 15px;
-        color: white;
-        font-weight: bold;
-    }
-    
-    .espacio-trabajo-body {
-        padding: 15px;
-        background: white;
-    }
-    
-    .stat-value {
-        font-weight: bold;
-        font-size: 1.2rem;
-    }
-    
-    .progress-container {
-        margin-top: 10px;
-    }
-    
-    .progress-label {
-        display: flex;
-        justify-content: between;
-        font-size: 0.8rem;
-        margin-bottom: 5px;
-        color: #6c757d;
-    }
-    
-    .progress {
-        height: 8px;
-        border-radius: 4px;
-        background-color: #e9ecef;
-    }
-    
-    .progress-bar {
-        border-radius: 4px;
-    }
-
-    #equiposContainer button {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: white;
-        border: none;
-    }
-    
-    .equipo-activo {
-        transform: translateX(10px);
-        box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
-    }
-
-    .modal-matriz-header {
-        color: white;
-        border-bottom: none;
-        padding: 1.5rem;
-    }
-    
-    .matriz-card {
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        margin-bottom: 1.5rem;
-        border: none;
-        overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    .matriz-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-    }
-    
-    .matriz-card-header {
-        padding: 1rem 1.5rem;
-        font-weight: 600;
-        font-size: 1.1rem;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-    
-    .matriz-card-body {
-        padding: 1.5rem;
-    }
-    
-    .stat-card {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-        height: 100%;
-        transition: background-color 0.3s;
-    }
-    
-    .stat-card:hover {
-        background: #e9ecef;
-    }
-    
-    .stat-number {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-        font-size: 0.85rem;
-        color: #6c757d;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .progress {
-        height: 12px;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    
-    .progress-bar {
-        border-radius: 10px;
-    }
-    
-    .badge-custom {
-        padding: 0.5em 0.8em;
-        border-radius: 20px;
-        font-weight: 500;
-    }
-    
-    .tester-badge {
-        background-color: #e8f5e8;
-        color: #2e7d32;
-        margin: 0.2rem;
-        padding: 0.4rem 0.8rem;
-        border-radius: 15px;
-        display: inline-block;
-        font-size: 0.8rem;
-    }
-    
-    .region-title {
-        color: #5a67d8;
-        font-weight: 600;
-        margin-top: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-        margin: 1rem 0;
-    }
-    
-    .info-item {
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 8px;
-    }
-    
-    .info-item h6 {
-        color: #4a5568;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .info-item p {
-        color: #2d3748;
-        font-weight: 600;
-        margin: 0;
-        font-size: 1.1rem;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #a0aec0;
-    }
-    
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-    }
-
-    .badge.bg-danger {
-        background-color: #dc3545 !important;
-    }
-
-    .badge.bg-success {
-        background-color: #28a745 !important;
-    }
-
-    .alert {
-        border-radius: 8px;
-        border: none;
-    }
-
-    .alert-warning {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-
-    .alert-success {
-        background-color: #d1edff;
-        color: #0c5460;
-    }
-
-    .text-danger {
-        color: #dc3545 !important;
-        font-weight: bold;
-    }
-
-    .text-success {
-        color: #28a745 !important;
-    }
-
-    .pdf-btn-container {
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px solid #e9ecef;
-    }
-
-    /* Nuevos estilos para fallas blocker en cards */
-    .fallas-container {
-        margin-top: 10px;
-        padding: 10px;
-        border-radius: 6px;
-        background-color: #f8f9fa;
-    }
-
-    .fallas-badge {
-        font-size: 0.75rem;
-        padding: 0.4em 0.6em;
-    }
-
-    .fallas-warning {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-    }
-
-    .fallas-success {
-        background-color: #d1edff;
-        border: 1px solid #b8daff;
-        color: #0c5460;
-    }
-
-    @media (max-width: 768px) {
-        .calendar-container {
-            min-width: 100%;
-            min-height: 400px;
-            max-height: 400px;
-            padding: 10px;
-            gap: 4px;
-        }
-        
-        .calendar-day {
-            min-height: 60px;
-            padding: 5px 3px;
-        }
-        
-        .day-number {
-            font-size: 0.8rem;
-        }
-        
-        .event-dot {
-            width: 10px;
-            height: 10px;
-        }
-        
-        .calendar-container > div:not(.calendar-day) {
-            font-size: 0.75rem;
-            padding: 5px 3px;
-        }
-        
-        .info-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .matriz-card-body {
-            padding: 1rem;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .calendar-container {
-            min-height: 350px;
-            max-height: 350px;
-        }
-        
-        .calendar-day {
-            min-height: 50px;
-        }
-        
-        .day-number {
-            font-size: 0.75rem;
-        }
-        
-        .modal-dialog {
-            margin: 0.5rem;
-        }
-    }
-</style>
+<!-- NUEVO MODAL PARA DESCARGAS PDF -->
+<div class="modal fade" id="descargasModal" tabindex="-1" aria-labelledby="descargasModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="descargasModalLabel">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Descargar Reportes PDF
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-4">Selecciona un equipo para descargar su reporte en PDF:</p>
+                
+                <div class="row g-3" id="botonesDescargaEquipos">
+                    <!-- Los botones se generarán dinámicamente aquí -->
+                </div>
+                
+                <div class="mt-4 p-3 bg-light rounded">
+                    <h6><i class="bi bi-info-circle me-2"></i>Información</h6>
+                    <p class="mb-0 small">Cada reporte incluye todos los espacios de trabajo del equipo con información detallada de matrices, casos de prueba y progreso.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     const matrices = {{ matrices_json|safe }};
@@ -479,6 +130,46 @@ Dashboard - Avances de Equipos
     let equipoFiltrado = null;
     let equipoActivoBtn = document.getElementById('btnTodos');
     let mesSeleccionado = 'actual';
+
+    // === Función para generar botones de descarga en el modal ===
+    function generarBotonesDescarga() {
+        const container = document.getElementById('botonesDescargaEquipos');
+        container.innerHTML = '';
+        
+        // Filtrar equipos excluyendo "Gerencia" y "Visitors"
+        const equiposFiltrados = equipos.filter(equipo => 
+            equipo.nombre !== 'Gerencia' && equipo.nombre !== 'Visitors'
+        );
+        
+        equiposFiltrados.forEach(equipo => {
+            const col = document.createElement('div');
+            col.className = 'col-md-6';
+            
+            col.innerHTML = `
+                <button class="btn btn-outline-success w-100 h-100 p-3" onclick="descargarPDFEquipo(${equipo.id})">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="bi bi-file-earmark-pdf me-2 fs-4"></i>
+                        <div class="text-start">
+                            <div class="fw-bold">${equipo.nombre}</div>
+                            <small class="text-muted">${equipo.supermatrices ? equipo.supermatrices.length : 0} Espacios de trabajo</small>
+                        </div>
+                    </div>
+                </button>
+            `;
+            
+            container.appendChild(col);
+        });
+    }
+
+    // === Función para descargar PDF del equipo específico ===
+    function descargarPDFEquipo(equipoId) {
+        const url = "{% url 'matrix_app:descargar_pdf_equipo' 0 %}".replace('0', equipoId);
+        window.open(url, '_blank');
+        
+        // Cerrar el modal después de iniciar la descarga
+        const modal = bootstrap.Modal.getInstance(document.getElementById('descargasModal'));
+        modal.hide();
+    }
 
     // === Función para obtener el ID de la supermatriz ===
     function obtenerSupermatrizId(espacio) {
@@ -549,7 +240,7 @@ Dashboard - Avances de Equipos
         mostrarEspaciosTrabajo(equipoFiltrado);
     }
 
-    // === Obtener matrices filtradas por mes - SOLUCIÓN ROBUSTA ===
+    // === Obtener matrices filtradas por mes ===
     function obtenerMatricesPorMes(equipoNombre) {
         const ahora = new Date();
         let mesObjetivo, añoObjetivo;
@@ -567,25 +258,17 @@ Dashboard - Avances de Equipos
             matricesFiltradas = matrices.filter(m => m.equipo === equipoNombre);
         }
         
-        console.log(`=== FILTRADO MES ${mesSeleccionado.toUpperCase()} ===`);
-        console.log('Mes objetivo:', mesObjetivo + 1, 'Año:', añoObjetivo);
-        console.log('Total matrices a filtrar:', matricesFiltradas.length);
-        
         const matricesResultado = matricesFiltradas.filter(matriz => {
-            // Crear fechas sin problemas de zona horaria
             const fechaInicio = new Date(matriz.fecha_creacion + 'T12:00:00');
             let fechaFin = matriz.fecha_fin ? 
                 new Date(matriz.fecha_fin + 'T23:59:59') : 
                 new Date();
             
-            // Extraer componentes de fecha de manera segura
             const añoInicio = fechaInicio.getFullYear();
             const mesInicio = fechaInicio.getMonth();
             const añoFin = fechaFin.getFullYear();
             const mesFin = fechaFin.getMonth();
-            const diaFin = fechaFin.getDate();
             
-            // LÓGICA PRINCIPAL MEJORADA:
             const comienzaAntesDelFin = 
                 añoInicio < añoObjetivo || 
                 (añoInicio === añoObjetivo && mesInicio <= mesObjetivo);
@@ -594,7 +277,6 @@ Dashboard - Avances de Equipos
                 añoFin > añoObjetivo || 
                 (añoFin === añoObjetivo && mesFin >= mesObjetivo);
             
-            // CONDICIÓN ESPECIAL: Si termina en la primera semana del mes siguiente
             let terminaEnPrimeraSemanaDelMesSiguiente = false;
             
             if (matriz.fecha_fin) {
@@ -612,96 +294,86 @@ Dashboard - Avances de Equipos
             const activoEnMes = comienzaAntesDelFin && 
                                (terminaDespuesDelInicio || terminaEnPrimeraSemanaDelMesSiguiente);
             
-            console.log(`Matriz: ${matriz.supermatriz}`);
-            console.log('  - Inicio:', añoInicio + '-' + (mesInicio + 1));
-            console.log('  - Fin:', añoFin + '-' + (mesFin + 1) + '- día ' + diaFin);
-            console.log('  - Mes objetivo:', añoObjetivo + '-' + (mesObjetivo + 1));
-            console.log('  - Comienza antes del fin:', comienzaAntesDelFin);
-            console.log('  - Termina después del inicio:', terminaDespuesDelInicio);
-            console.log('  - Termina en primera semana del mes siguiente:', terminaEnPrimeraSemanaDelMesSiguiente);
-            console.log('  - ACTIVO EN ESTE MES:', activoEnMes);
-            
             return activoEnMes;
         });
         
-        console.log('Matrices encontradas:', matricesResultado.length);
-        console.log('Matrices activas:', matricesResultado.map(m => m.supermatriz));
         return matricesResultado;
     }
 
- // === Render calendario - SIN ACTIVIDADES EN SÁBADOS Y DOMINGOS ===
-function renderCalendar(containerId, monthOffset) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    const today = new Date();
-    today.setMonth(today.getMonth() + monthOffset);
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
-    const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    
-    daysOfWeek.forEach(d => {
-        const dayElement = document.createElement('div');
-        dayElement.textContent = d;
-        container.appendChild(dayElement);
-    });
-
-    for (let i = 0; i < firstDay; i++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.classList.add('calendar-day');
-        if (i === 0) emptyCell.classList.add('weekend-day');
-        container.appendChild(emptyCell);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateObj = new Date(year, month, day);
-        const dayOfWeek = dateObj.getDay();
+    // === Render calendario ===
+    function renderCalendar(containerId, monthOffset) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        const today = new Date();
+        today.setMonth(today.getMonth() + monthOffset);
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        const cell = document.createElement('div');
-        cell.classList.add('calendar-day');
+        const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            cell.classList.add('weekend-day');
+        daysOfWeek.forEach(d => {
+            const dayElement = document.createElement('div');
+            dayElement.textContent = d;
+            container.appendChild(dayElement);
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.classList.add('calendar-day');
+            if (i === 0) emptyCell.classList.add('weekend-day');
+            container.appendChild(emptyCell);
         }
-        
-        cell.innerHTML = `<div class="day-number">${day}</div><div class="dots-container"></div>`;
-        const dotsContainer = cell.querySelector('.dots-container');
 
-        // SOLO MOSTRAR PUNTOS EN DÍAS LABORABLES (Lunes a Viernes)
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            equipos.forEach(eq => {
-                if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
-                
-                const activo = matrices.some(m => {
-                    if (m.equipo !== eq.nombre) return false;
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dayOfWeek = dateObj.getDay();
+            
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const cell = document.createElement('div');
+            cell.classList.add('calendar-day');
+            
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                cell.classList.add('weekend-day');
+            }
+            
+            cell.innerHTML = `<div class="day-number">${day}</div><div class="dots-container"></div>`;
+            const dotsContainer = cell.querySelector('.dots-container');
+
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                equipos.forEach(eq => {
+                    // Filtrar equipos excluyendo "Gerencia" y "Visitors"
+                    if (eq.nombre === 'Gerencia' || eq.nombre === 'Visitors') return;
+                    if (equipoFiltrado && eq.nombre !== equipoFiltrado) return;
                     
-                    // Usar la misma lógica de fechas que en obtenerMatricesPorMes
-                    const fechaInicio = new Date(m.fecha_creacion + 'T12:00:00');
-                    let fechaFin = m.fecha_fin ? 
-                        new Date(m.fecha_fin + 'T23:59:59') : 
-                        new Date();
+                    const activo = matrices.some(m => {
+                        if (m.equipo !== eq.nombre) return false;
+                        
+                        const fechaInicio = new Date(m.fecha_creacion + 'T12:00:00');
+                        let fechaFin = m.fecha_fin ? 
+                            new Date(m.fecha_fin + 'T23:59:59') : 
+                            new Date();
+                        
+                        const fechaActual = new Date(dateStr + 'T12:00:00');
+                        
+                        return fechaInicio <= fechaActual && fechaActual <= fechaFin;
+                    });
                     
-                    const fechaActual = new Date(dateStr + 'T12:00:00');
-                    
-                    return fechaInicio <= fechaActual && fechaActual <= fechaFin;
+                    if (activo) {
+                        const dot = document.createElement('span');
+                        dot.classList.add('event-dot');
+                        dot.style.backgroundColor = eq.color;
+                        dotsContainer.appendChild(dot);
+                    }
                 });
-                
-                if (activo) {
-                    const dot = document.createElement('span');
-                    dot.classList.add('event-dot');
-                    dot.style.backgroundColor = eq.color;
-                    dotsContainer.appendChild(dot);
-                }
-            });
+            }
+            
+            container.appendChild(cell);
         }
-        
-        container.appendChild(cell);
     }
-}
-    // === Función para descargar PDF ===
+
+    // === Función para descargar PDF de supermatriz ===
     function descargarPDF(supermatrizId, event) {
         if (event) {
             event.preventDefault();
@@ -724,6 +396,9 @@ function renderCalendar(containerId, monthOffset) {
     // === Render botones equipos ===
     const equiposContainer = document.getElementById('equiposContainer');
     equipos.forEach(eq => {
+        // Filtrar equipos excluyendo "Gerencia" y "Visitors"
+        if (eq.nombre === 'Gerencia' || eq.nombre === 'Visitors') return;
+        
         const btn = document.createElement('button');
         btn.classList.add('btn', 'w-100', 'mb-2');
         btn.style.backgroundColor = eq.color;
@@ -751,20 +426,28 @@ function renderCalendar(containerId, monthOffset) {
         const emptyMsgText = document.getElementById('emptyMessageText');
         const emptyMsgSubtext = document.getElementById('emptyMessageSubtext');
         const sectionTitle = document.getElementById('sectionTitle');
+        const descargaTodosContainer = document.getElementById('descargaTodosContainer');
         container.innerHTML = '';
 
         const matricesFiltradas = obtenerMatricesPorMes(equipoNombre);
 
         if (!equipoNombre) {
-            emptyMsgText.textContent = 'No hay espacios de trabajo para mostrar';
-            emptyMsgSubtext.textContent = 'Selecciona un equipo para ver sus espacios de trabajo';
+            // SOLO EN "TODOS" - sin texto, solo el botón
+            emptyMsgText.textContent = '';
+            emptyMsgSubtext.textContent = '';
             emptyMsg.classList.remove('d-none'); 
             container.classList.add('d-none');
             sectionTitle.textContent = `Espacios de Trabajo (${mesSeleccionado === 'actual' ? 'Mes Actual' : 'Mes Pasado'})`; 
+            // MOSTRAR BOTÓN DE DESCARGA SOLO EN "TODOS"
+            descargaTodosContainer.style.display = 'block';
             return;
+        } else {
+            // OCULTAR BOTÓN DE DESCARGA CUANDO SE SELECCIONA UN EQUIPO ESPECÍFICO
+            descargaTodosContainer.style.display = 'none';
         }
 
         if (matricesFiltradas.length === 0) {
+            // PARA EQUIPOS ESPECÍFICOS - mantener el texto normal
             emptyMsgText.textContent = 'No hay matrices por el momento';
             emptyMsgSubtext.textContent = `El equipo ${equipoNombre} no tiene matrices en el ${mesSeleccionado === 'actual' ? 'mes actual' : 'mes pasado'}`;
             emptyMsg.classList.remove('d-none'); 
@@ -814,7 +497,6 @@ function renderCalendar(containerId, monthOffset) {
                                         ${totalFallasBlocker}
                                     </span>
                                 </div>
-                                
                             </div>
                             
                             <div class="progress-container">
@@ -971,13 +653,11 @@ function renderCalendar(containerId, monthOffset) {
                         <div class="alert alert-warning mt-3">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             <strong>${numFallas} falla(s) bloqueante(s) detectada(s)</strong>
-                            <br>
                         </div>
                         ` : `
                         <div class="alert alert-success mt-3">
                             <i class="bi bi-check-circle me-2"></i>
                             <strong>Sin fallas bloqueantes</strong>
-                        
                         </div>
                         `}
                         
@@ -988,7 +668,7 @@ function renderCalendar(containerId, monthOffset) {
                         </div>` : ''}
                     </div>
                 </div>`;
-            });
+            }); 
         }
 
         document.getElementById('modalMatricesContent').innerHTML = html;
@@ -1001,11 +681,17 @@ function renderCalendar(containerId, monthOffset) {
         });
     }
 
+    // Generar botones de descarga cuando se carga la página
+    generarBotonesDescarga();
     mostrarEspaciosTrabajo(null);
     
     window.addEventListener('resize', function() {
         renderCalendar('calendarActual', 0);
         renderCalendar('calendarPasado', -1);
     });
+    function descargarPDFTodosEquipos() {
+    const url = "{% url 'matrix_app:descargar_pdf_todos_equipos' %}";
+    window.open(url, '_blank');
+}
 </script>
 {% endblock content %}

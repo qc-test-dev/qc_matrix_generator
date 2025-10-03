@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,matrices_fails,obtener_testers_por_region_unicos
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -43,7 +43,7 @@ from weasyprint import HTML
 from django.template.loader import render_to_string
 from datetime import datetime
 from django.utils.timezone import localtime
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import locale, json
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 from django.shortcuts import render, get_object_or_404, redirect
@@ -51,11 +51,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import SuperMatriz, Matriz
 from .forms import MatrizForm, ValidateForm
+from django.utils import timezone
 import os
 import random
-from django.conf import settings
-from .utils import importar_matriz_desde_excel, matriz_info
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     from collections import defaultdict
@@ -794,4 +792,99 @@ def editar_descripcion(request, pk):
         "supermatriz": supermatriz
     }
     return render(request, "home.html", context)
-
+def descargar_pdf_equipo(request, equipo_id):
+    """
+    View para descargar un PDF con todas las supermatrices de un equipo
+    """
+    try:
+        # Obtener información completa del equipo usando nuestras funciones
+        resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(
+            equipo_id, 
+            solo_activas=True
+        )
+        
+        if not resultado_equipo:
+            return HttpResponse("Equipo no encontrado", status=404)
+        
+        # Obtener información detallada de cada supermatriz y sus matrices
+        equipo_info_detallado = {
+            'equipo_nombre': resultado_equipo['equipo_nombre'],
+            'supermatrices': []
+        }
+        
+        for supermatriz in resultado_equipo['supermatrices']:
+            # Obtener matrices de esta supermatriz
+            matrices_info = obtener_matrices_por_supermatriz(supermatriz['id'])
+            
+            supermatriz_detallada = {
+                'id': supermatriz['id'],
+                'nombre': supermatriz['nombre'],
+                'descripcion': supermatriz['descripcion'],
+                'fecha_creacion': supermatriz['fecha_creacion'],
+                'fecha_fin': supermatriz['fecha_fin'],
+                'matrices_info': matrices_info['matrices'] if matrices_info else []
+            }
+            
+            equipo_info_detallado['supermatrices'].append(supermatriz_detallada)
+        
+        # Crear el contenido HTML para el PDF
+        html_string = render_to_string('pdf/reporte_equipo.html', {
+            'equipo': equipo_info_detallado,
+            'fecha_generacion': timezone.now().strftime("%d/%m/%Y"),
+        })
+        
+        # Crear PDF
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="reporte_equipo_{resultado_equipo["equipo_nombre"]}.pdf"'
+        
+        # Generar PDF
+        html.write_pdf(response)
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error generando PDF: {e}")
+        return HttpResponse("Error generando el PDF", status=500)
+def descargar_pdf_todos_equipos(request):
+    """
+    View para descargar un PDF con TODOS los equipos y sus supermatrices completas
+    """
+    try:
+        # Usar nuestra función para obtener todos los equipos completos
+        resultado_completo = obtener_todos_los_equipos_completo(solo_activas=True)
+        
+        if not resultado_completo or not resultado_completo['equipos']:
+            return HttpResponse("No hay datos para generar el PDF", status=404)
+        
+        # Filtrar equipos excluyendo "Gerencia" y "Visitors"
+        equipos_filtrados = [
+            equipo for equipo in resultado_completo['equipos'] 
+            if equipo['nombre'] not in ['Gerencia', 'Visitors']
+        ]
+        
+        # Crear el contenido HTML para el PDF
+        html_string = render_to_string('pdf/reporte_todos_equipos.html', {
+            'equipos': equipos_filtrados,
+            'fecha_generacion': timezone.now().strftime("%d/%m/%Y"),
+            'total_equipos': len(equipos_filtrados),
+            'total_supermatrices': sum(len(equipo['supermatrices']) for equipo in equipos_filtrados)
+        })
+        
+        # Crear PDF
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="reporte_completo_equipos.pdf"'
+        
+        # Generar PDF
+        html.write_pdf(response)
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error generando PDF completo: {e}")
+        return HttpResponse("Error generando el PDF completo", status=500)
