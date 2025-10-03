@@ -267,7 +267,7 @@ class SuperMatrizFechaFinForm(forms.ModelForm):
         widget=forms.DateInput(
             attrs={
                 'type': 'date',
-                'min': timezone.now().date().strftime('%Y-%m-%d')  # Limita desde hoy
+                'min': timezone.now().date().strftime('%Y-%m-d')  
             }
         ),
         label="Fecha Tentativa"

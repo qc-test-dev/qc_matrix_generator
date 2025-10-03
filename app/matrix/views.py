@@ -707,16 +707,11 @@ def editar_fecha_fin(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Fecha fin actualizada correctamente.")
-            return redirect('home')  # <-- cambiar 'dashboard' por 'home'
-    else:
-        form = SuperMatrizFechaFinForm(instance=supermatriz)
-
-    context = {
-        "form": form,
-        "supermatriz": supermatriz
-    }
-    return render(request, "home.html", context)
-@login_required
+            return redirect('home')
+        else:
+            messages.error(request, "Error al actualizar la fecha.")
+    
+    return redirect('home')@login_required
 def obtener_num_fallos(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     data = matriz_fails(matriz)
