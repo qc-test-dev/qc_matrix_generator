@@ -34,6 +34,9 @@
             flex-grow: 1; 
             display: flex;
             flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
         }
         .card-header {
             background-color: #28a745;
@@ -63,6 +66,28 @@
             border: 0;
             border-top: 1px solid #ccc;
         }
+        .summary-section {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #28a745;
+        }
+        .progress-bar {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            height: 15px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background-color: #28a745;
+            height: 100%;
+        }
+        .casos-bloqueantes {
+            color: #dc3545;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -70,9 +95,26 @@
         <h1>Reporte de avance</h1>
         <h3>{{ super_matriz.nombre }}</h3>
         <p>{{ super_matriz.descripcion }}</p>
-        <p><strong>Porcentaje total de avance:</strong> {{ porcentaje_total }}%</p>
-        <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
+        
+        <!-- Resumen global -->
+        <div class="summary-section">
+            <p><strong>Porcentaje total de avance:</strong> {{ porcentaje_total }}%</p>
+            <p><strong>Casos totales:</strong> {{ total_global_casos }}</p>
+            <p><strong>Casos ejecutados:</strong> {{ total_global_completados }}</p>
+            <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
+            
+            <!-- Barra de progreso global -->
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ porcentaje_total }}%"></div>
+            </div>
+            
+            {% if paises_globales %}
+            <p><strong>Países involucrados:</strong> {{ paises_globales|join:", " }}</p>
+            {% endif %}
+        </div>
+        
         <hr>
+        
         {% if matrices_info %}
         <div class="row">
             {% for info in matrices_info %}
@@ -80,13 +122,27 @@
                 <div class="card">
                     <div class="card-header">{{ info.matriz.nombre }}</div>
                     <div class="card-body">
+                        <p><strong>Dispositivo:</strong> {{ info.dispositivo|default:"N/A" }}</p>
                         <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
+                        
+                        <!-- Estadísticas de casos -->
                         <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
-                        <p><strong>Casos Completos:</strong> {{ info.casos_filtrados }}</p>
-                        <p><strong>Porcentaje:</strong> {{ info.porcentaje|floatformat:2 }}%</p>
+                        <p><strong>Casos Ejecutados:</strong> {{ info.casos_filtrados }}</p>
+                        <p><strong>Porcentaje:</strong> {{ info.porcentaje }}%</p>
+                        
+                        <!-- Barra de progreso individual -->
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ info.porcentaje }}%"></div>
+                        </div>
+                        
+                        <!-- Casos bloqueantes -->
+                        <p class="casos-bloqueantes">
+                            <strong>Casos Bloqueantes:</strong> {{ info.num_fallos }}
+                        </p>
 
+                        <!-- Países específicos de esta matriz -->
                         {% if info.paises %}
-                            <p><strong>Países:</strong></p>
+                            <p><strong>Países en esta matriz:</strong></p>
                             <ul>
                                 {% for pais in info.paises %}
                                     <li class="region">{{ pais }}</li>
@@ -94,7 +150,15 @@
                             </ul>
                         {% endif %}
 
-                        <p><strong>Número de fallas blocker:</strong> {{ info.num_fallos }}</p>
+                        <!-- Testers asignados -->
+                        <!-- {% if info.testers %}
+                            <p><strong>Testers:</strong></p>
+                            <ul>
+                                {% for tester in info.testers %}
+                                    <li>{{ tester.nombre }} {{ tester.apellido }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %} -->
                     </div>
                 </div>
             </div>
