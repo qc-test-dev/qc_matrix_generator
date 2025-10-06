@@ -72,31 +72,31 @@
                                     </span>
                                     {% endif %}
                                     
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex flex-wrap align-items-center gap-3">
                                         <!-- Botón Ver -->
-                                        <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}" 
+                                        <a href="{% url 'matrix_app:detalle_super_matriz' matriz.id %}"
                                            class="btn btn-sm btn-success">
                                             <i class="fas fa-eye me-1"></i>Ver
                                         </a>
                                         {% if es_lider %}
                                         <!-- Botón Editar Fecha -->
-                                        <button class="btn btn-sm btn-primary" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#editarFechaModal" 
+                                        <button class="btn btn-sm btn-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editarFechaModal"
                                                 onclick="cargarMatrizModal({{ matriz.id }}, '{{ matriz.nombre }}', '{{ matriz.fecha_fin|date:"Y-m-d"|default_if_none:"" }}')">
                                             <i class="fas fa-calendar-alt me-1"></i>Editar Fecha
                                         </button>
                                         <!-- Botón Editar Descripción -->
-                                        <button class="btn btn-sm btn-secondary" 
-                                                data-bs-toggle="modal" 
+                                        <button class="btn btn-sm btn-secondary"
+                                                data-bs-toggle="modal"
                                                 data-bs-target="#editarDescripcionModal"
                                                 onclick="cargarDescripcionModal({{ matriz.id }}, '{{ matriz.nombre }}', `{{ matriz.descripcion|default_if_none:""|escapejs }}`)">
                                             <i class="fas fa-edit me-1"></i>Editar Filtro y labels
                                         </button>
                                         <!-- Botón Archivar -->
-                                        <form action="{% url 'matrix_app:archivar_super_matriz' matriz.id %}" 
-                                              method="POST" 
-                                              onsubmit="return confirm('¿Estás seguro de que deseas archivar esta matriz? No se mostrará en el dashboard.');" 
+                                        <form action="{% url 'matrix_app:archivar_super_matriz' matriz.id %}"
+                                              method="POST"
+                                              onsubmit="return confirm('¿Estás seguro de que deseas archivar esta matriz? No se mostrará en el dashboard.');"
                                               class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-warning" title="Archivar">
@@ -104,13 +104,13 @@
                                             </button>
                                         </form>
                                         <!-- Botón Eliminar -->
-                                        <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}" 
-                                              method="POST" 
-                                              onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');" 
+                                        <form action="{% url 'matrix_app:eliminar_super_matriz' matriz.id %}"
+                                              method="POST"
+                                              onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta matriz?');"
                                               class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                                <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                                <i class="fas fa-trash-alt me-2"></i>Eliminar
                                             </button>
                                         </form>
                                         {% endif %}

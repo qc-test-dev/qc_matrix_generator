@@ -417,48 +417,58 @@ Dispositivos - {{ equipo.nombre }}
     border-top-right-radius: 0;
 }
 </style>
-
+{% endblock content %}
 
 {% block extra_js %}
 <script>
-// Abrir automáticamente el modal de edición si hay errores
-{% if form.errors and abrir_modal_edicion %}
-    document.addEventListener('DOMContentLoaded', function() {
-        // Encontrar el modal de edición correspondiente al dispositivo que se está editando
-        {% if form.instance.id %}
-            var modal = new bootstrap.Modal(document.getElementById('editarDispositivoModal{{ form.instance.id }}'));
-            modal.show();
-        {% endif %}
-    });
-{% endif %}
-
-// Mostrar errores específicos en el modal de edición
-{% if form.errors %}
-    document.addEventListener('DOMContentLoaded', function() {
-        // Mostrar alerta de errores
-        const errorAlert = document.createElement('div');
-        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-        errorAlert.innerHTML = `
-            <strong>Errores en el formulario:</strong>
-            <ul>
-                {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                        <li>{{ field }}: {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-
-        // Insertar en el modal activo
-        const activeModal = document.querySelector('.modal.show');
-        if (activeModal) {
-            const modalBody = activeModal.querySelector('.modal-body');
-            modalBody.insertBefore(errorAlert, modalBody.firstChild);
+document.addEventListener('DOMContentLoaded', function() {
+    // Abrir automáticamente el modal de edición si hay errores
+    {% if form.errors and abrir_modal_edicion and form.instance.id %}
+        try {
+            const modalElement = document.getElementById('editarDispositivoModal{{ form.instance.id }}');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        } catch (error) {
+            console.error('Error al abrir modal de edición:', error);
         }
-    });
-{% endif %}
+    {% endif %}
+
+    // Mostrar errores específicos en el modal activo
+    {% if form.errors %}
+        try {
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+            errorAlert.innerHTML = `
+                <strong>Errores en el formulario:</strong>
+                <ul>
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li><strong>{{ field }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            const activeModal = document.querySelector('.modal.show');
+            if (activeModal) {
+                const modalBody = activeModal.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.insertBefore(errorAlert, modalBody.firstChild);
+                }
+            } else {
+                // Si no hay modal activo, mostrar errores en la página principal
+                const container = document.querySelector('.container .mb-3');
+                if (container) {
+                    container.insertBefore(errorAlert, container.firstChild);
+                }
+            }
+        } catch (error) {
+            console.error('Error al mostrar errores del formulario:', error);
+        }
+    {% endif %}
+});
 </script>
 {% endblock %}
-
-{% endblock content %}
