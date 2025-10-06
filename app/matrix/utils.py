@@ -11,6 +11,8 @@ import random
 import os,json
 from .models import Matriz,SuperMatriz
 from app.accounts.models import Equipo
+from django.db.models import Q, F
+
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
 print(JIRA_API_TOKEN,JIRA_EMAIL)
@@ -326,7 +328,7 @@ def obtener_testers(matriz):
 
 def obtener_informacion_matriz(matriz_id):
     """
-    Obtiene información completa de una matriz incluyendo conteo de casos bloqueantes y porcentaje de avance
+    Obtiene información completa de una matriz incluyendo conteo de casos bloqueantes, porcentaje de avance y países únicos
     """
     try:
         matriz = Matriz.objects.select_related('dispositivo').prefetch_related('testers').get(id=matriz_id)
@@ -349,6 +351,40 @@ def obtener_informacion_matriz(matriz_id):
         # Obtener información de testers
         testers_info = list(matriz.testers.values('id', 'nombre', 'apellido'))
         
+        # Obtener países únicos - PRIMERO de campo pais
+        paises_directos = casos.exclude(pais__isnull=True).exclude(pais__exact='').values_list('pais', flat=True).distinct()
+        
+        # Obtener países del campo tester (cuando pais está vacío)
+        paises_de_tester = casos.filter(
+            Q(pais__isnull=True) | Q(pais__exact=''),  # Donde pais está vacío
+            tester__isnull=False,  # Y tester no es nulo
+            tester__contains='-'   # Y tester contiene guión
+        ).annotate(
+            pais_extract=F('tester')  # Aquí extraeríamos la parte después del guión
+        )
+        
+        # Procesar para extraer países del campo tester
+        paises_set = set()
+        
+        # Agregar países directos
+        for pais in paises_directos:
+            if pais and pais.strip():
+                paises_set.add(pais.strip())
+        
+        # Agregar países extraídos del campo tester
+        for caso in paises_de_tester:
+            if caso.tester and caso.tester.strip():
+                tester_text = caso.tester.strip()
+                if '-' in tester_text:
+                    partes = tester_text.split('-')
+                    if len(partes) > 1:
+                        pais_extract = partes[-1].strip()
+                        if pais_extract:
+                            paises_set.add(pais_extract)
+        
+        # Convertir a lista y ordenar alfabéticamente
+        paises_lista = sorted(list(paises_set))
+        
         return {
             'nombre': matriz.nombre,
             'fecha_creacion': matriz.fecha_creacion,
@@ -358,7 +394,8 @@ def obtener_informacion_matriz(matriz_id):
             'casos_bloqueantes': casos_bloqueantes_filtrados.count(),
             'porcentaje': round(porcentaje, 2),
             'total_casos': total_casos,  # Para referencia
-            'casos_ejecutados': casos_filtrados  # Para referencia
+            'casos_ejecutados': casos_filtrados,  # Para referencia
+            'paises': paises_lista  # Lista de países únicos
         }
         
     except Matriz.DoesNotExist:

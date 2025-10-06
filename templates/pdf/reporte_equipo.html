@@ -99,6 +99,13 @@
             border-radius: 3px;
             margin-top: 5px;
         }
+        .paises-list {
+            background-color: #e9ecef;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            font-size: 10px;
+        }
         .casos-bloqueantes {
             color: #dc3545;
             font-weight: bold;
@@ -133,6 +140,11 @@
         }
         .stat-item {
             padding: 3px;
+        }
+        .paises-count {
+            font-size: 9px;
+            color: #6c757d;
+            margin-top: 2px;
         }
     </style>
 </head>
@@ -189,7 +201,20 @@
                             
                             <p><strong>Casos:</strong> {{ matriz.casos_ejecutados|default:0 }}/{{ matriz.total_casos|default:0 }}</p>
                             
-                            {% if matriz.testers %}
+                            <!-- Países únicos -->
+                            {% if matriz.paises %}
+                                <p><strong>Países:</strong></p>
+                                <div class="paises-list">
+                                    {% for pais in matriz.paises %}
+                                        • {{ pais }}{% if not forloop.last %}<br>{% endif %}
+                                    {% endfor %}
+                                </div>
+                                <p class="paises-count">Total países: {{ matriz.paises|length }}</p>
+                            {% else %}
+                                <p><strong>Países:</strong> No definidos</p>
+                            {% endif %}
+                            
+                            <!-- {% if matriz.testers %}
                                 <p><strong>Testers:</strong></p>
                                 <div class="testers-list">
                                     {% for tester in matriz.testers %}
@@ -198,7 +223,7 @@
                                 </div>
                             {% else %}
                                 <p><strong>Testers:</strong> Sin asignar</p>
-                            {% endif %}
+                            {% endif %} -->
                         </div>
                     </div>
                 </div>

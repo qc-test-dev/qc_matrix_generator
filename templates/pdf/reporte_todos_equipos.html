@@ -100,6 +100,9 @@
         .badge-info {
             background-color: #17a2b8;
         }
+        .badge-primary {
+            background-color: #007bff;
+        }
         .progress-bar {
             background-color: #e9ecef;
             border-radius: 4px;
@@ -119,6 +122,27 @@
         }
         .page-break {
             page-break-after: always;
+        }
+        .paises-list {
+            background-color: #f8f9fa;
+            padding: 3px;
+            border-radius: 3px;
+            margin: 3px 0;
+            font-size: 9px;
+            border: 1px solid #e9ecef;
+        }
+        .paises-count {
+            font-size: 9px;
+            color: #6c757d;
+            margin-top: 1px;
+        }
+        .paises-badge {
+            background-color: #6f42c1;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 6px;
+            font-size: 8px;
+            margin-left: 3px;
         }
     </style>
 </head>
@@ -173,6 +197,23 @@
                                 <p class="avance-text">
                                     {{ matriz.casos_ejecutados|default:0 }}/{{ matriz.total_casos|default:0 }} casos
                                 </p>
+                                
+                                <!-- Sección de Países Únicos -->
+                                <p><strong>Países: 
+                                    <span class="paises-badge">{{ matriz.paises|length }}</span>
+                                </strong></p>
+                                
+                                {% if matriz.paises %}
+                                <div class="paises-list">
+                                    {% for pais in matriz.paises %}
+                                        {{ pais }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="paises-list">
+                                    <em>No definidos</em>
+                                </div>
+                                {% endif %}
                                 
                                 <!-- <p><strong>Testers:</strong> 
                                     {% if matriz.testers %}
