@@ -5,44 +5,44 @@
             <div class="d-flex flex-column">
                 <h1>QC Seguimiento Revisiones</h1>
                 <div>
-                    <p class="mb-0"><strong>Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }} 
-                    <strong>Cargo:</strong> {{ request.user.cargo }} 
+                    <p class="mb-0"><strong>Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }}
+                    <strong>Cargo:</strong> {{ request.user.cargo }}
                     <strong>Equipo:</strong> {{ request.user.equipo_nuevo }}</p>
                 </div>
             </div>
         </div>
-        
+
         <!-- Columna para los botones y controles -->
-        <div class="col-12 col-md-6 col-lg-5">
-            <div class="group-btn d-flex flex-wrap align-items-center gap-2 justify-content-center justify-content-md-end w-100 w-md-auto">
-                <!-- Menú de engranaje integrado en la línea -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        ⚙️
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
-                        <li><a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">Cambiar contraseña</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Botones principales -->
-                <a href="{% url 'home' %}" class="home-btn text-nowrap">Home</a>
-                
-                {% if request.user.cargo == "Lider" %}
-                <a href="{% url 'matrix_app:matrices_archivadas' %}" class="archive-btn text-nowrap">
-                    <i class="fas fa-archive me-1"></i>Ver Matrices Archivadas
-                </a>
-                <a href="{% url 'accounts_app:list_teams' %}" class="update-btn text-nowrap">Actualizar Matrix</a>
-                {% endif %}
-                
-                <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn text-nowrap">Calendario</a>
-                
-                <!-- Formulario de logout -->
-                <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="logout-btn text-nowrap">Cerrar sesión</button>
-                </form>
-            </div>
+<div class="col-12 col-md-6 col-lg-5">
+    <div class="group-btn d-flex flex-wrap align-items-center justify-content-center justify-content-md-end gap-3">
+
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                ⚙️
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                <li><a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">Cambiar contraseña</a></li>
+            </ul>
         </div>
+
+        <!-- Botones principales -->
+        <a href="{% url 'home' %}" class="home-btn text-nowrap">Home</a>
+
+        {% if request.user.cargo == "Lider" %}
+        <a href="{% url 'matrix_app:matrices_archivadas' %}" class="archive-btn text-nowrap">
+            <i class="fas fa-archive me-1"></i>Ver Matrices Archivadas
+        </a>
+        <a href="{% url 'accounts_app:list_teams' %}" class="update-btn text-nowrap">Actualizar Matrix</a>
+        {% endif %}
+
+        <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn text-nowrap">Calendario</a>
+
+        <!-- Formulario de logout -->
+        <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn text-nowrap">Cerrar sesión</button>
+        </form>
     </div>
 </div>
+    </div>
+    </div>

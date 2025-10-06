@@ -70,7 +70,7 @@ body {
 .group-btn {
     display: flex;
     flex-direction: row;
-    gap: 2em;
+     gap: 1rem !important;
 }
 
 .logout-btn {
@@ -407,6 +407,23 @@ textarea.form-control {
     .form-card {
         max-width: 100%;
     }
+
+    .group-btn {
+        gap: 0.5rem !important;
+    }
+
+    .d-flex.gap-3 {
+        gap: 0.5rem !important;
+    }
+
+    .home-btn,
+    .archive-btn,
+    .update-btn,
+    .dashboard-btn,
+    .logout-btn {
+        padding: 0.7em 1em;
+        font-size: 0.9em;
+    }
 }
 
 p {
@@ -459,4 +476,8 @@ p {
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 10px;
+}
+
+.d-flex.gap-3 {
+    gap: 1rem !important;
 }
