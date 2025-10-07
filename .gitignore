@@ -10,6 +10,7 @@ static/*.apk
 .env/
 app/matrix/*.env
 requerimiento_funcionales.txt
+.idea
  
 # Byte-compiled / optimized / DLL files
 __pycache__/
