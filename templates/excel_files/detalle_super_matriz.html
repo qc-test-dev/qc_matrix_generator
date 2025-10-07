@@ -21,6 +21,36 @@
     <p class="text-muted text-wrap" style="word-break: break-word;">
         {{ super_matriz.descripcion }}
     </p>
+    <div>
+        <p class="text-muted text-wrap" style="word-break: break-word;">
+            {{ super_matriz.descripcion }}
+        </p>
+        
+        <!-- RESUMEN DE ESTADÍSTICAS -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="h4 text-primary">{{ porcentaje_promedio|floatformat:1 }}%</div>
+                        <small class="text-muted">Avance Promedio</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h4 text-dark">{{ total_casos }}</div>
+                        <small class="text-muted">Casos Totales</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h4 text-success">{{ casos_ejecutados }}</div>
+                        <small class="text-muted">Casos Ejecutados</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h4 {% if casos_bloqueantes > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ casos_bloqueantes }}
+                        </div>
+                        <small class="text-muted">Casos Bloqueantes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
 </div>
 
     <a href="{% url 'matrix_app:editar_validates' super_matriz.id %}" class="btn btn-success mb-3">Validates</a>
@@ -132,7 +162,6 @@
                                                 {% if group.grouper %}
                                                     <p class="mb-1 mt-2"><strong>{{ group.grouper }}</strong></p>
                                                 {% else %}
-                                                    <p class="mb-1 mt-2"><strong>Sin región asignada</strong></p>
                                                 {% endif %}
                                                 <ul class="list-unstyled ms-3 mb-2">
                                                     {% for t in group.list %}
