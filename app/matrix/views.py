@@ -56,26 +56,53 @@ import os
 import random
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
-    from collections import defaultdict
-
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
-    matrices = super_matriz.matrices.all()
     validates = super_matriz.validates.all()
     es_lider = request.user.cargo == 'Lider'
-
     equipo_nuevo = getattr(super_matriz, 'equipo_nuevo', super_matriz.equipo)
 
-    # Función para obtener testers a mostrar
-    def obtener_testers(matriz):
+    # OBTENER INFORMACIÓN OPTIMIZADA usando la función
+    supermatriz_info = obtener_matrices_por_supermatriz(super_matriz_id)
+    
+    # Si no hay información, crear estructura vacía
+    if not supermatriz_info:
+        supermatriz_info = {
+            'supermatriz_nombre': super_matriz.nombre,
+            'matrices': []
+        }
+
+    # CALCULAR LOS TOTALES REQUERIDOS
+    matrices = supermatriz_info['matrices']
+    
+    # Total de matrices
+    total_matrices = len(matrices)
+    
+    # Sumar todos los casos totales
+    total_casos = sum(matriz.get('total_casos', 0) for matriz in matrices)
+    
+    # Sumar todos los casos ejecutados
+    casos_ejecutados = sum(matriz.get('casos_ejecutados', 0) for matriz in matrices)
+    
+    # Sumar todos los casos bloqueantes
+    casos_bloqueantes = sum(matriz.get('casos_bloqueantes', 0) for matriz in matrices)
+    
+    # Calcular porcentaje promedio de avance
+    if total_matrices > 0:
+        porcentajes = [matriz.get('porcentaje', 0) for matriz in matrices]
+        porcentaje_promedio = sum(porcentajes) / total_matrices
+    else:
+        porcentaje_promedio = 0
+
+    # Mantener la lógica original para testers y fallas
+    def obtener_testers(matriz_obj):
         testers_mostrar = []
-        for caso in matriz.casos.all():
+        for caso in matriz_obj.casos.all():
             if caso.tester:
                 testers_mostrar.append({
                     'tester': caso.tester,
-                    'pais': caso.pais  # puede ser None
+                    'pais': caso.pais
                 })
         if testers_mostrar:
-            # Eliminamos duplicados manteniendo orden
             seen = set()
             unique_testers = []
             for t in testers_mostrar:
@@ -85,10 +112,9 @@ def detalle_super_matriz(request, super_matriz_id):
                     unique_testers.append(t)
             return unique_testers
 
-        # Si no hay testers en los casos, usamos tester_asignado
         from collections import defaultdict
         region_dict = defaultdict(set)
-        for caso in matriz.casos.all():
+        for caso in matriz_obj.casos.all():
             if caso.tester_asignado:
                 pais = caso.pais if caso.pais else None
                 region_dict[pais].add(caso.tester_asignado.nombre)
@@ -99,18 +125,31 @@ def detalle_super_matriz(request, super_matriz_id):
 
         return testers_mostrar
 
-    # Información vieja (progreso y demás)
-    matrices_info = matriz_info(matrices)
-
-    # Añadir testers a mostrar y fallas a cada info
-    for info in matrices_info:
-        info['testers_mostrar'] = obtener_testers(info['matriz'])
-        # Obtener información de fallas para esta matriz
-        fallas_info = matriz_fails(info['matriz'])
+    # Crear matrices_info compatible con el template original
+    matrices_info = []
+    for matriz_data in supermatriz_info['matrices']:
+        # Obtener el objeto matriz original
+        matriz_obj = Matriz.objects.get(id=matriz_data['id'])
+        
+        # Obtener información de fallas
+        fallas_info = matriz_fails(matriz_obj)
         if fallas_info:
-            info['fallas'] = fallas_info[0]  # Tomar el primer elemento del array
+            fallas_data = fallas_info[0]
         else:
-            info['fallas'] = {'indice': 0, 'casos_filtrados': []}
+            fallas_data = {'indice': 0, 'casos_filtrados': []}
+        
+        # Construir la estructura que espera el template
+        matriz_info_item = {
+            'matriz': matriz_obj,
+            'dispositivo': matriz_obj.dispositivo,
+            'alcance': matriz_data.get('alcance', ''),
+            'total_casos': matriz_data.get('total_casos', 0),
+            'casos_filtrados': matriz_data.get('casos_ejecutados', 0),
+            'porcentaje': matriz_data.get('porcentaje', 0),
+            'testers_mostrar': obtener_testers(matriz_obj),
+            'fallas': fallas_data
+        }
+        matrices_info.append(matriz_info_item)
 
     form = MatrizForm(equipo_nuevo=equipo_nuevo)
     validate_form = ValidateForm()
@@ -127,7 +166,6 @@ def detalle_super_matriz(request, super_matriz_id):
                 nueva_matriz.alcances_utilizados = ",".join(sorted(valores_a_incluir))
                 nueva_matriz.save()
 
-                # Agregar testers seleccionados al modelo Matriz
                 testers_seleccionados = list(form.cleaned_data.get('testers', []))
                 if testers_seleccionados:
                     nueva_matriz.testers.set(testers_seleccionados)
@@ -144,8 +182,7 @@ def detalle_super_matriz(request, super_matriz_id):
 
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
-                # Asignación de testers y países a los casos
-                regiones_seleccionadas = form.cleaned_data.get('regiones', [])  # lista de países
+                regiones_seleccionadas = form.cleaned_data.get('regiones', [])
                 casos = list(nueva_matriz.casos.all())
                 random.shuffle(regiones_seleccionadas)
                 random.shuffle(testers_seleccionados)
@@ -178,6 +215,11 @@ def detalle_super_matriz(request, super_matriz_id):
         'validates': validates,
         'es_lider': es_lider,
         'equipo_nuevo': equipo_nuevo,
+        # NUEVOS DATOS PARA EL RESUMEN
+        'porcentaje_promedio': porcentaje_promedio,
+        'total_casos': total_casos,
+        'casos_ejecutados': casos_ejecutados,
+        'casos_bloqueantes': casos_bloqueantes,
     })
 @login_required
 def detalle_matriz(request, matriz_id):
