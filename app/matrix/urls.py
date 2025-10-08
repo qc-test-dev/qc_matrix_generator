@@ -23,7 +23,6 @@ urlpatterns = [
     path("dashboard",views.dashboard,name="dashboard"),
     path('supermatriz/<int:pk>/editar-fecha-fin/', views.editar_fecha_fin, name='editar_fecha_fin'),
     path('matriz/<int:matriz_id>/num-fallos/', views.obtener_num_fallos, name='obtener_num_fallos'),
-<<<<<<< HEAD
     path('editar-descripcion/<int:pk>/', views.editar_descripcion, name='editar_descripcion'),
     path('archivar-super-matriz/<int:matriz_id>/', views.archivar_super_matriz, name='archivar_super_matriz'),
     path('matrices-archivadas/', views.matrices_archivadas, name='matrices_archivadas'),
@@ -31,8 +30,6 @@ urlpatterns = [
     path('equipo/<int:equipo_id>/descargar-pdf/', views.descargar_pdf_equipo, name='descargar_pdf_equipo'),
     path('descargar-pdf-todos-equipos/', views.descargar_pdf_todos_equipos, name='descargar_pdf_todos_equipos'),
 
-=======
     path('api/verify-session/', views.verify_session, name='verify_session'),
->>>>>>> 505eae3 (llm)
 ]   
 

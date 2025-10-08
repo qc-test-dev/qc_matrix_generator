@@ -18,6 +18,7 @@ CSRF_TRUSTED_ORIGINS = [
     'ws://127.0.0.1:8080',
     'ws://127.0.0.1',
     'ws://app',
+    'http://0.0.0.0:8080'
 ]
 
 DEBUG = True

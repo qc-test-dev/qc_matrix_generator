@@ -824,7 +824,6 @@ def editar_descripcion(request, pk):
         "supermatriz": supermatriz
     }
     return render(request, "home.html", context)
-<<<<<<< HEAD
 def descargar_pdf_equipo(request, equipo_id):
     """
     View para descargar un PDF con todas las supermatrices de un equipo
@@ -921,7 +920,6 @@ def descargar_pdf_todos_equipos(request):
     except Exception as e:
         print(f"Error generando PDF completo: {e}")
         return HttpResponse("Error generando el PDF completo", status=500)
-=======
 @login_required
 def obtener_num_fallos(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -937,4 +935,3 @@ def verify_session(request):
     if request.user.is_authenticated:
         return HttpResponse(status=200)  # Usuario logueado
     return HttpResponse(status=401)  # No autorizado
->>>>>>> 505eae3 (llm)
