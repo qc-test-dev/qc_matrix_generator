@@ -1,0 +1,16 @@
+[server]
+port = 8501
+enableCORS = false
+enableXsrfProtection = false
+headless = true
+#baseUrlPath = "/chat_qc"
+
+[browser]
+serverAddress = "0.0.0.0"
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#FF4B4B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"

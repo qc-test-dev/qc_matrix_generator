@@ -8,6 +8,7 @@ networks:
 volumes:
   postgres_data:
   staticfiles-volume:
+  chroma-data:
 
 services:
 
@@ -92,6 +93,35 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+  streamlit_chat:
+    build:
+      context: ./chat_qc_soporte
+      dockerfile: Dockerfile
+    container_name: streamlit_chat
+    restart: unless-stopped
+    expose:
+      - "8501"
+    volumes:
+      - ./chat_qc_soporte:/app
+      - staticfiles-volume:/vol/static
+      - chroma-data:/app/demo-rag-chroma
+    environment:
+      - Ollama-Url=http://ollama:11434
+      - Chroma-Url=http://chroma:8000
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    
+    networks:
+      - qc_network
+    depends_on:
+      - db
+      - app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
 
   proxy:
     build:

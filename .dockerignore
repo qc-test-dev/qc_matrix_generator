@@ -1,0 +1,69 @@
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+*.pyc
+__pycache__/
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Bases de datos locales
+*.sqlite3
+*.db
+
+# Media y static (se generan en el contenedor)
+staticfiles/
+mediafiles/
+
+# Node modules (si tienes frontend)
+node_modules/
+npm-debug.log
+
+# Archivos temporales
+*.tmp
+*.temp
+.cache/
+.pytest_cache/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Datos de Chroma (se crean en volumen)
+demo-rag-chroma/
+*.chromadb
+
+# Variables de entorno (sensible)
+.env
+.env.local
+.env.*.local
+
+# Archivos de test
+htmlcov/
+.coverage
+.tox/
+
+# Excluir chat de Streamlit del build de Django
+chat_qc_soporte/demo-rag-chroma
+chat_qc_soporte/staticfiles
+chat_qc_soporte/venv

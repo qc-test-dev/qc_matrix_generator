@@ -25,7 +25,8 @@ RUN useradd -ms /bin/bash usr_admin
 
 # Copiar requirements y luego instalar paquetes python
 COPY ./requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
+#RUN pip install --no-cache-dir -r /requirements.txt
+RUN pip install -r /requirements.txt
 
 # Copiar el código de la app y setear permisos
 COPY . /app/

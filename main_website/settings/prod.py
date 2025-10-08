@@ -4,7 +4,7 @@ import os
 DEBUG = False
 
 # Hosts permitidos
-ALLOWED_HOSTS = ['200.57.172.7', 'tu-dominio.com', 'app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['200.57.172.7', 'tu-dominio.com', 'app', 'localhost', '127.0.0.1','django_asgi']
 
 
 # CSRF para WebSockets
