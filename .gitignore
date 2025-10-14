@@ -10,12 +10,9 @@ static/*.apk
 .env/
 app/matrix/*.env
 requerimiento_funcionales.txt
-<<<<<<< HEAD
 .idea
- 
-=======
+chat_qc_soporte/media/*.pdf
 
->>>>>>> 505eae3 (llm)
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -23,11 +20,8 @@ __pycache__/
 demo-rag-chroma
 # C extensions
 *.so
-<<<<<<< HEAD
  
-=======
 
->>>>>>> 505eae3 (llm)
 # Distribution / packaging
 .Python
 build/
@@ -47,29 +41,23 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-<<<<<<< HEAD
  
-=======
 
->>>>>>> 505eae3 (llm)
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-<<<<<<< HEAD
  
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
  
-=======
 
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
 
->>>>>>> 505eae3 (llm)
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -84,25 +72,21 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-<<<<<<< HEAD
  
 # Translations
 *.mo
 *.pot
  
-=======
 
 # Translations
 *.mo
 *.pot
 
->>>>>>> 505eae3 (llm)
 # Django stuff:
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-<<<<<<< HEAD
  
 # Flask stuff:
 instance/
@@ -125,7 +109,6 @@ target/
 profile_default/
 ipython_config.py
  
-=======
 
 # Flask stuff:
 instance/
@@ -148,38 +131,28 @@ target/
 profile_default/
 ipython_config.py
 
->>>>>>> 505eae3 (llm)
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
 # .python-version
-<<<<<<< HEAD
  
-=======
 
->>>>>>> 505eae3 (llm)
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
 #Pipfile.lock
-<<<<<<< HEAD
  
-=======
 
->>>>>>> 505eae3 (llm)
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
 #poetry.lock
-<<<<<<< HEAD
  
-=======
 
->>>>>>> 505eae3 (llm)
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
 #pdm.lock
@@ -189,7 +162,6 @@ ipython_config.py
 .pdm.toml
 .pdm-python
 .pdm-build/
-<<<<<<< HEAD
  
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -201,7 +173,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
  
-=======
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -213,7 +184,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
->>>>>>> 505eae3 (llm)
 # Environments
 .env
 .venv
@@ -222,7 +192,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-<<<<<<< HEAD
  
 # Spyder project settings
 .spyderproject
@@ -234,7 +203,6 @@ venv.bak/
 # mkdocs documentation
 /site
  
-=======
 
 # Spyder project settings
 .spyderproject
@@ -246,12 +214,10 @@ venv.bak/
 # mkdocs documentation
 /site
 
->>>>>>> 505eae3 (llm)
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-<<<<<<< HEAD
  
 # Pyre type checker
 .pyre/
@@ -262,7 +228,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
  
-=======
 
 # Pyre type checker
 .pyre/
@@ -273,14 +238,10 @@ cython_debug/
 # Cython debug symbols
 cython_debug/
 
->>>>>>> 505eae3 (llm)
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-<<<<<<< HEAD
  
-=======
->>>>>>> 505eae3 (llm)
