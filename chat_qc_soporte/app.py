@@ -24,11 +24,42 @@ st.set_page_config(
 )
 
 # ============================
+# CSS personalizado para botón fijo
+# ============================
+st.markdown("""
+<style>
+    /* Estilo para el botón de volver */
+    div[data-testid="column"]:first-child button {
+        height: 38px;
+        padding: 0 16px;
+        white-space: nowrap;
+    }
+    
+    /* Evitar que el botón se deforme */
+    .stButton button {
+        min-height: 38px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ============================
+# Inicializar session state
+# ============================
+if 'prompt_history' not in st.session_state:
+    st.session_state.prompt_history = ""
+if 'response_history' not in st.session_state:
+    st.session_state.response_history = ""
+if 'pdf_sources' not in st.session_state:
+    st.session_state.pdf_sources = set()
+if 'excel_data' not in st.session_state:
+    st.session_state.excel_data = None
+
+# ============================
 # Botón BACK en la parte superior
 # ============================
 col1, col2 = st.columns([1, 10])
 with col1:
-    if st.button("⬅️ Volver", use_container_width=True):
+    if st.button("⬅️ Volver", use_container_width=True, key="btn_volver"):
         st.markdown(
             '<meta http-equiv="refresh" content="0; url=/" />',
             unsafe_allow_html=True
@@ -129,11 +160,14 @@ def procesar_pdf(uploaded_file: UploadedFile) -> list[Document]:
 # ============================
 def get_vector_collection():
     ollama_ef=OllamaEmbeddingFunction(
-        url="http://localhost:11434",
+        #url="http://localhost:11434",
+        #url="http://host.docker.internal:11434",  # Para Docker Desktop en Windows/Mac
+        url="http://172.17.0.1:11434",  # Gateway de Docker en Linux
         model_name="nomic-embed-text:latest",
         timeout=120
     )
-    chroma_client = chromadb.PersistentClient(path="./demo-rag-chroma")
+    #chroma_client = chromadb.PersistentClient(path="./demo-rag-chroma")
+    chroma_client = chromadb.PersistentClient(path="/app/demo-rag-chroma")  # Para Docker
     return chroma_client.get_or_create_collection(
         "chatbot-soporte-tecnico_v2", 
         embedding_function=ollama_ef, 
@@ -173,7 +207,10 @@ def query_collection(prompt:str, n_results=22):
 # LLM call mejorado
 # ============================
 def call_llm(context: str, prompt: str):
-    ollama_client = ollama.Client(host='http://localhost:11434')
+    #ollama_client = ollama.Client(host='http://localhost:11434')
+    # Para Docker usa:
+    # ollama_client = ollama.Client(host='http://host.docker.internal:11434')  # Windows/Mac
+    ollama_client = ollama.Client(host='http://172.17.0.1:11434')  # Linux
     
     enhanced_prompt = f"""
 Contexto del documento PDF:
@@ -289,10 +326,14 @@ with st.sidebar:
 
 # Área principal del chat
 st.header("💬 Realiza tu Consulta")
+
+# Usar el valor del session state si existe, sino usar string vacío
 prompt = st.text_area(
     "Escribe tu pregunta o solicitud:", 
+    value=st.session_state.prompt_history,
     placeholder="Ejemplo: ¿Cómo configurar un canal privado en Roku?",
-    height=120
+    height=120,
+    key="prompt_input"
 )
 
 pregunta_click = st.button("🚀 Preguntar", use_container_width=True, type="primary")
@@ -305,6 +346,9 @@ if pregunta_click and prompt:
         st.error(f"⚠️ {mensaje_error}")
         st.info("💡 Ejemplo de consulta válida: '¿Cómo instalar un canal privado en Roku?'")
     else:
+        # Guardar la pregunta en session state
+        st.session_state.prompt_history = prompt
+        
         with st.spinner("🔍 Buscando información relevante..."):
             results = query_collection(prompt)
             context = results.get("documents")[0]
@@ -312,27 +356,7 @@ if pregunta_click and prompt:
         
         with st.spinner("✨ Generando respuesta..."):
             response = "".join(call_llm(context=relevant_text, prompt=prompt))
-
-        # Mostrar respuesta con estilo mejorado
-        st.success("✅ Respuesta generada:")
-        
-        # Contenedor con estilo personalizado para la respuesta
-        st.markdown(
-            f"""
-            <div style="
-                background-color: #f0f2f6;
-                border-left: 5px solid #4CAF50;
-                padding: 20px;
-                border-radius: 10px;
-                font-size: 16px;
-                line-height: 1.6;
-                margin: 20px 0;
-            ">
-                {response.replace(chr(10), '<br>')}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.session_state.response_history = response
 
         # Extraer PDFs fuente de los metadatas
         metadatas = results.get("metadatas")[0]
@@ -366,33 +390,65 @@ if pregunta_click and prompt:
                                     pdf_sources.add(archivo_real)
                                     break
 
-        # Mostrar y ofrecer descarga de PDFs consultados
-        if pdf_sources:
-            st.info(f"📚 **Información encontrada en:** {', '.join(pdf_sources)}")
-            
-            # Crear columnas para los botones de descarga
-            cols = st.columns(len(pdf_sources))
-            for idx, pdf_name in enumerate(pdf_sources):
-                pdf_path = os.path.join(pdf_folder, pdf_name)
-                if os.path.exists(pdf_path):
-                    with open(pdf_path, "rb") as f:
-                        with cols[idx]:
-                            st.download_button(
-                                label=f"📥 {pdf_name}",
-                                data=f.read(),
-                                file_name=pdf_name,
-                                mime="application/pdf",
-                                key=f"pdf_{idx}",
-                                use_container_width=True
-                            )
-
-        # Detectar si es Gherkin y ofrecer descarga en Excel
+        st.session_state.pdf_sources = pdf_sources
+        
+        # Preparar Excel si es Gherkin
         if "Feature:" in response or "Scenario:" in response:
-            excel_data = export_gherkin_to_excel(response)
-            st.download_button(
-                label="📥 Descargar Gherkin en Excel",
-                data=excel_data,
-                file_name="gherkin_brf.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+            st.session_state.excel_data = export_gherkin_to_excel(response)
+        else:
+            st.session_state.excel_data = None
+
+# Mostrar respuesta si existe en session state
+if st.session_state.response_history:
+    st.success("✅ Respuesta generada:")
+    
+    # Contenedor con estilo personalizado para la respuesta
+    st.markdown(
+        f"""
+        <div style="
+            background-color: #f0f2f6;
+            border-left: 5px solid #4CAF50;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 20px 0;
+        ">
+            {st.session_state.response_history.replace(chr(10), '<br>')}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Mostrar y ofrecer descarga de PDFs consultados
+    if st.session_state.pdf_sources:
+        st.info(f"📚 **Información encontrada en:** {', '.join(st.session_state.pdf_sources)}")
+        
+        # Crear columnas para los botones de descarga
+        cols = st.columns(len(st.session_state.pdf_sources))
+        pdf_folder = os.path.join(os.path.dirname(__file__), "media", "pdfs")
+        
+        for idx, pdf_name in enumerate(st.session_state.pdf_sources):
+            pdf_path = os.path.join(pdf_folder, pdf_name)
+            if os.path.exists(pdf_path):
+                with open(pdf_path, "rb") as f:
+                    with cols[idx]:
+                        st.download_button(
+                            label=f"📥 {pdf_name}",
+                            data=f.read(),
+                            file_name=pdf_name,
+                            mime="application/pdf",
+                            key=f"pdf_download_{idx}",
+                            use_container_width=True
+                        )
+
+    # Detectar si es Gherkin y ofrecer descarga en Excel
+    if st.session_state.excel_data:
+        st.download_button(
+            label="📥 Descargar Gherkin en Excel",
+            data=st.session_state.excel_data,
+            file_name="gherkin_brf.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="excel_download"
+        )

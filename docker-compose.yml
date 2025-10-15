@@ -104,7 +104,9 @@ services:
     volumes:
       - ./chat_qc_soporte:/app
       - staticfiles-volume:/vol/static
-      - chroma-data:/app/demo-rag-chroma
+      #- chroma-data:/app/demo-rag-chroma
+      - ./demo-rag-chroma:/app/demo-rag-chroma
+      - ./media:/app/media
     environment:
       - Ollama-Url=http://ollama:11434
       - Chroma-Url=http://chroma:8000
