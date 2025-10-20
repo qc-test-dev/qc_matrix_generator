@@ -68,3 +68,4 @@ chat_qc_soporte/demo-rag-chroma
 chat_qc_soporte/staticfiles
 chat_qc_soporte/venv
 chat_qc_soporte/media/*.pdf
+*.pdf
