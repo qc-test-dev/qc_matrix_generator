@@ -98,8 +98,10 @@ Tickets por Levantar - {{ super_matriz.nombre }}
                                                 {% endif %}
                                             </strong>
                                             <span class="badge 
-                                                {% if ticket.prioridad == 'Bloqueante' %} bg-danger 
-                                                {% else %} bg-warning text-dark {% endif %} ms-2">
+                                                {% if ticket.prioridad|lower == 'bloqueante' %} bg-danger
+                                                {% elif ticket.prioridad|lower == 'critico' %} bg-warning text-dark
+                                                {% else %} bg-secondary
+                                                {% endif %} ms-2">
                                                 {{ ticket.prioridad }}
                                             </span>
                                         </div>
