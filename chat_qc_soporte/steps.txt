@@ -1,0 +1,3 @@
+despues de llevar el proyecto a server se debe hacer deploy con docker-compose
+hay que cambiar la URL de ollama y de chroma
+instalar ollama en server llama3.2:3b y nomec-embed-text:latest

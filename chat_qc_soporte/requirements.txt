@@ -1,0 +1,14 @@
+streamlit
+langchain-community
+langchain
+PyPDF
+openpyxl
+pymupdf
+ollama
+chromadb
+
+python-dotenv
+torch
+watchdog
+
+sentence-transformers

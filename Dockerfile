@@ -20,12 +20,15 @@ ENV LANG=es_MX.UTF-8
 ENV LANGUAGE=es_MX:es
 ENV LC_ALL=es_MX.UTF-8
 
-# Crear usuario no-root para seguridad
-RUN useradd -ms /bin/bash usr_admin
+
 
 # Copiar requirements y luego instalar paquetes python
 COPY ./requirements.txt /requirements.txt
+#RUN pip install --no-cache-dir -r /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
+
+# Crear usuario no-root para seguridad
+RUN useradd -ms /bin/bash usr_admin
 
 # Copiar el código de la app y setear permisos
 COPY . /app/

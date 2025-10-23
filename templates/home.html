@@ -354,6 +354,23 @@ function cargarDescripcionModal(id, nombre, descripcion) {
     document.getElementById('formEditarDescripcion').action = "{% url 'matrix_app:editar_descripcion' 0 %}".replace('0', id);
 }
 
+function cargarMatrizModal(id, nombre, fechaFin) {
+    document.getElementById('modalSupermatrizId').value = id;
+    document.getElementById('id_fecha_fin_modal').value = fechaFin;
+    
+    // MANTENER la restricción mínima (hoy)
+    const fechaInput = document.getElementById('id_fecha_fin_modal');
+    const today = new Date().toISOString().split('T')[0];
+    fechaInput.setAttribute('min', today);
+    
+    // Configurar la acción del formulario para usar la vista editar_fecha_fin
+    document.getElementById('formEditarFecha').action = "{% url 'matrix_app:editar_fecha_fin' 0 %}".replace('0', id);
+    
+    // Opcional: actualizar el título del modal con el nombre de la matriz
+    document.getElementById('editarFechaModalLabel').innerHTML = 
+        '<i class="fas fa-calendar-alt me-2"></i>Editar Fecha Final - ' + nombre;
+}
+
 // Contador de caracteres para la descripción
 function actualizarContadorCaracteres() {
     const textarea = document.getElementById('id_descripcion_modal');

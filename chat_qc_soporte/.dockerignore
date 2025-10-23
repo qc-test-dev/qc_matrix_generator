@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+.venv/
+demo-rag-chroma/
+.git/
+.gitignore
+*.log
+.cache/
+.pytest_cache/

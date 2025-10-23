@@ -1,7 +1,7 @@
 import os
 from .base import *
 
-ALLOWED_HOSTS = ['200.57.172.7', 'tu-dominio.com', 'app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['200.57.172.7', 'tu-dominio.com', 'app', 'localhost', '127.0.0.1','django_asgi','*']
 
 # CSRF para WebSockets
 CSRF_TRUSTED_ORIGINS = [
@@ -18,6 +18,7 @@ CSRF_TRUSTED_ORIGINS = [
     'ws://127.0.0.1:8080',
     'ws://127.0.0.1',
     'ws://app',
+    'http://0.0.0.0:8080'
 ]
 
 DEBUG = True

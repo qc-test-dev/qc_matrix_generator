@@ -30,5 +30,6 @@ urlpatterns = [
     path('equipo/<int:equipo_id>/descargar-pdf/', views.descargar_pdf_equipo, name='descargar_pdf_equipo'),
     path('descargar-pdf-todos-equipos/', views.descargar_pdf_todos_equipos, name='descargar_pdf_todos_equipos'),
 
+    path('api/verify-session/', views.verify_session, name='verify_session'),
 ]   
 

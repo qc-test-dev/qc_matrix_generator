@@ -1,20 +1,20 @@
 
+### Funcionamiento chatbot
 
-CORRER EN AMBIENTE VIRTUAL SOLAMENTE(llamarlo venv, por convención del proyecto)
-dentro del ambiente virtual instalar librerias pip
-pip install -r requirements.txt
+En este caso, desde una **base de datos (BBDD) de información** (se utilizará un PDF como emulación), el LLM estará consultando manuales de soporte para resolver las principales dudas de un usuario común. De esta forma, se busca:
 
-** necesario migrar BBDD 
+- **Reducir las llamadas al service desk**
+- **Fomentar en el usuario un aprendizaje autodidacta** a partir de su propia experiencia
 
-python manage.py migrate
-python manage.py loaddata datos.json
-python manage.py runserver 8080 (o puede ser en 8081)
+Se espera que el chat pueda **analizar la pregunta** y, a su vez, **encontrar la respuesta más óptima**.
 
+Desde un uploader podràs subir PDF para alimentar la información que puede consultar el chatbot
 
-2- ws-scrcpy  ejecutar servidor con npm start (npm install -g ws-scrcpy, para instalar)
-** antes de iniciar la apk web de Django para poder ver los streams de los dispos es necesarioejecutar ws-scrcpy
+### Tecnologías Utilizadas
 
+En su desarrollo se utilizarán tecnologías como:
 
+<<<<<<< HEAD
 ****************
 
 pendientes
@@ -187,3 +187,8 @@ para que se efectuen los cambios
 
 ##Se actualizo la db aplicar makemigrations y migrate para el modelo tickets por levantar 
 
+=======
+- **LLM Ollama** (Gratuito y local)
+- **Python**
+- **Streamlit** (Interfaz web)
+>>>>>>> 505eae3 (llm)

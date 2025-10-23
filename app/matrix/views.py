@@ -744,16 +744,11 @@ def editar_fecha_fin(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Fecha fin actualizada correctamente.")
-            return redirect('home')  # <-- cambiar 'dashboard' por 'home'
-    else:
-        form = SuperMatrizFechaFinForm(instance=supermatriz)
-
-    context = {
-        "form": form,
-        "supermatriz": supermatriz
-    }
-    return render(request, "home.html", context)
-@login_required
+            return redirect('home')
+        else:
+            messages.error(request, "Error al actualizar la fecha.")
+    
+    return redirect('home')@login_required
 def obtener_num_fallos(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
     data = matriz_fails(matriz)
@@ -925,3 +920,18 @@ def descargar_pdf_todos_equipos(request):
     except Exception as e:
         print(f"Error generando PDF completo: {e}")
         return HttpResponse("Error generando el PDF completo", status=500)
+@login_required
+def obtener_num_fallos(request, matriz_id):
+    matriz = get_object_or_404(Matriz, id=matriz_id)
+    data = matriz_fails(matriz)
+    num_fallos = data[0]['indice']
+    return JsonResponse({"num_fallos": num_fallos})
+
+
+
+@csrf_exempt
+def verify_session(request):
+    """Endpoint para que Nginx verifique si el usuario está autenticado"""
+    if request.user.is_authenticated:
+        return HttpResponse(status=200)  # Usuario logueado
+    return HttpResponse(status=401)  # No autorizado
