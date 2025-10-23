@@ -118,7 +118,7 @@ class CasoDePrueba(models.Model):
     caso_de_prueba = models.TextField()
     estado = models.CharField(max_length=50, default="Por ejecutar")
     criticidad = models.CharField(max_length=15, choices=CRITICIDAD_CHOICES)
-    nota = models.TextField(blank=True, null=True,max_length=80)
+    nota = models.TextField(blank=True, null=True,max_length=150)
     tester = models.TextField(blank=True, null=True)
     tester_asignado = models.ForeignKey(
         settings.AUTH_USER_MODEL,
