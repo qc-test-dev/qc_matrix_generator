@@ -100,7 +100,7 @@ class CasoDePruebaForm(forms.ModelForm):
             'class': 'form-control',
             'rows': 3,
             'style': 'resize: none;',
-            'maxlength': '80'
+            'maxlength': '150'
         }),
         required=False
     )
