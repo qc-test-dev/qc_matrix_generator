@@ -86,7 +86,8 @@ class CasoDePruebaForm(forms.ModelForm):
         ('falla_nueva', 'Falla nueva'),
         ('falla_persistente', 'Falla persistente'),
         ('na', 'N/A'),
-        ('pendiente', 'Pendiente'),
+        ('pendiente_por_qc', 'Pendiente por qc'),
+        ('pendiente_por_externo', 'Pendiente por externo'),
         ('por_ejecutar', 'Por ejecutar'),
     ]
 
