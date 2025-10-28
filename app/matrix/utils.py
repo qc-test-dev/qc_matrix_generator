@@ -40,6 +40,9 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         caso_de_prueba = fila[2]
         criticidad = fila[4]
         nota = fila[5] if len(fila) > 5 else ""
+        etiqueta=fila[6]
+        tipo_usuario=fila[7]
+        pasos=fila[8]
 
         # Validar que los campos clave no estén vacíos
         if not (alcance and fase and caso_de_prueba and criticidad):
@@ -57,7 +60,10 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
             caso_de_prueba=caso_de_prueba,
             estado="por_ejecutar",
             criticidad=criticidad,
-            nota=nota or ""
+            nota=nota or "",
+            etiqueta=etiqueta,
+            tipo_usuario=tipo_usuario,
+            pasos=pasos
         )
 
 
