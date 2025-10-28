@@ -14,7 +14,6 @@ Desde un uploader podràs subir PDF para alimentar la información que puede con
 
 En su desarrollo se utilizarán tecnologías como:
 
-<<<<<<< HEAD
 ****************
 
 pendientes
@@ -187,8 +186,6 @@ para que se efectuen los cambios
 
 ##Se actualizo la db aplicar makemigrations y migrate para el modelo tickets por levantar 
 
-=======
 - **LLM Ollama** (Gratuito y local)
 - **Python**
 - **Streamlit** (Interfaz web)
->>>>>>> 505eae3 (llm)
