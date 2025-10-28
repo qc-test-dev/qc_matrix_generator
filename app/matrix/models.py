@@ -48,9 +48,6 @@ class Dispositivo(models.Model):
         """Verifica si el archivo Excel existe en static/excel_files/"""
         path = self.get_excel_path()
         exists = path is not None and os.path.exists(path)
-        print(f"Buscando archivo: {self.matriz_base}")
-        print(f"Ruta: {path}")
-        print(f"¿Existe?: {exists}")
         return exists
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
@@ -128,6 +125,9 @@ class CasoDePrueba(models.Model):
         related_name='casos_asignados'
     )
     pais = models.CharField(max_length=50, blank=True, null=True)
+    # etiqueta=models.CharField(max_length=50, blank=True, null=True)
+    # tipo_usuario=models.CharField(max_length=70, blank=True, null=True)
+    # pasos=models.CharField(max_length=700,blank=True, null=True)
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):
