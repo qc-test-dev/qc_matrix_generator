@@ -58,44 +58,73 @@
         {% endif %}
     </ul>
 
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th class="col-fase">Fase</th>
-                <th class="col-caso">Caso de Prueba</th>
-                <th class="col-estado">Estado</th>
-                <th class="col-criticidad">Criticidad</th>
-                <th class="col-nota">Comentarios y Datos de Prueba</th>
-            </tr>
-        </thead>
-        <tbody id="tabla-casos">
-            {% for caso, form in formularios_casos_de_prueba %}
-                <tr data-id="{{ caso.id }}">
-                    <td>{{ caso.fase }}</td>
-                    <td>{{ caso.caso_de_prueba }}</td>
-                    <td id="estado-caso-{{ caso.id }}">
-                        {% render_field form.estado class="estado-input form-control" %}
-                    </td>
-                    <td>
-                        {% if caso.criticidad|lower == "bloqueante" %}
-                            <span class="badge bg-danger">🛑 Bloqueante</span>
-                        {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
-                            <span class="badge bg-warning text-dark">⚠️ Critico</span>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    {% if campos.etiqueta %}
+                         <th class="w-10">etiqueta</th>
+                    {% endif %}
+                    <th class="w-10">Fase</th>
+                    
+                    {% if campos.tipo_usuario %}
+                         <th class="w-10">Tipo de usuario</th>
+                    {% endif %}
+                        
+                    <th class="w-25">Caso de Prueba</th>
+                    <th class="w-10">Estado</th>
+                    <th class="w-10">Criticidad</th>
+                    <th class="
+                        {% if campos.etiqueta and campos.tipo_usuario and campos.pasos %}w-25
+                        {% elif campos.etiqueta and campos.tipo_usuario %}w-25
+                        {% elif campos.etiqueta or campos.tipo_usuario %}w-25
+                        {% else %}w-25
                         {% endif %}
-                    </td>
-                    <td id="nota-caso-{{ caso.id }}">
-                        {% render_field form.nota class="nota-input form-control" %}
-                    </td>
+                    ">Comentarios y Datos de Prueba</th>
+                    {% if campos.pasos %}
+                         <th class="w-10">pasos</th>
+                    {% endif %}
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody id="tabla-casos">
+                {% for caso, form in formularios_casos_de_prueba %}
+                    <tr data-id="{{ caso.id }}">
+                        
+                        {% if campos.etiqueta %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.etiqueta }}</td>
+                        {% endif %}
+                            
+                        <td>{{ caso.fase }}</td>
+                        {% if campos.tipo_usuario %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
+                        {% endif %}
+                        <td>{{ caso.caso_de_prueba }}</td>
+                        <td id="estado-caso-{{ caso.id }}">
+                            {% render_field form.estado class="estado-input form-control" %}
+                        </td>
+                        <td>
+                            {% if caso.criticidad|lower == "bloqueante" %}
+                                <span class="badge bg-danger">🛑 Bloqueante</span>
+                            {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
+                                <span class="badge bg-warning text-dark">⚠️ Critico</span>
+                            {% endif %}
+                        </td>
+                        <td id="nota-caso-{{ caso.id }}">
+                            {% render_field form.nota class="nota-input form-control" %}
+                        </td>
+                        {% if campos.pasos %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.pasos }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <div class="sticky-action-bar">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
-
 <script>
 const matrizId = "{{ matriz.id }}";
 let socket = null;

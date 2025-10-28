@@ -310,7 +310,14 @@ def detalle_matriz(request, matriz_id):
     # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
     mostrar_botones_nuevos = not mostrar_botones_viejos and len(botones_nuevos) > 0
+    # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
+    campos = {
+    "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
+    "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
+    "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
+}
 
+    print(campos)
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
         'super_matriz_id': super_matriz_id,
@@ -326,7 +333,8 @@ def detalle_matriz(request, matriz_id):
         'fallos': fallos if fallo_filtrado == 'bloqueante' else [],
         'num_fallos': num_fallos,
         'mostrar_botones_viejos': mostrar_botones_viejos,
-        'mostrar_botones_nuevos': mostrar_botones_nuevos
+        'mostrar_botones_nuevos': mostrar_botones_nuevos,
+        'campos':campos,
     })
 @login_required
 def actualizar_estado_caso(request):
