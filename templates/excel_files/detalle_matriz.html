@@ -146,8 +146,12 @@ function mostrarPasos(element) {
         globalTooltip.classList.remove('visible');
     }
 
-    const pasos = element.getAttribute('data-pasos');
-    if (!pasos) return;
+    let pasos = element.getAttribute('data-pasos');
+
+    // Verificar si no hay pasos disponibles
+    if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
+        pasos = 'No hay pasos disponibles';
+    }
 
     currentTooltipElement = element;
 
