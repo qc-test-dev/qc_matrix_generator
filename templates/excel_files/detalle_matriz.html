@@ -17,12 +17,12 @@
     <ul class="list-inline">
         <!-- Botón Todos (limpia todos los filtros) -->
         <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" 
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}"
                class="btn btn-outline-primary btn-sm {% if not fallo_filtrado and not tester_filtrado and not tester_asignado_filtrado and not pais_filtrado %}active{% endif %}">
                 Todos
             </a>
         </li>
-        
+
         <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
         <li class="list-inline-item">
             <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante"
@@ -30,7 +30,7 @@
                 Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
             </a>
         </li>
-        
+
         <!-- Botones viejos (tester) -->
         {% if mostrar_botones_viejos and testers_disponibles %}
             {% for tester in testers_disponibles %}
@@ -44,7 +44,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
-        
+
         <!-- Botones nuevos (nombre completo - pais) -->
         {% if mostrar_botones_nuevos and botones_nuevos %}
             {% for boton in botones_nuevos %}
@@ -66,11 +66,11 @@
                          <th class="w-10">etiqueta</th>
                     {% endif %}
                     <th class="w-10">Fase</th>
-                    
+
                     {% if campos.tipo_usuario %}
                          <th class="w-10">Tipo de usuario</th>
                     {% endif %}
-                        
+
                     <th class="w-25">Caso de Prueba</th>
                     <th class="w-10">Estado</th>
                     <th class="w-10">Criticidad</th>
@@ -81,24 +81,31 @@
                         {% else %}w-25
                         {% endif %}
                     ">Comentarios y Datos de Prueba</th>
-                    {% if campos.pasos %}
-                         <th class="w-10">pasos</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody id="tabla-casos">
                 {% for caso, form in formularios_casos_de_prueba %}
                     <tr data-id="{{ caso.id }}">
-                        
+
                         {% if campos.etiqueta %}
                             <td class="text-truncate" style="max-width: 120px;">{{ caso.etiqueta }}</td>
                         {% endif %}
-                            
+
                         <td>{{ caso.fase }}</td>
                         {% if campos.tipo_usuario %}
                             <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
                         {% endif %}
-                        <td>{{ caso.caso_de_prueba }}</td>
+
+                        <!-- COLUMNA MODIFICADA CON HOVER EFFECT MEJORADO -->
+                        <td class="caso-prueba-cell">
+                            <div class="caso-prueba-content"
+                                 data-pasos="{{ caso.pasos|escapejs }}"
+                                 onmouseenter="mostrarPasos(this)"
+                                 onmouseleave="ocultarPasos()">
+                                {{ caso.caso_de_prueba }}
+                            </div>
+                        </td>
+
                         <td id="estado-caso-{{ caso.id }}">
                             {% render_field form.estado class="estado-input form-control" %}
                         </td>
@@ -112,9 +119,6 @@
                         <td id="nota-caso-{{ caso.id }}">
                             {% render_field form.nota class="nota-input form-control" %}
                         </td>
-                        {% if campos.pasos %}
-                            <td class="text-truncate" style="max-width: 120px;">{{ caso.pasos }}</td>
-                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>
@@ -125,7 +129,122 @@
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
+
+<div id="global-tooltip" class="global-tooltip" style="display: none;"></div>
+
 <script>
+let tooltipTimeout;
+let currentTooltipElement = null;
+const globalTooltip = document.getElementById('global-tooltip');
+
+function mostrarPasos(element) {
+    clearTimeout(tooltipTimeout);
+
+    // Ocultar tooltip anterior si existe
+    if (currentTooltipElement && currentTooltipElement !== element) {
+        globalTooltip.style.display = 'none';
+        globalTooltip.classList.remove('visible');
+    }
+
+    const pasos = element.getAttribute('data-pasos');
+    if (!pasos) return;
+
+    currentTooltipElement = element;
+
+    // Configurar contenido
+    globalTooltip.innerHTML = `
+        <h6>Pasos del Caso de Prueba:</h6>
+        <div class="pasos-text">${pasos}</div>
+    `;
+
+    // Obtener la posición de la celda actual
+    const cellRect = element.getBoundingClientRect();
+    const tableRect = element.closest('.table-responsive').getBoundingClientRect();
+
+    // Calcular posición relativa a la tabla
+    let left = cellRect.right + 10;
+    let top = cellRect.top;
+
+    // Mostrar tooltip
+    globalTooltip.style.display = 'block';
+
+    // Ajustar si se sale por la derecha
+    const tooltipRect = globalTooltip.getBoundingClientRect();
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = cellRect.left - tooltipRect.width - 10;
+    }
+
+    // Ajustar si se sale por abajo
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = window.innerHeight - tooltipRect.height - 10;
+    }
+
+    // Ajustar si se sale por arriba
+    if (top < 0) {
+        top = 10;
+    }
+
+    // Aplicar posición (usando posición fija relativa a la ventana)
+    globalTooltip.style.position = 'fixed';
+    globalTooltip.style.left = left + 'px';
+    globalTooltip.style.top = top + 'px';
+
+    // Mostrar con transición
+    setTimeout(() => {
+        globalTooltip.classList.add('visible');
+    }, 10);
+}
+
+function ocultarPasos() {
+    // Pequeño delay para evitar parpadeo al mover entre celdas
+    tooltipTimeout = setTimeout(() => {
+        globalTooltip.classList.remove('visible');
+        setTimeout(() => {
+            globalTooltip.style.display = 'none';
+            currentTooltipElement = null;
+        }, 100);
+    }, 150);
+}
+
+// Cancelar el ocultamiento si el mouse entra en el tooltip
+globalTooltip.addEventListener('mouseenter', () => {
+    clearTimeout(tooltipTimeout);
+});
+
+globalTooltip.addEventListener('mouseleave', () => {
+    globalTooltip.classList.remove('visible');
+    setTimeout(() => {
+        globalTooltip.style.display = 'none';
+        currentTooltipElement = null;
+    }, 200);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🔧 Inicializando aplicación...");
+
+    // Añadir estilos flash
+    const style = document.createElement('style');
+    style.textContent = `
+        .flash-update {
+            animation: flash 1.5s ease-in-out;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; transform: scale(1.02); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    createWebSocketConnection();
+    setupEventListeners();
+
+    setInterval(() => {
+        if (!socket || socket.readyState === WebSocket.CLOSED) {
+            console.log("🔄 Verificando conexión...");
+            createWebSocketConnection();
+        }
+    }, 6*1000);
+});
 const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
@@ -137,11 +256,11 @@ function createWebSocketConnection() {
     if (socket && socket.readyState === WebSocket.OPEN) {
         console.log("🔄 Reutilizando conexión WebSocket existente");
         return;
-    }   
+    }
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${window.location.host}/ws/matriz/${matrizId}/`;
     console.log("🔗 Conectando WebSocket a:", wsUrl);
-    
+
     socket = new WebSocket(wsUrl);
 
     socket.onopen = function() {
@@ -158,7 +277,7 @@ function createWebSocketConnection() {
 
     socket.onmessage = function(event) {
         console.log("📨 Mensaje recibido:", event.data);
-        
+
         try {
             const data = JSON.parse(event.data);
 
@@ -420,6 +539,66 @@ setInterval(actualizarFallos, 6000);
 </script>
 
 <style>
+.caso-prueba-cell {
+    position: relative;
+}
+
+.caso-prueba-content {
+    position: relative;
+    cursor: help;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.caso-prueba-content:hover {
+    background-color: #f8f9fa;
+}
+
+.global-tooltip {
+    position: absolute;
+    z-index: 10000;
+    background: #fff9e6;
+    border: 2px solid #ffd166;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    line-height: 1.4;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.global-tooltip.visible {
+    opacity: 1;
+}
+
+.global-tooltip h6 {
+    margin: 0 0 8px 0;
+    color: #856404;
+    font-weight: bold;
+    border-bottom: 1px solid #ffd166;
+    padding-bottom: 4px;
+}
+
+.global-tooltip .pasos-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #333;
+}
+
+/* Asegurar que el tooltip no se salga de la pantalla */
+@media (max-width: 768px) {
+    .global-tooltip {
+        width: 300px;
+    }
+}
+
+/* Estilos existentes se mantienen */
 .flash-update {
     background-color: #fff3cd !important;
     transition: background-color 1s ease;

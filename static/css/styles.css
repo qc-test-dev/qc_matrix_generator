@@ -481,3 +481,58 @@ p {
 .d-flex.gap-3 {
     gap: 1rem !important;
 }
+
+.caso-prueba-cell {
+    position: relative;
+}
+
+.caso-prueba-content {
+    position: relative;
+    cursor: help;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.caso-prueba-content:hover {
+    background-color: #f8f9fa;
+}
+
+.tooltip-pasos {
+    position: fixed;
+    z-index: 10000;
+    background: #fff9e6;
+    border: 2px solid #ffd166;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 500px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.tooltip-pasos h6 {
+    margin: 0 0 8px 0;
+    color: #856404;
+    font-weight: bold;
+    border-bottom: 1px solid #ffd166;
+    padding-bottom: 4px;
+}
+
+.tooltip-pasos .pasos-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #333;
+}
+
+/* Asegurar que el tooltip no se salga de la pantalla */
+@media (max-width: 768px) {
+    .tooltip-pasos {
+        max-width: 300px;
+        left: 10px !important;
+        right: 10px;
+    }
+}
