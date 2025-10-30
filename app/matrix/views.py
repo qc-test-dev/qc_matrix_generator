@@ -315,7 +315,10 @@ def detalle_matriz(request, matriz_id):
     "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
     "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
     "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
-}
+    "mdp":casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
+    "monto":casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
+    "navegador":casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
+    }
 
     print(campos)
     return render(request, 'excel_files/detalle_matriz.html', {
