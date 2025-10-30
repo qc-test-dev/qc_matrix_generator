@@ -213,7 +213,7 @@ def matriz_info(matrices):
     for matriz in matrices:
         casos = matriz.casos.all()
         total_casos = casos.count()
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_qc"]
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_externo"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
 
@@ -350,7 +350,7 @@ def obtener_informacion_matriz(matriz_id):
         )
         
         # Calcular porcentaje de avance
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_qc"]
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_externo"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
         
