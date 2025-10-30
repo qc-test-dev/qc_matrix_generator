@@ -320,7 +320,6 @@ def detalle_matriz(request, matriz_id):
     "navegador":casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
     }
 
-    print(campos)
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
         'super_matriz_id': super_matriz_id,
