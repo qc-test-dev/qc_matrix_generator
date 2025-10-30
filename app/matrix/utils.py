@@ -12,7 +12,8 @@ import os,json
 from .models import Matriz,SuperMatriz
 from app.accounts.models import Equipo
 from django.db.models import Q, F
-
+import openpyxl
+from .models import CasoDePrueba
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
 print(JIRA_API_TOKEN,JIRA_EMAIL)
@@ -21,34 +22,45 @@ def limpiar(valor):
         return valor.strip()
     return valor
 
-import openpyxl
-from .models import CasoDePrueba
 
+import openpyxl
+from .models import CasoDePrueba  # ajusta el import según tu estructura
 
 def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
     """
     Importa casos de prueba desde un archivo Excel y los asigna a una matriz.
-    Filtra por alcance si se proporciona una lista de alcances_permitidos (['A', 'B', 'C']).
-    Las filas incompletas (sin alcance, fase, caso o criticidad) se ignoran.
+    Usa los nombres de encabezado reales del archivo.
+    Filtra por alcance si se proporciona una lista de alcances_permitidos.
     """
     wb = openpyxl.load_workbook(ruta_excel)
     sheet = wb.active
 
+    # Leer la primera fila como encabezados
+    encabezados = [str(celda).strip().lower() for celda in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+
+    # Crear mapa de encabezados normalizados -> índice
+    columnas = {nombre: i for i, nombre in enumerate(encabezados)}
+
     for fila in sheet.iter_rows(min_row=2, values_only=True):
-        alcance = fila[0]
-        fase = fila[1]
-        caso_de_prueba = fila[2]
-        criticidad = fila[4]
-        nota = fila[5] if len(fila) > 5 else ""
-        etiqueta=fila[6]
-        tipo_usuario=fila[7]
-        pasos=fila[8]
+        # Extraer los datos según el nombre de la columna
+        etiqueta = fila[columnas.get("etiqueta")]
+        alcance = fila[columnas.get("alcance de evaluación")]
+        fase = fila[columnas.get("fase")]
+        tipo_usuario = fila[columnas.get("tipo de usuario")]
+        caso_de_prueba = fila[columnas.get("caso de prueba")]
+        medio_pago = fila[columnas.get("medio de pago")]
+        monto = fila[columnas.get("monto")]
+        criticidad = fila[columnas.get("criticidad")]
+        estado = fila[columnas.get("estado")]
+        navegador = fila[columnas.get("navegador")]
+        comentarios = fila[columnas.get("comentarios y datos de prueba")]
+        pasos = fila[columnas.get("pasos")]
 
-        # Validar que los campos clave no estén vacíos
+        # Validar campos clave
         if not (alcance and fase and caso_de_prueba and criticidad):
-            continue  # Ignorar la fila si falta alguno
+            continue
 
-        # Filtrar por alcance si se especifica
+        # Filtrar por alcance
         if alcances_permitidos and alcance not in alcances_permitidos:
             continue
 
@@ -58,13 +70,17 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
             alcance=alcance,
             fase=fase,
             caso_de_prueba=caso_de_prueba,
-            estado="por_ejecutar",
+            estado=estado or "por_ejecutar",
             criticidad=criticidad,
-            nota=nota or "",
+            nota=comentarios or "",
             etiqueta=etiqueta,
             tipo_usuario=tipo_usuario,
-            pasos=pasos
+            pasos=pasos,
+            mdp=medio_pago,
+            monto=monto,
+            navegador=navegador
         )
+
 
 
 # def importar_validates_desde_excel(super_matriz, ruta_excel):
