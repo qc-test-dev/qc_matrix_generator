@@ -70,6 +70,12 @@
                     {% if campos.tipo_usuario %}
                          <th class="w-10">Tipo de usuario</th>
                     {% endif %}
+                    {% if campos.mdp or campos.monto %}
+                         <th class="w-10">MDP : Monto</th>
+                    {% endif %}
+                    {% if campos.navegador %}
+                         <th class="w-10">Navegador</th>
+                    {% endif %}
 
                     <th class="w-25">Caso de Prueba</th>
                     <th class="w-10">Estado</th>
@@ -95,7 +101,16 @@
                         {% if campos.tipo_usuario %}
                             <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
                         {% endif %}
-
+                        {% if campos.mdp or campos.monto %}
+                            <td class="text-truncate" style="max-width: 120px;">
+                                {% if caso.mdp %} {{ caso.mdp }}
+                                {% endif %}
+                                {% if caso.monto %}${{ caso.monto }}</td>
+                                {% endif %}    
+                        {% endif %}
+                        {% if campos.navegador %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.navegador}}</td>
+                        {% endif %}
                         <!-- COLUMNA MODIFICADA CON HOVER EFFECT MEJORADO -->
                         <td class="caso-prueba-cell">
                             <div class="caso-prueba-content"
