@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo,obtener_informacion_matriz
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo,obtener_informacion_matriz,distribuir_casos_equitativamente
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -183,17 +183,8 @@ def detalle_super_matriz(request, super_matriz_id):
                 importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
 
                 regiones_seleccionadas = form.cleaned_data.get('regiones', [])
-                casos = list(nueva_matriz.casos.all())
-                random.shuffle(regiones_seleccionadas)
-                random.shuffle(testers_seleccionados)
-                random.shuffle(casos)
-
-                for idx, caso in enumerate(casos):
-                    if testers_seleccionados:
-                        caso.tester_asignado = testers_seleccionados[idx % len(testers_seleccionados)]
-                    if regiones_seleccionadas:
-                        caso.pais = regiones_seleccionadas[idx % len(regiones_seleccionadas)]
-                    caso.save()
+                # MEJORA: Distribución equitativa de casos
+                distribuir_casos_equitativamente(nueva_matriz, testers_seleccionados, regiones_seleccionadas)
 
                 messages.success(request, "Matriz creada correctamente.")
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
@@ -240,18 +231,33 @@ def detalle_matriz(request, matriz_id):
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
     
-    # Aplicar filtro por tester_asignado (nuevo) si existe - CORREGIDO
+    # CORRECCIÓN: Filtrar por ID del tester_asignado
     if tester_asignado_filtrado and pais_filtrado:
-        # Filtrar por nombre completo Y país
-        casos_de_prueba = casos_de_prueba.filter(
-            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],  # Primer nombre
-            pais=pais_filtrado
-        )
+        # Filtrar por ID del tester Y país
+        try:
+            tester_id = int(tester_asignado_filtrado)
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__id=tester_id,
+                pais=pais_filtrado
+            )
+        except (ValueError, TypeError):
+            # Si no es un ID válido, intentar filtrar por nombre
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],
+                pais=pais_filtrado
+            )
     elif tester_asignado_filtrado:
-        # Solo filtrar por nombre
-        casos_de_prueba = casos_de_prueba.filter(
-            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
-        )
+        # Solo filtrar por ID del tester
+        try:
+            tester_id = int(tester_asignado_filtrado)
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__id=tester_id
+            )
+        except (ValueError, TypeError):
+            # Si no es un ID válido, intentar filtrar por nombre
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
+            )
     elif pais_filtrado:
         # Solo filtrar por país
         casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
@@ -303,21 +309,22 @@ def detalle_matriz(request, matriz_id):
         botones_nuevos.append({
             'texto': texto_boton,
             'tester_id': tester_id, 
-            'tester_nombre': nombre,  
+            'tester_nombre': nombre_completo,  # Cambiado a nombre completo
             'pais': pais
         })
     
     # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
-    mostrar_botones_nuevos = not mostrar_botones_viejos and len(botones_nuevos) > 0
+    mostrar_botones_nuevos = len(botones_nuevos) > 0  # Cambiado: mostrar ambos si existen
+
     # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
     campos = {
     "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
     "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
     "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
-    "mdp":casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
-    "monto":casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
-    "navegador":casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
+    "mdp": casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
+    "monto": casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
+    "navegador": casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
     }
 
     return render(request, 'excel_files/detalle_matriz.html', {
@@ -336,7 +343,7 @@ def detalle_matriz(request, matriz_id):
         'num_fallos': num_fallos,
         'mostrar_botones_viejos': mostrar_botones_viejos,
         'mostrar_botones_nuevos': mostrar_botones_nuevos,
-        'campos':campos,
+        'campos': campos,
     })
 @login_required
 def actualizar_estado_caso(request):

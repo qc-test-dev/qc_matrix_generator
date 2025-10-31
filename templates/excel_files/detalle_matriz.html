@@ -31,32 +31,32 @@
             </a>
         </li>
 
-        <!-- Botones viejos (tester) -->
-        {% if mostrar_botones_viejos and testers_disponibles %}
+        <!-- Botones viejos (sistema anterior) -->
+        {% if mostrar_botones_viejos %}
+        <div class="filtro-testers">
+            <h4>Filtrar por Tester (Sistema Anterior):</h4>
             {% for tester in testers_disponibles %}
-                {% if tester %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}"
-                       class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
-                        {{ tester }}
-                    </a>
-                </li>
-                {% endif %}
+                <a href="?tester={{ tester }}" class="btn btn-outline-primary btn-sm">
+                    {{ tester }}
+                </a>
             {% endfor %}
+            <a href="?" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+        </div>
         {% endif %}
 
-        <!-- Botones nuevos (nombre completo - pais) -->
-        {% if mostrar_botones_nuevos and botones_nuevos %}
+        <!-- Botones nuevos (sistema actual) -->
+        {% if mostrar_botones_nuevos %}
+        <div class="filtro-testers-region">
+            <h4>Filtrar por Tester - Región:</h4>
             {% for boton in botones_nuevos %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}"
-                       class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
-                        {{ boton.texto }}
-                    </a>
-                </li>
+                <!-- CORRECCIÓN: Enviar el tester_id en lugar del nombre -->
+                <a href="?tester_asignado={{ boton.tester_id }}&pais={{ boton.pais|urlencode }}" 
+                class="btn btn-outline-success btn-sm">
+                    {{ boton.texto }}
+                </a>
             {% endfor %}
+        </div>
         {% endif %}
-    </ul>
 
     <div class="table-responsive">
         <table class="table table-bordered table-striped">

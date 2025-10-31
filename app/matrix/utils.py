@@ -555,3 +555,69 @@ def obtener_todos_los_equipos_completo(solo_activas=True):
     except Exception as e:
         print(f"Error obteniendo todos los equipos completos: {e}")
         return None
+
+
+def distribuir_casos_equitativamente(matriz, testers_seleccionados, regiones_seleccionadas):
+    """
+    Distribuye los casos de manera equitativa entre testers y regiones,
+    evitando duplicaciones y asegurando distribución balanceada.
+    """
+    if not testers_seleccionados or not regiones_seleccionadas:
+        return
+
+    # Obtener todos los casos de la matriz
+    casos = list(matriz.casos.all())
+    total_casos = len(casos)
+    
+    if total_casos == 0:
+        return
+
+    # Calcular distribución óptima
+    total_testers = len(testers_seleccionados)
+    total_regiones = len(regiones_seleccionadas)
+    
+    # Crear combinaciones únicas de tester-región
+    combinaciones = []
+    for tester in testers_seleccionados:
+        for region in regiones_seleccionadas:
+            combinaciones.append((tester, region))
+    
+    # Mezclar las combinaciones para distribución aleatoria pero equitativa
+    random.shuffle(combinaciones)
+    
+    # Calcular casos por combinación
+    casos_por_combinacion = total_casos // len(combinaciones)
+    casos_extra = total_casos % len(combinaciones)
+    
+    # Distribuir casos
+    caso_index = 0
+    
+    for i, (tester, region) in enumerate(combinaciones):
+        # Calcular cuántos casos asignar a esta combinación
+        casos_a_asignar = casos_por_combinacion
+        if i < casos_extra:
+            casos_a_asignar += 1
+        
+        # Asignar casos a esta combinación tester-región
+        for j in range(casos_a_asignar):
+            if caso_index < total_casos:
+                caso = casos[caso_index]
+                caso.tester_asignado = tester
+                caso.pais = region
+                caso.save()
+                caso_index += 1
+    
+    # Si aún quedan casos por asignar (por redondeo), distribuirlos equitativamente
+    if caso_index < total_casos:
+        combinaciones_restantes = combinaciones[:]
+        random.shuffle(combinaciones_restantes)
+        
+        for caso in casos[caso_index:]:
+            if not combinaciones_restantes:
+                combinaciones_restantes = combinaciones.copy()
+                random.shuffle(combinaciones_restantes)
+            
+            tester, region = combinaciones_restantes.pop()
+            caso.tester_asignado = tester
+            caso.pais = region
+            caso.save()
