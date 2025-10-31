@@ -51,7 +51,7 @@
             {% for boton in botones_nuevos %}
                 <!-- CORRECCIÓN: Enviar el tester_id en lugar del nombre -->
                 <a href="?tester_asignado={{ boton.tester_id }}&pais={{ boton.pais|urlencode }}" 
-                class="btn btn-outline-success btn-sm">
+                class="btn btn-outline-dark btn-sm">
                     {{ boton.texto }}
                 </a>
             {% endfor %}

@@ -561,6 +561,7 @@ def distribuir_casos_equitativamente(matriz, testers_seleccionados, regiones_sel
     """
     Distribuye los casos de manera equitativa entre testers y regiones,
     evitando duplicaciones y asegurando distribución balanceada.
+    Si hay igual cantidad de testers y regiones, asigna una región por tester.
     """
     if not testers_seleccionados or not regiones_seleccionadas:
         return
@@ -576,48 +577,72 @@ def distribuir_casos_equitativamente(matriz, testers_seleccionados, regiones_sel
     total_testers = len(testers_seleccionados)
     total_regiones = len(regiones_seleccionadas)
     
-    # Crear combinaciones únicas de tester-región
-    combinaciones = []
-    for tester in testers_seleccionados:
-        for region in regiones_seleccionadas:
-            combinaciones.append((tester, region))
+    # CASO ESPECIAL: Misma cantidad de testers y regiones
+    if total_testers == total_regiones:
+        # Asignar una región diferente a cada tester
+        for i, tester in enumerate(testers_seleccionados):
+            region = regiones_seleccionadas[i]
+            
+            # Calcular cuántos casos corresponden a este tester
+            casos_por_tester = total_casos // total_testers
+            casos_extra = total_casos % total_testers
+            
+            # Determinar índices de casos para este tester
+            inicio = i * casos_por_tester + min(i, casos_extra)
+            fin = inicio + casos_por_tester + (1 if i < casos_extra else 0)
+            
+            # Asignar los casos a este tester y su región asignada
+            for j in range(inicio, fin):
+                if j < total_casos:
+                    caso = casos[j]
+                    caso.tester_asignado = tester
+                    caso.pais = region
+                    caso.save()
     
-    # Mezclar las combinaciones para distribución aleatoria pero equitativa
-    random.shuffle(combinaciones)
-    
-    # Calcular casos por combinación
-    casos_por_combinacion = total_casos // len(combinaciones)
-    casos_extra = total_casos % len(combinaciones)
-    
-    # Distribuir casos
-    caso_index = 0
-    
-    for i, (tester, region) in enumerate(combinaciones):
-        # Calcular cuántos casos asignar a esta combinación
-        casos_a_asignar = casos_por_combinacion
-        if i < casos_extra:
-            casos_a_asignar += 1
+    # CASO NORMAL: Funcionalidad original (todas las combinaciones tester-región)
+    else:
+        # Crear combinaciones únicas de tester-región
+        combinaciones = []
+        for tester in testers_seleccionados:
+            for region in regiones_seleccionadas:
+                combinaciones.append((tester, region))
         
-        # Asignar casos a esta combinación tester-región
-        for j in range(casos_a_asignar):
-            if caso_index < total_casos:
-                caso = casos[caso_index]
+        # Mezclar las combinaciones para distribución aleatoria pero equitativa
+        random.shuffle(combinaciones)
+        
+        # Calcular casos por combinación
+        casos_por_combinacion = total_casos // len(combinaciones)
+        casos_extra = total_casos % len(combinaciones)
+        
+        # Distribuir casos
+        caso_index = 0
+        
+        for i, (tester, region) in enumerate(combinaciones):
+            # Calcular cuántos casos asignar a esta combinación
+            casos_a_asignar = casos_por_combinacion
+            if i < casos_extra:
+                casos_a_asignar += 1
+            
+            # Asignar casos a esta combinación tester-región
+            for j in range(casos_a_asignar):
+                if caso_index < total_casos:
+                    caso = casos[caso_index]
+                    caso.tester_asignado = tester
+                    caso.pais = region
+                    caso.save()
+                    caso_index += 1
+        
+        # Si aún quedan casos por asignar (por redondeo), distribuirlos equitativamente
+        if caso_index < total_casos:
+            combinaciones_restantes = combinaciones[:]
+            random.shuffle(combinaciones_restantes)
+            
+            for caso in casos[caso_index:]:
+                if not combinaciones_restantes:
+                    combinaciones_restantes = combinaciones.copy()
+                    random.shuffle(combinaciones_restantes)
+                
+                tester, region = combinaciones_restantes.pop()
                 caso.tester_asignado = tester
                 caso.pais = region
                 caso.save()
-                caso_index += 1
-    
-    # Si aún quedan casos por asignar (por redondeo), distribuirlos equitativamente
-    if caso_index < total_casos:
-        combinaciones_restantes = combinaciones[:]
-        random.shuffle(combinaciones_restantes)
-        
-        for caso in casos[caso_index:]:
-            if not combinaciones_restantes:
-                combinaciones_restantes = combinaciones.copy()
-                random.shuffle(combinaciones_restantes)
-            
-            tester, region = combinaciones_restantes.pop()
-            caso.tester_asignado = tester
-            caso.pais = region
-            caso.save()
