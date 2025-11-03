@@ -345,6 +345,9 @@
                             <ol>
                                 {% for externo in info.externos %}
                                 <li>
+                                    {% if externo.etiqueta%}
+                                        <strong>Id de prueba:</strong> {{ externo.etiqueta }} - 
+                                    {% endif %}
                                     <strong>Caso:</strong> {{ externo.caso_de_prueba }} - 
                                     <span class="criticidad-{{ externo.criticidad|lower }}">Criticidad: {{ externo.criticidad }}</span>  
                                     
