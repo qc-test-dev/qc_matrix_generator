@@ -423,7 +423,7 @@ def obtener_informacion_matriz(matriz_id):
             'casos_ejecutados': casos_filtrados,  # Para referencia
             'paises': paises_lista,  # Lista de países únicos
             'externos':casos_pendientes_filtrados,
-            'num_externos':casos_pendientes_filtrados
+            'num_externos':casos_pendientes_filtrados.count()
         }
         
     except Matriz.DoesNotExist:

@@ -3,90 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        /* Configuración para tamaño A4 */
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 11px;
             margin: 0;
             padding: 0;
+            line-height: 1.4;
         }
+        
         .container {
             width: 100%;
-            padding: 20px;
+            padding: 15px;
             box-sizing: border-box;
         }
+        
         h1, h3 {
             text-align: center;
-            margin: 5px 0;
+            margin: 8px 0;
         }
+        
+        h1 {
+            font-size: 18px;
+            color: #2c3e50;
+        }
+        
+        h3 {
+            font-size: 14px;
+            color: #34495e;
+        }
+        
         .row {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
-            align-items: stretch; 
+            gap: 15px;
         }
+        
         .col {
-            width: 47%;
+            width: 100%;
             margin-bottom: 15px;
-            display: flex;
-            flex-direction: column; 
         }
+        
         .card {
-            flex-grow: 1; 
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
         }
+        
         .card-header {
-            background-color: #28a745;
+            background-color: #27ae60;
             color: white;
-            padding: 8px;
+            padding: 10px;
             font-size: 13px;
             font-weight: bold;
-            word-wrap: break-word;
-            white-space: normal;
+            border-radius: 5px 5px 0 0;
         }
+        
         .card-body {
-            padding: 8px;
+            padding: 12px;
         }
-        p {
-            margin: 4px 0;
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
         }
+        
+        .info-item {
+            margin: 5px 0;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
         ul {
-            margin: 5px 0 0 15px;
+            margin: 8px 0 8px 20px;
             padding: 0;
         }
+        
         li.region {
             font-weight: bold;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
+            color: #2980b9;
         }
+        
         hr {
-            margin: 10px 0;
+            margin: 12px 0;
             border: 0;
-            border-top: 1px solid #ccc;
+            border-top: 2px solid #ecf0f1;
         }
+        
         .summary-section {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            border-left: 4px solid #28a745;
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #27ae60;
         }
+        
+        .progress-container {
+            margin: 10px 0;
+        }
+        
         .progress-bar {
-            background-color: #e9ecef;
-            border-radius: 4px;
+            background-color: #bdc3c7;
+            border-radius: 10px;
             height: 15px;
-            margin: 5px 0;
+            margin: 8px 0;
             overflow: hidden;
         }
+        
         .progress-fill {
-            background-color: #28a745;
+            background-color: #27ae60;
             height: 100%;
+            transition: width 0.3s ease;
         }
-        .casos-bloqueantes {
-            color: #dc3545;
+        
+        .progress-text {
+            text-align: center;
             font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .casos-bloqueantes {
+            color: #e74c3c;
+            font-weight: bold;
+            background-color: #fadbd8;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .casos-externos {
+            margin: 12px 0 8px 0;
+            font-weight: bold;
+            color: #d35400;
+        }
+        
+        .externos-list {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 8px;
+        }
+        
+        .externos-list ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .externos-list li {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-bottom: 1px dashed #bdc3c7;
+            word-break: break-word;
+        }
+        
+        .externos-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .criticidad-bloqueante {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        
+        .criticidad-alta {
+            color: #e67e22;
+            font-weight: bold;
+        }
+        
+        .criticidad-media {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .keep-together {
+            page-break-inside: avoid;
+        }
+        
+        .allow-break {
+            page-break-inside: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #27ae60;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #7f8c8d;
+        }
+        
+        @media print {
+            .card {
+                break-inside: avoid;
+            }
+            
+            .summary-section {
+                break-inside: avoid;
+            }
         }
     </style>
 </head>
@@ -94,18 +244,33 @@
     <div class="container">
         <h1>Reporte de avance</h1>
         <h3>{{ super_matriz.nombre }}</h3>
-        <p>{{ super_matriz.descripcion }}</p>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px;">{{ super_matriz.descripcion }}</p>
         
         <!-- Resumen global -->
-        <div class="summary-section">
-            <p><strong>Porcentaje total de avance:</strong> {{ porcentaje_total }}%</p>
-            <p><strong>Casos totales:</strong> {{ total_global_casos }}</p>
-            <p><strong>Casos ejecutados:</strong> {{ total_global_completados }}</p>
+        <div class="summary-section keep-together">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">{{ porcentaje_total }}%</div>
+                    <div class="stat-label">Avance Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_global_casos }}</div>
+                    <div class="stat-label">Casos Totales</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ total_global_completados }}</div>
+                    <div class="stat-label">Casos Ejecutados</div>
+                </div>
+            </div>
+            
             <p><strong>Fecha de generación:</strong> {{ fecha_generacion }}</p>
             
             <!-- Barra de progreso global -->
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {{ porcentaje_total }}%"></div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ porcentaje_total }}%"></div>
+                </div>
+                <div class="progress-text">{{ porcentaje_total }}% Completado</div>
             </div>
             
             {% if paises_globales %}
@@ -119,26 +284,46 @@
         <div class="row">
             {% for info in matrices_info %}
             <div class="col">
-                <div class="card">
+                <div class="card keep-together">
                     <div class="card-header">{{ info.matriz.nombre }}</div>
                     <div class="card-body">
-                        <p><strong>Dispositivo:</strong> {{ info.dispositivo|default:"N/A" }}</p>
-                        <p><strong>Tipo de alcance:</strong> {{ info.alcance }}</p>
+                        <!-- Información básica -->
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Dispositivo:</span> {{ info.dispositivo|default:"N/A" }}
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tipo de alcance:</span> {{ info.alcance }}
+                            </div>
+                        </div>
                         
                         <!-- Estadísticas de casos -->
-                        <p><strong>Casos Totales:</strong> {{ info.total_casos }}</p>
-                        <p><strong>Casos Ejecutados:</strong> {{ info.casos_filtrados }}</p>
-                        <p><strong>Porcentaje:</strong> {{ info.porcentaje }}%</p>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">{{ info.total_casos }}</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ info.casos_filtrados }}</div>
+                                <div class="stat-label">Ejecutados</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">{{ info.porcentaje }}%</div>
+                                <div class="stat-label">Porcentaje</div>
+                            </div>
+                        </div>
                         
                         <!-- Barra de progreso individual -->
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ info.porcentaje }}%"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ info.porcentaje }}%"></div>
+                            </div>
                         </div>
                         
                         <!-- Casos bloqueantes -->
-                        <p class="casos-bloqueantes">
+                        <div class="casos-bloqueantes">
                             <strong>Casos Bloqueantes:</strong> {{ info.num_fallos }}
-                        </p>
+                        </div>
 
                         <!-- Países específicos de esta matriz -->
                         {% if info.paises %}
@@ -149,23 +334,46 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
-
-                        <!-- Testers asignados -->
-                        <!-- {% if info.testers %}
-                            <p><strong>Testers:</strong></p>
-                            <ul>
-                                {% for tester in info.testers %}
-                                    <li>{{ tester.nombre }} {{ tester.apellido }}</li>
+                        
+                        <!-- Casos externos -->
+                        <div class="casos-externos">
+                            <strong>Casos Pendientes por externo:</strong> {{ info.num_externos}}
+                        </div>
+                        
+                        {% if info.externos %}
+                        <div class="externos-list allow-break">
+                            <ol>
+                                {% for externo in info.externos %}
+                                <li>
+                                    <strong>Caso:</strong> {{ externo.caso_de_prueba }} - 
+                                    <span class="criticidad-{{ externo.criticidad|lower }}">Criticidad: {{ externo.criticidad }}</span>  
+                                    
+                                    {% if externo.nota%}
+                                        -<strong>Comentario:</strong> {{ externo.nota }}
+                                    {% endif %}
+                                        
+                                </li>
                                 {% endfor %}
-                            </ul>
-                        {% endif %} -->
+                            </ol>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
+            
+            <!-- Control de saltos de página después de cada matriz -->
+            {% if not forloop.last %}
+            <div style="page-break-after: always;"></div>
+            {% endif %}
+            
             {% endfor %}
         </div>
         {% else %}
-            <p>No hay matrices aún.</p>
+            <div class="card">
+                <div class="card-body" style="text-align: center; color: #7f8c8d;">
+                    <p>No hay matrices aún.</p>
+                </div>
+            </div>
         {% endif %}
     </div>
 </body>

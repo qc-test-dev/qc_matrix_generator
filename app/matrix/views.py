@@ -591,7 +591,7 @@ def generar_pdf_supermatriz(request, supermatriz_id):
             
             # Obtener número de fallos
             num_fallos = matriz_fails(matriz)[0]['indice']
-            
+            #print(f"{matriz_info['num_externos']} {matriz_info['externos']}")
             matrices_info.append({
                 'matriz': matriz,
                 'total_casos': matriz_info['total_casos'],
@@ -601,7 +601,9 @@ def generar_pdf_supermatriz(request, supermatriz_id):
                 'alcance': alcance,
                 'num_fallos': num_fallos,
                 'dispositivo': matriz_info['dispositivo'],
-                'testers': matriz_info['testers']
+                'testers': matriz_info['testers'],
+                'num_externos':matriz_info['num_externos'],
+                'externos':matriz_info['externos']
             })
 
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
@@ -637,7 +639,6 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     response['Expires'] = '0'
     
     return response    
-    return response
 User = get_user_model()
 
 @login_required
