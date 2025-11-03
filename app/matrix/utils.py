@@ -364,6 +364,10 @@ def obtener_informacion_matriz(matriz_id):
             criticidad='Bloqueante',
             estado__in=['falla_persistente', 'falla_nueva']
         )
+        # Filtro sobre casos pendientes por externo
+        casos_pendientes_filtrados = casos.filter(
+            estado__in=['pendiente_por_externo']
+        )
         
         # Calcular porcentaje de avance
         estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_externo"]
@@ -417,7 +421,9 @@ def obtener_informacion_matriz(matriz_id):
             'porcentaje': round(porcentaje, 2),
             'total_casos': total_casos,  # Para referencia
             'casos_ejecutados': casos_filtrados,  # Para referencia
-            'paises': paises_lista  # Lista de países únicos
+            'paises': paises_lista,  # Lista de países únicos
+            'externos':casos_pendientes_filtrados,
+            'num_externos':casos_pendientes_filtrados
         }
         
     except Matriz.DoesNotExist:

@@ -130,7 +130,7 @@ def detalle_super_matriz(request, super_matriz_id):
     for matriz_data in supermatriz_info['matrices']:
         # Obtener el objeto matriz original
         matriz_obj = Matriz.objects.get(id=matriz_data['id'])
-        
+        casos_externos= matriz_obj.casos.all().filter(estado__in=['pendiente_por_externo']).count()
         # Obtener información de fallas
         fallas_info = matriz_fails(matriz_obj)
         if fallas_info:
@@ -147,7 +147,8 @@ def detalle_super_matriz(request, super_matriz_id):
             'casos_filtrados': matriz_data.get('casos_ejecutados', 0),
             'porcentaje': matriz_data.get('porcentaje', 0),
             'testers_mostrar': obtener_testers(matriz_obj),
-            'fallas': fallas_data
+            'fallas': fallas_data,
+            'externos':casos_externos
         }
         matrices_info.append(matriz_info_item)
 

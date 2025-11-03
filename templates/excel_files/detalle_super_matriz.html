@@ -43,7 +43,7 @@
                             {{ casos_bloqueantes }}
                         </div>
                         <small class="text-muted">Casos Bloqueantes</small>
-                    </div>
+                    </div> 
                 </div>
             </div>
         </div>
@@ -124,6 +124,12 @@
 
                                 <!-- Mostrar información de fallas -->
                                 <div class="mb-3">
+                                    <p class="mb-1">
+                                        <strong>Pendientes por externo:</strong> 
+                                        <span class="badge bg-info-subtle text-black">
+                                            {{ info.externos }}
+                                        </span>
+                                    </p>
                                     <p class="mb-1">
                                         <strong>Fallas Bloqueantes:</strong> 
                                         <span class="badge {% if info.fallas.indice > 0 %}bg-danger{% else %}bg-success{% endif %}">
