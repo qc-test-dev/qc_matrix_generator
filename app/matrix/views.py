@@ -444,7 +444,29 @@ def editar_validates(request, super_matriz_id):
         'detalles_validate': detalles_validate,
         'testers': testers,
     })
-
+@login_required
+@require_POST
+@csrf_exempt
+def actualizar_estado_validate(request):
+    try:
+        validate_id = request.POST.get('validate_id')
+        nuevo_estado = request.POST.get('nuevo_estado')
+        
+        # Validar parámetros
+        if not validate_id or not nuevo_estado:
+            return JsonResponse({'error': 'Parámetros faltantes'}, status=400)
+        
+        # Obtener y actualizar el validate
+        validate = Validate.objects.get(id=validate_id)
+        validate.estado = nuevo_estado
+        validate.save()
+        
+        return JsonResponse({'success': True})
+        
+    except Validate.DoesNotExist:
+        return JsonResponse({'error': 'Validate no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 @login_required
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -474,33 +496,6 @@ def detalles_validate_modal(request, super_matriz_id):
         'form': form,
         'super_matriz': super_matriz,
     })
-@login_required
-def actualizar_estado_validate(request):
-    if request.method == 'POST':
-        validate_id = request.POST.get('validate_id')
-        nuevo_estado = request.POST.get('nuevo_estado')
-
-        try:
-            validate = Validate.objects.get(id=validate_id)
-            validate.estado = nuevo_estado
-            validate.save()
-
-            # WebSocket: enviar actualización a todos los clientes del grupo
-            super_matriz = validate.super_matriz  # Asumiendo que tienes esta relación
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"validates_{super_matriz.id}",
-                {
-                    "type": "estado_actualizado",
-                    "validate_id": validate.id,
-                    "nuevo_estado": nuevo_estado,
-                }
-            )
-
-            return JsonResponse({"success": True})
-        except Validate.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Validate no encontrado"})
-    return JsonResponse({"success": False, "error": "Método no permitido"})
 def tickets_por_levantar_view(request, super_matriz_id):
     
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)

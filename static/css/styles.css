@@ -599,7 +599,7 @@ p {
 
 
 .form-modern-wrapper {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--background-color);
     font-family: var(--font-family);
 }
 
@@ -614,7 +614,7 @@ p {
 }
 
 .modern-card-header {
-    background: linear-gradient(135deg, var(--button-success-bg), var(--button-success-hover));
+    background: var(--button-success-bg);
     color: white;
     border: none;
 }
@@ -687,33 +687,12 @@ p {
 
 /* Botón mejorado */
 .btn-success {
-    background: linear-gradient(135deg, var(--button-success-bg), var(--button-success-hover));
+    background: --button-success-bg;
     border: none;
     border-radius: var(--input-radius);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-}
-
-.btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
-    background: linear-gradient(135deg, var(--button-success-hover), var(--button-success-bg));
-}
-
-.btn-success::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn-success:hover::before {
-    left: 100%;
 }
 
 /* Input groups modernos */
