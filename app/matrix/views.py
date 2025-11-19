@@ -226,20 +226,18 @@ def detalle_matriz(request, matriz_id):
     tester_asignado_filtrado = request.GET.get('tester_asignado')
     pais_filtrado = request.GET.get('pais')
     fallo_filtrado = request.GET.get('fallo')
-    estado_filtrado = request.GET.get('estado')  # NUEVO: filtro por estado
-    fase_filtrada = request.GET.get('fase')  # NUEVO: filtro por fase
+    estado_filtrado = request.GET.get('estado')
+    fase_filtrada = request.GET.get('fase')
     num_fallos = matriz_fails(matriz)[0]['indice']
 
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
-    # Aplicar filtro por tester (viejo) si existe
+    # Aplicar filtros existentes (se mantienen igual)
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
-    # CORRECCIÓN: Filtrar por ID del tester_asignado
     if tester_asignado_filtrado and pais_filtrado:
-        # Filtrar por ID del tester Y país
         try:
             tester_id = int(tester_asignado_filtrado)
             casos_de_prueba = casos_de_prueba.filter(
@@ -247,25 +245,21 @@ def detalle_matriz(request, matriz_id):
                 pais=pais_filtrado
             )
         except (ValueError, TypeError):
-            # Si no es un ID válido, intentar filtrar por nombre
             casos_de_prueba = casos_de_prueba.filter(
                 tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],
                 pais=pais_filtrado
             )
     elif tester_asignado_filtrado:
-        # Solo filtrar por ID del tester
         try:
             tester_id = int(tester_asignado_filtrado)
             casos_de_prueba = casos_de_prueba.filter(
                 tester_asignado__id=tester_id
             )
         except (ValueError, TypeError):
-            # Si no es un ID válido, intentar filtrar por nombre
             casos_de_prueba = casos_de_prueba.filter(
                 tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
             )
     elif pais_filtrado:
-        # Solo filtrar por país
         casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
 
     # NUEVO: Aplicar filtro por estado si existe
@@ -308,20 +302,18 @@ def detalle_matriz(request, matriz_id):
     testers_disponibles = list(
         matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
 
-    # NUEVO: Obtener estados y fases únicos para los dropdowns
-    estados_disponibles = list(matriz.casos.exclude(
-        estado__isnull=True
-    ).exclude(
-        estado=''
-    ).values_list('estado', flat=True).distinct().order_by('estado'))
-
+    ESTADOS_POSIBLES = [
+        'funciona', 'falla_nueva', 'falla_persistente',
+        'na', 'pendiente_por_qc', 'por_ejecutar', 'pendiente_por_externo'
+    ]
+    estados_disponibles = ESTADOS_POSIBLES
     fases_disponibles = list(matriz.casos.exclude(
         fase__isnull=True
     ).exclude(
         fase=''
     ).values_list('fase', flat=True).distinct().order_by('fase'))
 
-    # NUEVO: Obtener los IDs de los testers asignados para filtrado preciso
+    # Obtener los IDs de los testers asignados para filtrado preciso
     combinaciones_tester_pais = matriz.casos.exclude(
         tester_asignado__isnull=True
     ).exclude(
@@ -337,13 +329,13 @@ def detalle_matriz(request, matriz_id):
         botones_nuevos.append({
             'texto': texto_boton,
             'tester_id': tester_id,
-            'tester_nombre': nombre_completo,  # Cambiado a nombre completo
+            'tester_nombre': nombre_completo,
             'pais': pais
         })
 
     # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
-    mostrar_botones_nuevos = len(botones_nuevos) > 0  # Cambiado: mostrar ambos si existen
+    mostrar_botones_nuevos = len(botones_nuevos) > 0
 
     # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
     campos = {
@@ -361,6 +353,7 @@ def detalle_matriz(request, matriz_id):
         estado_formateado = estado.replace('_', ' ').title()
         estados_combinados.append((estado, estado_formateado))
 
+    # Formatear también el estado filtrado actual
     estado_filtrado_formateado = estado_filtrado.replace('_', ' ').title() if estado_filtrado else None
 
     return render(request, 'excel_files/detalle_matriz.html', {
@@ -380,12 +373,15 @@ def detalle_matriz(request, matriz_id):
         'mostrar_botones_viejos': mostrar_botones_viejos,
         'mostrar_botones_nuevos': mostrar_botones_nuevos,
         'campos': campos,
+        # NUEVAS VARIABLES PARA LOS FILTROS
         'estados_combinados': estados_combinados,
         'fases_disponibles': fases_disponibles,
         'estado_filtrado': estado_filtrado,
         'estado_filtrado_formateado': estado_filtrado_formateado,
         'fase_filtrada': fase_filtrada,
     })
+
+
 @login_required
 def actualizar_estado_caso(request):
     if request.method == "POST":

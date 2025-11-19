@@ -13,24 +13,26 @@
     <p><strong>Alcance: {{alcance}}</strong></p>
     <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
 
-    <!-- NUEVO: FILTROS RÁPIDOS EN DIV SEPARADO -->
+    <!-- FILTROS RÁPIDOS EN DIV SEPARADO -->
     <div class="row mb-4">
         <div class="col-md-12">
             <h4 class="mb-3">Filtros Rápidos:</h4>
-            <div class="d-flex gap-3 align-items-end">
-                <!-- Dropdown para Estado -->
-                <div class="flex-grow-1">
-                    <label class="form-label fw-bold">Estado</label>
+            <div class="d-flex gap-2 align-items-end flex-wrap">
+                <!-- Dropdown para Estado  -->
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Estado</label>
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button" id="dropdownEstado" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownEstado" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
                             {% if estado_filtrado %}{{ estado_filtrado_formateado }}{% else %}Todos los estados{% endif %}
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownEstado">
-                            <li><a class="dropdown-item" href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if fase_filtrada %}?fase={{ fase_filtrada }}{% endif %}">Todos los estados</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownEstado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li><a class="dropdown-item py-1" href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if fase_filtrada %}?fase={{ fase_filtrada }}{% endif %}">Todos los estados</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             {% for estado_original, estado_formateado in estados_combinados %}
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado={{ estado_original }}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}">
+                                    <a class="dropdown-item py-1" href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado={{ estado_original }}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}">
                                         {{ estado_formateado }}
                                     </a>
                                 </li>
@@ -39,19 +41,21 @@
                     </div>
                 </div>
 
-                <!-- Dropdown para Fase -->
-                <div class="flex-grow-1">
-                    <label class="form-label fw-bold">Fase</label>
+                <!-- Dropdown para Fase  -->
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Fase</label>
                     <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button" id="dropdownFase" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownFase" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
                             {% if fase_filtrada %}{{ fase_filtrada }}{% else %}Todas las fases{% endif %}
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownFase">
-                            <li><a class="dropdown-item" href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if estado_filtrado %}?estado={{ estado_filtrado }}{% endif %}">Todas las fases</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownFase" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li><a class="dropdown-item py-1" href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if estado_filtrado %}?estado={{ estado_filtrado }}{% endif %}">Todas las fases</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             {% for fase in fases_disponibles %}
                                 <li>
-                                    <a class="dropdown-item" href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fase={{ fase }}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}">
+                                    <a class="dropdown-item py-1" href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fase={{ fase }}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}">
                                         {{ fase }}
                                     </a>
                                 </li>
@@ -59,36 +63,42 @@
                         </ul>
                     </div>
                 </div>
-
-                <!-- Botón para limpiar filtros rápidos -->
-                <div>
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}"
-                       class="btn btn-outline-dark btn-sm h-100">
-                        Limpiar
-                    </a>
-                </div>
             </div>
         </div>
     </div>
 
     <!-- Mostrar filtros activos -->
-    {% if estado_filtrado or fase_filtrada %}
-    <div class="mt-3">
-        <strong>Filtros aplicados:</strong>
+    {% if estado_filtrado or fase_filtrada or tester_filtrado or tester_asignado_filtrado or pais_filtrado or fallo_filtrado %}
+    <div class="mt-3 mb-3 p-2 bg-light rounded">
+        <strong class="small">Filtros aplicados:</strong>
         {% if estado_filtrado %}
-            <span class="badge bg-info me-2">Estado: {{ estado_filtrado_formateado }}</span>
+            <span class="badge bg-info me-2 small">Estado: {{ estado_filtrado_formateado }}</span>
         {% endif %}
         {% if fase_filtrada %}
-            <span class="badge bg-warning text-dark">Fase: {{ fase_filtrada }}</span>
+            <span class="badge bg-warning text-dark me-2 small">Fase: {{ fase_filtrada }}</span>
         {% endif %}
-        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-sm btn-outline-secondary ms-2">Limpiar todos los filtros</a>
+        {% if tester_filtrado %}
+            <span class="badge bg-secondary me-2 small">Tester: {{ tester_filtrado }}</span>
+        {% endif %}
+        {% if tester_asignado_filtrado %}
+            <span class="badge bg-dark me-2 small">Tester Asignado: {{ tester_asignado_filtrado }}</span>
+        {% endif %}
+        {% if pais_filtrado %}
+            <span class="badge bg-success me-2 small">País: {{ pais_filtrado }}</span>
+        {% endif %}
+        {% if fallo_filtrado %}
+            <span class="badge bg-danger me-2 small">Fallo: {{ fallo_filtrado }}</span>
+        {% endif %}
+        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-secondary btn-sm ms-2 py-0" style="font-size: 0.7rem;">
+            Limpiar todos los filtros
+        </a>
     </div>
     {% endif %}
 
     <!-- FILTROS EXISTENTES  -->
     <h4 class="mt-4">Filtrar por:</h4>
     <ul class="list-inline">
-        <!-- Botón Todos  -->
+        <!-- Botón Todos -->
         <li class="list-inline-item">
             <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}"
                class="btn btn-outline-primary btn-sm {% if not fallo_filtrado and not tester_filtrado and not tester_asignado_filtrado and not pais_filtrado and not estado_filtrado and not fase_filtrada %}active{% endif %}">
@@ -737,6 +747,75 @@ setInterval(actualizarFallos, 6000);
 .dropdown-menu {
     max-height: 300px;
     overflow-y: auto;
+}
+
+/* ESTILOS MEJORADOS PARA BOTONES DE DROPDOWN - MÁS VISIBLES */
+.dropdown-btn-enhanced {
+    font-weight: 600 !important;
+    border-width: 2px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.dropdown-btn-enhanced:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* Mejorar el color del botón de Estado */
+.btn-info.dropdown-btn-enhanced {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important;
+    border-color: #0aa2c0 !important;
+    color: white !important;
+}
+
+.btn-info.dropdown-btn-enhanced:hover {
+    background: linear-gradient(135deg, #0aa2c0 0%, #088aa0 100%) !important;
+    border-color: #088aa0 !important;
+}
+
+/* Mejorar el color del botón de Fase */
+.btn-warning.dropdown-btn-enhanced {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    border-color: #e0a800 !important;
+    color: #212529 !important;
+}
+
+.btn-warning.dropdown-btn-enhanced:hover {
+    background: linear-gradient(135deg, #e0a800 0%, #c69500 100%) !important;
+    border-color: #c69500 !important;
+}
+
+/* Estilos para dropdowns más compactos */
+.dropdown-menu-sm .dropdown-item {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.dropdown-menu-sm .dropdown-divider {
+    margin: 0.25rem 0;
+}
+
+/* Mejorar la apariencia de los botones pequeños */
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+/* Ajustar badges para que sean más compactos */
+.badge.small {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* Mejorar el enfoque de los botones para accesibilidad */
+.dropdown-btn-enhanced:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25) !important;
+}
+
+.btn-warning.dropdown-btn-enhanced:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
 }
 </style>
 
