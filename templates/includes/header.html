@@ -1,48 +1,83 @@
-<div class="header container-fluid p-3">
+<div class="header container-fluid p-3 mb-3">
     <div class="row align-items-center">
         <!-- Columna para el título e información del usuario -->
         <div class="col-12 col-md-6 col-lg-7 mb-3 mb-md-0">
             <div class="d-flex flex-column">
-                <h1>QC Seguimiento Revisiones</h1>
-                <div>
-                    <p class="mb-0"><strong>Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }}
-                    <strong>Cargo:</strong> {{ request.user.cargo }}
-                    <strong>Equipo:</strong> {{ request.user.equipo_nuevo }}</p>
+                <h1 class="mb-1">QC Seguimiento Revisiones</h1>
+                <div class="user-info">
+                    <p class="mb-1">
+                        <strong  class="mb-2">Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }}
+                        <strong  class="mb-2">Cargo:</strong> {{ request.user.cargo }}
+                        <strong  class="mb-2">Equipo:</strong> {{ request.user.equipo_nuevo }}
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Columna para los botones y controles -->
-<div class="col-12 col-md-6 col-lg-5">
-    <div class="group-btn d-flex flex-wrap align-items-center justify-content-center justify-content-md-end gap-3">
+        <!-- Columna para la navbar -->
+        <div class="col-12 col-md-6 col-lg-5">
+            <nav class="navbar custom-navbar navbar-expand-lg p-0">
+                <div class="container-fluid p-0">
+                    <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#customNavbar" aria-controls="customNavbar" 
+                            aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="fas fa-bars"></i>
+                    </button>
 
-        <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="settingsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                ⚙️
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
-                <li><a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">Cambiar contraseña</a></li>
-            </ul>
+                    <div class="collapse navbar-collapse justify-content-end" id="customNavbar">
+                        <ul class="navbar-nav custom-nav align-items-center">
+                            <li class="nav-item">
+                                <a class="nav-link custom-nav-link" href="{% url 'home' %}">
+                                    <i class="fas fa-home me-2"></i>
+                                    Home
+                                </a>
+                            </li>
+                            
+                            {% if request.user.cargo == "Lider" %}
+                            <li class="nav-item">
+                                <a class="nav-link custom-nav-link" href="{% url 'matrix_app:matrices_archivadas' %}">
+                                    <i class="fas fa-archive me-2"></i>
+                                    Archivadas
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="nav-item">
+                                <a class="nav-link custom-nav-link" href="{% url 'matrix_app:dashboard' %}">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    Calendario
+                                </a>
+                            </li>
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link custom-nav-link dropdown-toggle" href="#" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-2"></i>
+                                    {{ request.user.nombre }}
+                                </a>
+                                <ul class="dropdown-menu custom-dropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">
+                                            <i class="fas fa-key me-2"></i>
+                                            Cambiar contraseña
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline w-100">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item logout-btn w-100 border-0 bg-transparent text-start">
+                                                <i class="fas fa-sign-out-alt me-2"></i>
+                                                Cerrar sesión
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
         </div>
-
-        <!-- Botones principales -->
-        <a href="{% url 'home' %}" class="home-btn text-nowrap">Home</a>
-
-        {% if request.user.cargo == "Lider" %}
-        <a href="{% url 'matrix_app:matrices_archivadas' %}" class="archive-btn text-nowrap">
-            <i class="fas fa-archive me-1"></i>Ver Matrices Archivadas
-        </a>
-        <!-- <a href="{% url 'accounts_app:list_teams' %}" class="update-btn text-nowrap">Actualizar Matrix</a> -->
-        {% endif %}
-
-        <a href="{% url 'matrix_app:dashboard' %}" class="dashboard-btn text-nowrap">Calendario</a>
-
-        <!-- Formulario de logout -->
-        <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="logout-btn text-nowrap">Cerrar sesión</button>
-        </form>
     </div>
 </div>
-    </div>
-    </div>
