@@ -54,6 +54,7 @@ from .forms import MatrizForm, ValidateForm
 from django.utils import timezone
 import os
 import random
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -213,6 +214,8 @@ def detalle_super_matriz(request, super_matriz_id):
         'casos_ejecutados': casos_ejecutados,
         'casos_bloqueantes': casos_bloqueantes,
     })
+
+
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -223,15 +226,17 @@ def detalle_matriz(request, matriz_id):
     tester_asignado_filtrado = request.GET.get('tester_asignado')
     pais_filtrado = request.GET.get('pais')
     fallo_filtrado = request.GET.get('fallo')
+    estado_filtrado = request.GET.get('estado')  # NUEVO: filtro por estado
+    fase_filtrada = request.GET.get('fase')  # NUEVO: filtro por fase
     num_fallos = matriz_fails(matriz)[0]['indice']
-    
+
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
     # Aplicar filtro por tester (viejo) si existe
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
-    
+
     # CORRECCIÓN: Filtrar por ID del tester_asignado
     if tester_asignado_filtrado and pais_filtrado:
         # Filtrar por ID del tester Y país
@@ -263,6 +268,14 @@ def detalle_matriz(request, matriz_id):
         # Solo filtrar por país
         casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
 
+    # NUEVO: Aplicar filtro por estado si existe
+    if estado_filtrado:
+        casos_de_prueba = casos_de_prueba.filter(estado=estado_filtrado)
+
+    # NUEVO: Aplicar filtro por fase si existe
+    if fase_filtrada:
+        casos_de_prueba = casos_de_prueba.filter(fase=fase_filtrada)
+
     # Ordenar los casos
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
@@ -292,8 +305,22 @@ def detalle_matriz(request, matriz_id):
     alcances_lista = matriz.alcances_utilizados.split(',') if matriz.alcances_utilizados else []
 
     # Testers disponibles (viejo - campo tester)
-    testers_disponibles = list(matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
-    
+    testers_disponibles = list(
+        matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
+
+    # NUEVO: Obtener estados y fases únicos para los dropdowns
+    estados_disponibles = list(matriz.casos.exclude(
+        estado__isnull=True
+    ).exclude(
+        estado=''
+    ).values_list('estado', flat=True).distinct().order_by('estado'))
+
+    fases_disponibles = list(matriz.casos.exclude(
+        fase__isnull=True
+    ).exclude(
+        fase=''
+    ).values_list('fase', flat=True).distinct().order_by('fase'))
+
     # NUEVO: Obtener los IDs de los testers asignados para filtrado preciso
     combinaciones_tester_pais = matriz.casos.exclude(
         tester_asignado__isnull=True
@@ -302,31 +329,39 @@ def detalle_matriz(request, matriz_id):
     ).exclude(
         pais=''
     ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido', 'pais').distinct()
-    
+
     botones_nuevos = []
     for tester_id, nombre, apellido, pais in combinaciones_tester_pais:
         nombre_completo = f"{nombre} {apellido}"
         texto_boton = f"{nombre_completo} - {pais}"
         botones_nuevos.append({
             'texto': texto_boton,
-            'tester_id': tester_id, 
+            'tester_id': tester_id,
             'tester_nombre': nombre_completo,  # Cambiado a nombre completo
             'pais': pais
         })
-    
+
     # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
     mostrar_botones_nuevos = len(botones_nuevos) > 0  # Cambiado: mostrar ambos si existen
 
     # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
     campos = {
-    "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
-    "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
-    "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
-    "mdp": casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
-    "monto": casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
-    "navegador": casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
+        "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
+        "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
+        "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
+        "mdp": casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
+        "monto": casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
+        "navegador": casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
     }
+
+    # Crear lista de tuplas con (estado_original, estado_formateado)
+    estados_combinados = []
+    for estado in estados_disponibles:
+        estado_formateado = estado.replace('_', ' ').title()
+        estados_combinados.append((estado, estado_formateado))
+
+    estado_filtrado_formateado = estado_filtrado.replace('_', ' ').title() if estado_filtrado else None
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -345,6 +380,11 @@ def detalle_matriz(request, matriz_id):
         'mostrar_botones_viejos': mostrar_botones_viejos,
         'mostrar_botones_nuevos': mostrar_botones_nuevos,
         'campos': campos,
+        'estados_combinados': estados_combinados,
+        'fases_disponibles': fases_disponibles,
+        'estado_filtrado': estado_filtrado,
+        'estado_filtrado_formateado': estado_filtrado_formateado,
+        'fase_filtrada': fase_filtrada,
     })
 @login_required
 def actualizar_estado_caso(request):
