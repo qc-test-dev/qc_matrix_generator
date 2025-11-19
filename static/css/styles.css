@@ -594,3 +594,179 @@ p {
         right: 10px;
     }
 }
+
+/*Css para el templade Detalle RN*/
+
+
+.form-modern-wrapper {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: var(--font-family);
+}
+
+.modern-card {
+    border: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.modern-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-card-header {
+    background: linear-gradient(135deg, var(--button-success-bg), var(--button-success-hover));
+    color: white;
+    border: none;
+}
+
+.modern-card-header.border-bottom {
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.header-icon {
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.modern-title {
+    font-weight: 700;
+}
+
+/* Estilos para campos del formulario */
+#id_filtro_RN,
+#id_comentario_RN,
+#id_testers {
+    border: 2px solid var(--border-color);
+    border-radius: var(--input-radius);
+    padding: var(--input-padding);
+    font-size: 14px;
+    transition: all 0.3s ease;
+    width: 100%;
+    background-color: var(--light-color);
+    font-family: var(--font-family);
+}
+
+#id_filtro_RN:focus,
+#id_comentario_RN:focus,
+#id_testers:focus {
+    border-color: var(--button-success-bg);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+    outline: none;
+    background-color: var(--light-color);
+}
+
+#id_testers {
+    min-height: 120px;
+    background-color: var(--light-color);
+}
+
+#id_testers option {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 2px 0;
+    transition: background-color 0.2s ease;
+    background-color: var(--light-color);
+    color: var(--dark-color);
+}
+
+#id_testers option:hover {
+    background-color: var(--button-success-bg) !important;
+    color: var(--light-color) !important;
+}
+
+#id_testers option:checked {
+    background-color: var(--button-success-bg) !important;
+    color: var(--light-color) !important;
+}
+
+/* Botón mejorado */
+.btn-success {
+    background: linear-gradient(135deg, var(--button-success-bg), var(--button-success-hover));
+    border: none;
+    border-radius: var(--input-radius);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+    background: linear-gradient(135deg, var(--button-success-hover), var(--button-success-bg));
+}
+
+.btn-success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-success:hover::before {
+    left: 100%;
+}
+
+/* Input groups modernos */
+.input-group-modern {
+    position: relative;
+}
+
+.input-header {
+    margin-bottom: 0.5rem;
+}
+
+.input-icon {
+    font-size: 1rem;
+}
+
+.input-label {
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-modern-wrapper {
+        padding: 2rem 1rem !important;
+    }
+    
+    .modern-card-header {
+        padding: 2rem !important;
+    }
+    
+    .modern-card-body {
+        padding: 2rem !important;
+    }
+    
+    .header-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .header-icon i {
+        font-size: 1.5rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-modern-wrapper {
+        padding: 1rem !important;
+    }
+    
+    .modern-card-header {
+        padding: 1.5rem !important;
+    }
+    
+    .modern-card-body {
+        padding: 1.5rem !important;
+    }
+}
