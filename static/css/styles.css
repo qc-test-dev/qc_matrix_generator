@@ -770,3 +770,27 @@ p {
         padding: 1.5rem !important;
     }
 }
+/*
+CSS Sobre el templade Matrices Archivadas
+*/
+
+ .bg-amarillo-solido {
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+    }
+    .btn-amarillo-solido {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000;
+    }
+    .btn-amarillo-solido:hover {
+        background-color: #e0a800;
+        border-color: #e0a800;
+        color: #000;
+    }
+    .text-amarillo {
+        color: #ffc107 !important;
+    }
+    .border-amarillo {
+        border-color: #ffc107 !important;
+    }
