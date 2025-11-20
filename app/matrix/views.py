@@ -356,6 +356,21 @@ def detalle_matriz(request, matriz_id):
     # Formatear también el estado filtrado actual
     estado_filtrado_formateado = estado_filtrado.replace('_', ' ').title() if estado_filtrado else None
 
+    # Crear parámetros de query string para mantener los filtros actuales
+    query_params = []
+
+    if tester_filtrado:
+        query_params.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params.append(f"pais={pais_filtrado}")
+    if fallo_filtrado:
+        query_params.append(f"fallo={fallo_filtrado}")
+
+    current_query_string = "&".join(query_params)
+    has_other_filters = bool(current_query_string)
+
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
         'super_matriz_id': super_matriz_id,
@@ -379,6 +394,9 @@ def detalle_matriz(request, matriz_id):
         'estado_filtrado': estado_filtrado,
         'estado_filtrado_formateado': estado_filtrado_formateado,
         'fase_filtrada': fase_filtrada,
+        # NUEVAS VARIABLES PARA MANTENER FILTROS
+        'current_query_string': current_query_string,
+        'has_other_filters': has_other_filters,
     })
 
 
