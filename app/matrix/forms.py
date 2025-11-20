@@ -110,7 +110,7 @@ class CasoDePruebaForm(forms.ModelForm):
         queryset=User.objects.all(),
         required=False,
         label="Tester asignado",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        
     )
 
     pais = forms.CharField(

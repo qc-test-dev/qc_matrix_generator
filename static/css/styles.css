@@ -638,7 +638,7 @@ p {
     font-weight: 700;
 }
 
-/* Estilos para campos del formulario */
+/* Estilos para campos del formulario
 #id_filtro_RN,
 #id_comentario_RN,
 #id_testers {
@@ -683,7 +683,7 @@ p {
 #id_testers option:checked {
     background-color: var(--button-success-bg) !important;
     color: var(--light-color) !important;
-}
+} */
 
 /* Botón mejorado */
 .btn-success {
