@@ -118,7 +118,7 @@ body {
 }
 
 .dropdown-item:hover {
-    background-color: var(--button-primary-bg);
+    background-color: var(--dark-color);
     color: var(--light-color);
     transform: translateX(5px);
 }

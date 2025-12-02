@@ -6,9 +6,9 @@
                 <h1 class="mb-1">QC Seguimiento Revisiones</h1>
                 <div class="user-info">
                     <p class="mb-1">
-                        <strong  class="mb-2">Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }}
-                        <strong  class="mb-2">Cargo:</strong> {{ request.user.cargo }}
-                        <strong  class="mb-2">Equipo:</strong> {{ request.user.equipo_nuevo }}
+                        <strong class="mb-2">Usuario:</strong> {{ request.user.nombre }} {{ request.user.apellido }}
+                        <strong class="mb-2">Cargo:</strong> {{ request.user.cargo }}
+                        <strong class="mb-2">Equipo:</strong> {{ request.user.equipo_nuevo }}
                     </p>
                 </div>
             </div>
@@ -23,7 +23,7 @@
                             aria-expanded="false" aria-label="Toggle navigation">
                         <i class="fas fa-bars"></i>
                     </button>
-
+                    
                     <div class="collapse navbar-collapse justify-content-end" id="customNavbar">
                         <ul class="navbar-nav custom-nav align-items-center">
                             <li class="nav-item">
@@ -31,7 +31,7 @@
                                     <i class="fas fa-home me-2"></i>
                                     Home
                                 </a>
-                            </li>
+                            </li>    
                             
                             {% if request.user.cargo == "Lider" %}
                             <li class="nav-item">
@@ -50,18 +50,31 @@
                             </li>
 
                             <li class="nav-item dropdown">
-                                <a class="nav-link custom-nav-link dropdown-toggle" href="#" role="button" 
-                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link custom-nav-link dropdown-toggle d-flex align-items-center" 
+                                   href="#" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false"
+                                   id="userDropdown">
                                     <i class="fas fa-user-circle me-2"></i>
                                     {{ request.user.nombre }} ⚙️
                                 </a>
-                                <ul class="dropdown-menu custom-dropdown p-2 m-2">
+                                <ul class="dropdown-menu custom-dropdown p-2 shadow-lg dropdown-menu-end"
+                                    aria-labelledby="userDropdown"
+                                    style="z-index: 99999 !important; margin-top: 8px;">
                                     <li>
                                         <a class="dropdown-item" href="{% url 'accounts_app:cambiar_contraseña' %}">
                                             <i class="fas fa-key me-2"></i>
                                             Cambiar contraseña
                                         </a>
                                     </li>
+                                    {% if request.user.is_superuser %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'accounts_app:lista_usuarios' %}">
+                                            <i class="fas fa-key me-2"></i>
+                                            Lista de usuarios
+                                        </a>
+                                    </li>
+                                    {% endif %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline w-100">
