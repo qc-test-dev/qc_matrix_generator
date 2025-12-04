@@ -52,9 +52,3 @@ def home(request):
         'equipo_filtrado': equipo_nuevo or equipo,
         'es_lider': es_lider,
     })
-@login_required
-def header(request):
-    usuario_form = UserCreateForm() if request.user.is_superuser else None
-    return render(request, "templades/includes/header.html", {
-        'usuario_form': usuario_form,  
-    })
