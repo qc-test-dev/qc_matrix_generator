@@ -81,29 +81,43 @@
 
     <!-- Mostrar filtros activos -->
     {% if estado_filtrado or fase_filtrada or tester_filtrado or tester_asignado_filtrado or pais_filtrado or fallo_filtrado %}
-    <div class="mt-3 mb-3 p-2 bg-light rounded">
-        <strong class="small">Filtros aplicados:</strong>
-        {% if estado_filtrado %}
-            <span class="badge bg-info me-2 small">Estado: {{ estado_filtrado_formateado }}</span>
-        {% endif %}
-        {% if fase_filtrada %}
-            <span class="badge bg-warning text-dark me-2 small">Fase: {{ fase_filtrada }}</span>
-        {% endif %}
-        {% if tester_filtrado %}
-            <span class="badge bg-secondary me-2 small">Tester: {{ tester_filtrado }}</span>
-        {% endif %}
-        {% if tester_asignado_filtrado %}
-            <span class="badge bg-dark me-2 small">Tester Asignado: {{ tester_asignado_filtrado }}</span>
-        {% endif %}
-        {% if pais_filtrado %}
-            <span class="badge bg-success me-2 small">País: {{ pais_filtrado }}</span>
-        {% endif %}
-        {% if fallo_filtrado %}
-            <span class="badge bg-danger me-2 small">Fallo: {{ fallo_filtrado }}</span>
-        {% endif %}
-        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-secondary btn-sm ms-2 py-0" style="font-size: 0.7rem;">
-            Limpiar todos los filtros
-        </a>
+    <div class="mt-3 mb-3 p-3 filtros-aplicados-container">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <strong class="filtros-titulo me-2"> Filtros aplicados:</strong>
+            {% if estado_filtrado %}
+                <span class="badge filtro-badge filtro-estado">
+                    <span class="filtro-icono"></span> Estado: {{ estado_filtrado_formateado }}
+                </span>
+            {% endif %}
+            {% if fase_filtrada %}
+                <span class="badge filtro-badge filtro-fase">
+                    <span class="filtro-icono"></span> Fase: {{ fase_filtrada }}
+                </span>
+            {% endif %}
+            {% if tester_filtrado %}
+                <span class="badge filtro-badge filtro-tester">
+                    <span class="filtro-icono"></span> Tester: {{ tester_filtrado }}
+                </span>
+            {% endif %}
+            {% if tester_asignado_filtrado %}
+                <span class="badge filtro-badge filtro-tester-asignado">
+                    <span class="filtro-icono"></span> Tester Asignado: {{ tester_asignado_filtrado }}
+                </span>
+            {% endif %}
+            {% if pais_filtrado %}
+                <span class="badge filtro-badge filtro-pais">
+                    <span class="filtro-icono"></span> País: {{ pais_filtrado }}
+                </span>
+            {% endif %}
+            {% if fallo_filtrado and estado_filtrado != 'bloqueante' %}
+                <span class="badge filtro-badge filtro-fallo">
+                    <span class="filtro-icono"></span> Fallo: {{ fallo_filtrado }}
+                </span>
+            {% endif %}
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-limpiar-filtros ms-auto">
+                🗑️ Limpiar todos los filtros
+            </a>
+        </div>
     </div>
     {% endif %}
 
@@ -119,13 +133,15 @@
         </li>
 
         <!-- Botón Bloqueante (Falla Nueva + Persistente) - MANTIENE ESTADO Y FASE -->
+        <!-- Nota: Este botón usa fallo=bloqueante para compatibilidad, pero se recomienda usar el dropdown de Estado -->
+        <!--
         <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}"
-               class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado=bloqueante{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}{% if current_query_string %}&{{ current_query_string }}{% endif %}"
+               class="btn btn-outline-danger btn-sm {% if estado_filtrado == 'bloqueante' or fallo_filtrado == 'bloqueante' %}active{% endif %}">
                 Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
             </a>
         </li>
-
+        -->
         <!-- Botones viejos (tester) - -->
         {% if mostrar_botones_viejos and testers_disponibles %}
             {% for tester in testers_disponibles %}
@@ -828,6 +844,184 @@ setInterval(actualizarFallos, 6000);
 
 .btn-warning.dropdown-btn-enhanced:focus {
     box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+}
+
+/* ESTILOS LLAMATIVOS PARA FILTROS APLICADOS */
+.filtros-aplicados-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filtros-titulo {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #495057;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0;
+}
+
+.filtro-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.filtro-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-icono {
+    font-size: 1rem;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Estado - Azul vibrante */
+.filtro-estado {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
+    color: white;
+    border-color: #0aa2c0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-estado:hover {
+    background: linear-gradient(135deg, #0aa2c0 0%, #088aa0 100%);
+    border-color: #088aa0;
+}
+
+/* Fase - Amarillo/Naranja vibrante */
+.filtro-fase {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #212529;
+    border-color: #ff9800;
+    font-weight: 700;
+}
+
+.filtro-fase:hover {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    border-color: #f57c00;
+}
+
+/* Tester - Gris oscuro elegante */
+.filtro-tester {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    border-color: #495057;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-tester:hover {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    border-color: #343a40;
+}
+
+/* Tester Asignado - Púrpura vibrante */
+.filtro-tester-asignado {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+    color: white;
+    border-color: #5a32a3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-tester-asignado:hover {
+    background: linear-gradient(135deg, #5a32a3 0%, #4a2a8a 100%);
+    border-color: #4a2a8a;
+}
+
+/* País - Verde vibrante */
+.filtro-pais {
+    background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    color: white;
+    border-color: #157347;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-pais:hover {
+    background: linear-gradient(135deg, #157347 0%, #0f5132 100%);
+    border-color: #0f5132;
+}
+
+/* Fallo - Rojo vibrante */
+.filtro-fallo {
+    background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%);
+    color: white;
+    border-color: #bb2d3b;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.filtro-fallo:hover {
+    background: linear-gradient(135deg, #bb2d3b 0%, #9d1f2e 100%);
+    border-color: #9d1f2e;
+}
+
+/* Botón limpiar filtros */
+.btn-limpiar-filtros {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    border: 2px solid #495057;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-limpiar-filtros:hover {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    border-color: #343a40;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    color: white;
+}
+
+.btn-limpiar-filtros:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive para filtros */
+@media (max-width: 768px) {
+    .filtros-aplicados-container {
+        padding: 0.75rem !important;
+    }
+    
+    .filtro-badge {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.7rem;
+    }
+    
+    .filtros-titulo {
+        font-size: 0.9rem;
+    }
+    
+    .btn-limpiar-filtros {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        margin-top: 0.5rem;
+    }
 }
 </style>
 
