@@ -98,7 +98,7 @@
         {% if pais_filtrado %}
             <span class="badge bg-success me-2 small">País: {{ pais_filtrado }}</span>
         {% endif %}
-        {% if fallo_filtrado %}
+        {% if fallo_filtrado and estado_filtrado != 'bloqueante' %}
             <span class="badge bg-danger me-2 small">Fallo: {{ fallo_filtrado }}</span>
         {% endif %}
         <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-outline-secondary btn-sm ms-2 py-0" style="font-size: 0.7rem;">
@@ -119,9 +119,10 @@
         </li>
 
         <!-- Botón Bloqueante (Falla Nueva + Persistente) - MANTIENE ESTADO Y FASE -->
+        <!-- Nota: Este botón usa fallo=bloqueante para compatibilidad, pero se recomienda usar el dropdown de Estado -->
         <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}"
-               class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado=bloqueante{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}{% if current_query_string %}&{{ current_query_string }}{% endif %}"
+               class="btn btn-outline-danger btn-sm {% if estado_filtrado == 'bloqueante' or fallo_filtrado == 'bloqueante' %}active{% endif %}">
                 Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
             </a>
         </li>
