@@ -21,12 +21,12 @@ def validar_formato_no_operativo(df):
     
     # Encabezados esperados
     encabezados_esperados = [
-        'alcance evaluación', 
+        'alcance de evaluación', 
         'fase', 
         'caso de prueba', 
         'estado', 
         'criticidad', 
-        'nota sobre la prueba'
+        'comentarios y datos de prueba'
     ]
     
     for encabezado in encabezados_esperados:

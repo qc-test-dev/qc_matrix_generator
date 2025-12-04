@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, get_object_or_404, redirect
@@ -13,9 +14,10 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from app.matrix.forms import Dispositivo
 from .forms import DispositivoForm
 from django.conf import settings
-import os
 
+from django.core.exceptions import PermissionDenied
 from .utils import validar_formato_operativo, validar_formato_no_operativo
+from .mixins import LoginAndLiderRequiredMixin
 
 User = get_user_model()
 
@@ -105,15 +107,14 @@ def lista_usuarios(request):
         'equipos': equipos,
         'equipo_seleccionado': equipo_seleccionado
     })
-
-
-class ListTeamsView(ListView):
+class ListTeamsView(LoginAndLiderRequiredMixin, ListView):
     def get(self, request):
         teams = Equipo.objects.all().order_by('nombre')
         return render(request, 'teams/list_teams.html', {
             'equipos': teams
         })
-class DispositivosEquipoView(DetailView):
+
+class DispositivosEquipoView(LoginAndLiderRequiredMixin, DetailView):
     model = Equipo
     template_name = 'teams/dispositivos_equipo.html'
     context_object_name = 'equipo'
@@ -131,7 +132,8 @@ class DispositivosEquipoView(DetailView):
         context['total_dispositivos'] = dispositivos.count()
         
         return context
-class CrearDispositivoView(CreateView):
+
+class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
     model = Dispositivo
     form_class = DispositivoForm
     template_name = 'teams/dispositivos_equipo.html'
@@ -189,14 +191,11 @@ class CrearDispositivoView(CreateView):
         with open(destino_path, 'wb+') as destino:
             for chunk in archivo.chunks():
                 destino.write(chunk)
-        
-        print(f"Archivo guardado en: {destino_path}")  # Para debug
 
-
-class EditarDispositivoView(UpdateView):
+class EditarDispositivoView(LoginAndLiderRequiredMixin, UpdateView):
     model = Dispositivo
     form_class = DispositivoForm
-    template_name = 'teams/dispositivos_equipo.html'  # Usar el mismo template
+    template_name = 'teams/dispositivos_equipo.html'
 
     def get_object(self, queryset=None):
         dispositivo_id = self.kwargs.get('pk')
@@ -236,13 +235,10 @@ class EditarDispositivoView(UpdateView):
                 else:
                     validar_formato_no_operativo(df)
 
-
                 nombre_archivo = archivo_excel.name
                 dispositivo.matriz_base = nombre_archivo
 
-
                 self.guardar_archivo_excel(archivo_excel, nombre_archivo)
-
 
             dispositivo.save()
             messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" actualizado correctamente.')
@@ -257,7 +253,6 @@ class EditarDispositivoView(UpdateView):
         return super().form_invalid(form)
 
     def guardar_archivo_excel(self, archivo, nombre_archivo):
-
         excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
         os.makedirs(excel_dir, exist_ok=True)
 
@@ -271,25 +266,49 @@ class EditarDispositivoView(UpdateView):
         print(f"Archivo actualizado en: {destino_path}")
 
 
+
 @login_required
-@user_passes_test(is_admin)
 def eliminar_dispositivo(request, equipo_id, dispositivo_id):
-    """Vista para eliminar un dispositivo (sin eliminar el archivo Excel)"""
+    """Vista para eliminar un dispositivo y su archivo Excel asociado"""
+    
+    if request.user.cargo != "Lider":
+        raise PermissionDenied("No tienes permisos para eliminar dispositivos")
+    
     dispositivo = get_object_or_404(Dispositivo, id=dispositivo_id, equipo_id=equipo_id)
-
-    if request.method == 'POST':
-        nombre_dispositivo = dispositivo.nombre
-        nombre_archivo = dispositivo.matriz_base
-
-        # Solo eliminar el dispositivo, NO el archivo Excel
-        dispositivo.delete()
-
-        messages.success(
-            request,
-            f'Dispositivo "{nombre_dispositivo}" eliminado correctamente. '
-            f'El archivo "{nombre_archivo}" se mantiene en el sistema.'
-        )
-        return redirect('accounts_app:dispositivos_equipo', pk=equipo_id)
-
-    # Si no es POST, redirigir a la lista
+    
+    if request.method != 'POST':
+        return render(request, 'accounts_app/confirmar_eliminar.html', {
+            'dispositivo': dispositivo,
+            'equipo_id': equipo_id
+        })
+    
+    nombre_dispositivo = dispositivo.nombre
+    nombre_archivo = dispositivo.matriz_base
+    
+    # Eliminar archivo Excel si existe
+    if nombre_archivo:
+        # Asumiendo que tu proyecto tiene una estructura estándar
+        # con static/excel_files/ en la raíz del proyecto
+        base_dir = settings.BASE_DIR
+        file_path = os.path.join(base_dir, 'static', 'excel_files', str(nombre_archivo))
+        
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                archivo_msg = f'Archivo "{nombre_archivo}" eliminado.'
+            else:
+                archivo_msg = f'Archivo "{nombre_archivo}" no encontrado.'
+        except Exception as e:
+            archivo_msg = f'Error al eliminar archivo: {str(e)}'
+    else:
+        archivo_msg = "No había archivo asociado."
+    
+    # Eliminar registro de la base de datos
+    dispositivo.delete()
+    
+    messages.success(
+        request,
+        f'Dispositivo "{nombre_dispositivo}" eliminado. {archivo_msg}'
+    )
+    
     return redirect('accounts_app:dispositivos_equipo', pk=equipo_id)

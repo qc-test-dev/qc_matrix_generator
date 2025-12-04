@@ -75,6 +75,16 @@
                                         </a>
                                     </li>
                                     {% endif %}
+                                    {% if request.user.cargo == "Lider" %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a href="{% url 'accounts_app:list_teams' %}" class="dropdown-item">
+                                            <i class="fas fa-key me-2"></i>
+                                            Actualizar Matrix
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="post" action="{% url 'accounts_app:logout' %}" class="d-inline w-100">
