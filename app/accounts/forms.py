@@ -48,7 +48,8 @@ class AdminPasswordChangeForm(SetPasswordForm):
 class DispositivoForm(forms.ModelForm):
     archivo_excel = forms.FileField(
         label='Archivo Excel',
-        help_text='Seleccione el archivo .xlsx de la matriz base'
+        help_text='Seleccione el archivo .xlsx de la matriz base',
+        required=True  # Asegurar que siempre sea requerido
     )
     
     class Meta:
@@ -60,11 +61,24 @@ class DispositivoForm(forms.ModelForm):
             'operativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hacer que archivo_excel no sea requerido en edición
+        if self.instance and self.instance.pk:
+            self.fields['archivo_excel'].required = False
+    
     def clean_archivo_excel(self):
         archivo = self.cleaned_data.get('archivo_excel')
+        
+        # Si no hay archivo y estamos editando, es válido (no se cambia)
+        if not archivo and self.instance and self.instance.pk:
+            return None
+        
+        # Si no hay archivo y estamos creando, error
         if not archivo:
             raise forms.ValidationError("Debe seleccionar un archivo Excel")
         
+        # Validar extensión
         if not archivo.name.endswith('.xlsx'):
             raise forms.ValidationError("El archivo debe ser un Excel (.xlsx)")
         
@@ -75,22 +89,50 @@ class DispositivoForm(forms.ModelForm):
         archivo_excel = cleaned_data.get('archivo_excel')
         operativo = cleaned_data.get('operativo')
         
+        # Solo validar si hay un archivo nuevo
         if archivo_excel:
             try:
-                # Leer el archivo Excel
+                # Validar duplicados
+                self.validar_archivo_duplicado(archivo_excel)
+                
+                # Leer y validar el archivo Excel
+                archivo_excel.seek(0)  # Asegurar que podemos leer el archivo
                 df = pd.read_excel(archivo_excel)
                 
                 if operativo:
-                    # Validar formato para operativos (placeholder)
                     validar_formato_operativo(df)
                 else:
-                    # Validar formato para no operativos
                     validar_formato_no_operativo(df)
-                    
-                # Guardar el nombre del archivo para después
+                
+                # Guardar el nombre del archivo
                 cleaned_data['nombre_archivo'] = archivo_excel.name
                 
+                # Restaurar posición del archivo para guardarlo después
+                archivo_excel.seek(0)
+                
+            except forms.ValidationError:
+                raise  # Re-lanzar errores de validación específicos
             except Exception as e:
                 raise forms.ValidationError(f"Error al procesar el archivo Excel: {str(e)}")
         
         return cleaned_data
+    
+    def validar_archivo_duplicado(self, archivo_excel):
+        """Valida que el nombre del archivo no esté duplicado."""
+        nombre_archivo = archivo_excel.name
+        
+        # Buscar si hay otro dispositivo con el mismo nombre de archivo
+        qs = Dispositivo.objects.filter(matriz_base=nombre_archivo)
+        
+        # Si estamos editando, excluir el dispositivo actual
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        
+        if qs.exists():
+            # Obtener información sobre el dispositivo duplicado
+            dispositivo_duplicado = qs.first()
+            raise forms.ValidationError(
+                f'El archivo "{nombre_archivo}" ya está siendo usado por el dispositivo '
+                f'"{dispositivo_duplicado.nombre}" (Equipo: {dispositivo_duplicado.equipo.nombre}). '
+                f'Por favor, use un archivo con un nombre diferente o renombre el archivo actual.'
+            )

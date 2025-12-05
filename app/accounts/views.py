@@ -16,7 +16,7 @@ from .forms import DispositivoForm
 from django.conf import settings
 
 from django.core.exceptions import PermissionDenied
-from .utils import validar_formato_operativo, validar_formato_no_operativo
+from .utils import validar_formato_operativo, validar_formato_no_operativo,validar_archivo_duplicado
 from .mixins import LoginAndLiderRequiredMixin
 
 User = get_user_model()
@@ -141,6 +141,19 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('accounts_app:dispositivos_equipo', kwargs={'pk': self.object.equipo.id})
     
+    def get_form_kwargs(self):
+        """Pasar el equipo_id al formulario para preseleccionarlo"""
+        kwargs = super().get_form_kwargs()
+        equipo_id = self.kwargs.get('equipo_id')
+        
+        if 'initial' not in kwargs:
+            kwargs['initial'] = {}
+        
+        if equipo_id:
+            kwargs['initial']['equipo'] = equipo_id
+            
+        return kwargs
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         equipo_id = self.kwargs.get('equipo_id')
@@ -155,33 +168,33 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        # Guardar el dispositivo sin commit para agregar el nombre del archivo
-        dispositivo = form.save(commit=False)
-        
-        # Obtener el archivo Excel y nombre del formulario
-        archivo_excel = form.cleaned_data['archivo_excel']
-        nombre_archivo = form.cleaned_data.get('nombre_archivo', archivo_excel.name)
-        
-        # Asignar el nombre del archivo al campo matriz_base
-        dispositivo.matriz_base = nombre_archivo
-        
-        # Guardar el dispositivo
-        dispositivo.save()
-        
-        # Guardar el archivo en static/excel_files/ (no en staticfiles/)
-        self.guardar_archivo_excel(archivo_excel, nombre_archivo)
-        
-        messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" creado exitosamente.')
-        return redirect('accounts_app:dispositivos_equipo', pk=dispositivo.equipo.id)
-    
-    def form_invalid(self, form):
-        # Si el formulario es inválido, mostrar errores
-        messages.error(self.request, 'Por favor corrija los errores en el formulario.')
-        return super().form_invalid(form)
+        try:
+            # Guardar el dispositivo sin commit
+            dispositivo = form.save(commit=False)
+            
+            # Obtener el nombre del archivo del formulario
+            nombre_archivo = form.cleaned_data.get('nombre_archivo')
+            archivo_excel = form.cleaned_data.get('archivo_excel')
+            
+            # Asignar el nombre del archivo al campo matriz_base
+            dispositivo.matriz_base = nombre_archivo
+            
+            # Guardar el dispositivo
+            dispositivo.save()
+            
+            # Guardar el archivo en static/excel_files/
+            if archivo_excel:
+                self.guardar_archivo_excel(archivo_excel, nombre_archivo)
+            
+            messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" creado exitosamente.')
+            return redirect('accounts_app:dispositivos_equipo', pk=dispositivo.equipo.id)
+            
+        except Exception as e:
+            messages.error(self.request, f'Error al crear dispositivo: {str(e)}')
+            return self.form_invalid(form)
     
     def guardar_archivo_excel(self, archivo, nombre_archivo):
         """Guarda el archivo Excel en la carpeta static/excel_files/"""
-        # Ruta de destino específicamente en static/excel_files/
         excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
         os.makedirs(excel_dir, exist_ok=True)
         
@@ -191,7 +204,7 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
         with open(destino_path, 'wb+') as destino:
             for chunk in archivo.chunks():
                 destino.write(chunk)
-
+        
 class EditarDispositivoView(LoginAndLiderRequiredMixin, UpdateView):
     model = Dispositivo
     form_class = DispositivoForm
@@ -207,7 +220,6 @@ class EditarDispositivoView(LoginAndLiderRequiredMixin, UpdateView):
         equipo_id = self.kwargs.get('equipo_id')
         equipo = get_object_or_404(Equipo, id=equipo_id)
 
-        # Agregar el mismo contexto que DispositivosEquipoView
         context['equipo'] = equipo
         context['dispositivos_operativos'] = equipo.dispositivos.filter(operativo=True)
         context['dispositivos_no_operativos'] = equipo.dispositivos.filter(operativo=False)
@@ -223,35 +235,37 @@ class EditarDispositivoView(LoginAndLiderRequiredMixin, UpdateView):
     def form_valid(self, form):
         try:
             dispositivo = form.save(commit=False)
-            archivo_excel = self.request.FILES.get('archivo_excel')
+            archivo_excel = form.cleaned_data.get('archivo_excel')
+            nombre_archivo = form.cleaned_data.get('nombre_archivo')
+            archivo_actual = dispositivo.matriz_base
 
             # Si se subió un nuevo archivo
-            if archivo_excel:
-                # Validar el archivo
-                df = pd.read_excel(archivo_excel)
-
-                if dispositivo.operativo:
-                    validar_formato_operativo(df)
+            if archivo_excel and nombre_archivo:
+                # Si el nombre es diferente al actual
+                if nombre_archivo != archivo_actual:
+                    # Actualizar el nombre del archivo
+                    dispositivo.matriz_base = nombre_archivo
+                    
+                    # Guardar el nuevo archivo
+                    self.guardar_archivo_excel(archivo_excel, nombre_archivo)
+                    
+                    # Eliminar archivo anterior si no es usado por otros
+                    if archivo_actual:
+                        self.eliminar_archivo_anterior(archivo_actual)
                 else:
-                    validar_formato_no_operativo(df)
-
-                nombre_archivo = archivo_excel.name
-                dispositivo.matriz_base = nombre_archivo
-
-                self.guardar_archivo_excel(archivo_excel, nombre_archivo)
-
+                    # Si es el mismo nombre, solo actualizar el archivo
+                    self.guardar_archivo_excel(archivo_excel, archivo_actual)
+            
+            # Guardar el dispositivo
             dispositivo.save()
+            
             messages.success(self.request, f'Dispositivo "{dispositivo.nombre}" actualizado correctamente.')
             return redirect(self.get_success_url())
 
         except Exception as e:
             messages.error(self.request, f"Error al procesar el archivo: {str(e)}")
             return self.form_invalid(form)
-
-    def form_invalid(self, form):
-        messages.error(self.request, 'Por favor corrige los errores del formulario.')
-        return super().form_invalid(form)
-
+    
     def guardar_archivo_excel(self, archivo, nombre_archivo):
         excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
         os.makedirs(excel_dir, exist_ok=True)
@@ -263,9 +277,24 @@ class EditarDispositivoView(LoginAndLiderRequiredMixin, UpdateView):
             for chunk in archivo.chunks():
                 destino.write(chunk)
 
-        print(f"Archivo actualizado en: {destino_path}")
-
-
+    
+    def eliminar_archivo_anterior(self, nombre_archivo):
+        """Elimina el archivo anterior si existe y no es usado por otros dispositivos"""
+        try:
+            # Verificar si otros dispositivos usan el archivo
+            otros_con_mismo_archivo = Dispositivo.objects.filter(
+                matriz_base=nombre_archivo
+            ).exclude(pk=self.object.pk)
+            
+            if not otros_con_mismo_archivo.exists():
+                excel_dir = os.path.join(settings.BASE_DIR, 'static', 'excel_files')
+                archivo_path = os.path.join(excel_dir, nombre_archivo)
+                
+                if os.path.exists(archivo_path):
+                    os.remove(archivo_path)
+                    print(f"Archivo anterior eliminado: {archivo_path}")
+        except Exception as e:
+            messages.error(self.request, f'Error al eliminar archivo anterior: {str(e)}')
 
 @login_required
 def eliminar_dispositivo(request, equipo_id, dispositivo_id):

@@ -2,7 +2,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.conf import settings
-
+from django.shortcuts import get_object_or_404
+from .models import Equipo
 class LiderRequiredMixin(AccessMixin):
     """Mixin que verifica si el usuario es Lider"""
     
@@ -48,8 +49,6 @@ class EquipoLiderMixin(LiderRequiredMixin):
     def get_equipo(self):
         """Obtiene el equipo del contexto"""
         equipo_id = self.kwargs.get('equipo_id') or self.kwargs.get('pk')
-        from django.shortcuts import get_object_or_404
-        from .models import Equipo
         return get_object_or_404(Equipo, id=equipo_id)
     
     def dispatch(self, request, *args, **kwargs):
@@ -57,6 +56,5 @@ class EquipoLiderMixin(LiderRequiredMixin):
         response = super().dispatch(request, *args, **kwargs)
         
         # Lógica adicional: verificar acceso al equipo específico
-        # (Aquí puedes agregar lógica personalizada según tu modelo)
         
         return response
