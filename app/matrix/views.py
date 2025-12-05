@@ -419,6 +419,58 @@ def detalle_matriz(request, matriz_id):
 
     current_query_string = "&".join(query_params)
     has_other_filters = bool(current_query_string)
+    
+    # Crear query strings específicos para cada filtro (excluyendo el filtro que se está cambiando)
+    query_params_sin_estado = []
+    if tester_filtrado:
+        query_params_sin_estado.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_estado.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_estado.append(f"pais={pais_filtrado}")
+    if fase_filtrada:
+        query_params_sin_estado.append(f"fase={fase_filtrada}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_estado.append(f"fallo={fallo_filtrado}")
+    query_string_sin_estado = "&".join(query_params_sin_estado)
+    
+    query_params_sin_fase = []
+    if tester_filtrado:
+        query_params_sin_fase.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_fase.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_fase.append(f"pais={pais_filtrado}")
+    if estado_filtrado:
+        query_params_sin_fase.append(f"estado={estado_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_fase.append(f"fallo={fallo_filtrado}")
+    query_string_sin_fase = "&".join(query_params_sin_fase)
+    
+    query_params_sin_tester = []
+    if estado_filtrado:
+        query_params_sin_tester.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_tester.append(f"fase={fase_filtrada}")
+    if tester_asignado_filtrado:
+        query_params_sin_tester.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_tester.append(f"pais={pais_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_tester.append(f"fallo={fallo_filtrado}")
+    query_string_sin_tester = "&".join(query_params_sin_tester)
+    
+    query_params_sin_tester_asignado = []
+    if estado_filtrado:
+        query_params_sin_tester_asignado.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_tester_asignado.append(f"fase={fase_filtrada}")
+    if tester_filtrado:
+        query_params_sin_tester_asignado.append(f"tester={tester_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_tester_asignado.append(f"fallo={fallo_filtrado}")
+    # No incluir pais aquí porque va junto con tester_asignado
+    query_string_sin_tester_asignado = "&".join(query_params_sin_tester_asignado)
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -446,6 +498,10 @@ def detalle_matriz(request, matriz_id):
         # NUEVAS VARIABLES PARA MANTENER FILTROS
         'current_query_string': current_query_string,
         'has_other_filters': has_other_filters,
+        'query_string_sin_estado': query_string_sin_estado,
+        'query_string_sin_fase': query_string_sin_fase,
+        'query_string_sin_tester': query_string_sin_tester,
+        'query_string_sin_tester_asignado': query_string_sin_tester_asignado,
     })
 
 

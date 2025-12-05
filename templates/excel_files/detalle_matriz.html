@@ -30,7 +30,7 @@
                         <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownEstado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
                             <li>
                                 <a class="dropdown-item py-1"
-                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if current_query_string %}?{{ current_query_string }}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}{% elif fase_filtrada %}?fase={{ fase_filtrada }}{% endif %}">
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_estado %}?{{ query_string_sin_estado }}{% endif %}">
                                     Todos los estados
                                 </a>
                             </li>
@@ -38,7 +38,7 @@
                             {% for estado_original, estado_formateado in estados_combinados %}
                                 <li>
                                     <a class="dropdown-item py-1"
-                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado={{ estado_original }}{% if current_query_string %}&{{ current_query_string }}{% endif %}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}">
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado={{ estado_original }}{% if query_string_sin_estado %}&{{ query_string_sin_estado }}{% endif %}">
                                         {{ estado_formateado }}
                                     </a>
                                 </li>
@@ -59,7 +59,7 @@
                         <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownFase" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
                             <li>
                                 <a class="dropdown-item py-1"
-                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if current_query_string %}?{{ current_query_string }}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}{% elif estado_filtrado %}?estado={{ estado_filtrado }}{% endif %}">
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_fase %}?{{ query_string_sin_fase }}{% endif %}">
                                     Todas las fases
                                 </a>
                             </li>
@@ -67,7 +67,7 @@
                             {% for fase in fases_disponibles %}
                                 <li>
                                     <a class="dropdown-item py-1"
-                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fase={{ fase }}{% if current_query_string %}&{{ current_query_string }}{% endif %}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}">
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fase={{ fase }}{% if query_string_sin_fase %}&{{ query_string_sin_fase }}{% endif %}">
                                         {{ fase }}
                                     </a>
                                 </li>
@@ -75,6 +75,70 @@
                         </ul>
                     </div>
                 </div>
+
+                <!-- Dropdown para Tester (campo viejo) -->
+                {% if mostrar_botones_viejos and testers_disponibles %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Tester</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownTester" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if tester_filtrado %}{{ tester_filtrado }}{% else %}Todos los testers{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownTester" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_tester %}?{{ query_string_sin_tester }}{% endif %}">
+                                    Todos los testers
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for tester in testers_disponibles %}
+                                {% if tester %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}{% if query_string_sin_tester %}&{{ query_string_sin_tester }}{% endif %}">
+                                        {{ tester }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Dropdown para Tester Asignado + País -->
+                {% if mostrar_botones_nuevos and botones_nuevos %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Tester Asignado + País</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownTesterAsignado" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if tester_asignado_filtrado and pais_filtrado %}{{ tester_asignado_filtrado }} - {{ pais_filtrado }}{% else %}Todos{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownTesterAsignado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_tester_asignado %}?{{ query_string_sin_tester_asignado }}{% endif %}">
+                                    Todos
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for boton in botones_nuevos %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}{% if query_string_sin_tester_asignado %}&{{ query_string_sin_tester_asignado }}{% endif %}">
+                                        {{ boton.texto }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -121,53 +185,6 @@
     </div>
     {% endif %}
 
-    <!-- FILTROS EXISTENTES-->
-    <h4 class="mt-4">Filtrar por:</h4>
-    <ul class="list-inline">
-        <!-- Botón Todos (limpia todos los filtros) -->
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}"
-               class="btn btn-outline-primary btn-sm {% if not fallo_filtrado and not tester_filtrado and not tester_asignado_filtrado and not pais_filtrado and not estado_filtrado and not fase_filtrada %}active{% endif %}">
-                Todos
-            </a>
-        </li>
-
-        <!-- Botón Bloqueante (Falla Nueva + Persistente) - MANTIENE ESTADO Y FASE -->
-        <!-- Nota: Este botón usa fallo=bloqueante para compatibilidad, pero se recomienda usar el dropdown de Estado -->
-        <!--
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado=bloqueante{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}{% if current_query_string %}&{{ current_query_string }}{% endif %}"
-               class="btn btn-outline-danger btn-sm {% if estado_filtrado == 'bloqueante' or fallo_filtrado == 'bloqueante' %}active{% endif %}">
-                Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
-            </a>
-        </li>
-        -->
-        <!-- Botones viejos (tester) - -->
-        {% if mostrar_botones_viejos and testers_disponibles %}
-            {% for tester in testers_disponibles %}
-                {% if tester %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}"
-                       class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
-                        {{ tester }}
-                    </a>
-                </li>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
-        <!-- Botones nuevos (nombre completo - pais) - -->
-        {% if mostrar_botones_nuevos and botones_nuevos %}
-            {% for boton in botones_nuevos %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}{% if estado_filtrado %}&estado={{ estado_filtrado }}{% endif %}{% if fase_filtrada %}&fase={{ fase_filtrada }}{% endif %}"
-                       class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
-                        {{ boton.texto }}
-                    </a>
-                </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
     <div class="table-responsive">
         <table class="table table-bordered table-striped">
             <thead>
