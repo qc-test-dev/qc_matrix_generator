@@ -109,29 +109,60 @@
                 </div>
                 {% endif %}
 
-                <!-- Dropdown para Tester Asignado + País -->
-                {% if mostrar_botones_nuevos and botones_nuevos %}
+                <!-- Dropdown para Tester Asignado -->
+                {% if mostrar_tester_asignado and testers_asignados_lista %}
                 <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
-                    <label class="form-label fw-bold small mb-1">Tester Asignado + País</label>
+                    <label class="form-label fw-bold small mb-1">Tester Asignado</label>
                     <div class="dropdown">
                         <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
                                 type="button" id="dropdownTesterAsignado" data-bs-toggle="dropdown"
                                 aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
-                            {% if tester_asignado_filtrado and pais_filtrado %}{{ tester_asignado_filtrado }} - {{ pais_filtrado }}{% else %}Todos{% endif %}
+                            {% if tester_asignado_filtrado %}{{ tester_asignado_filtrado }}{% else %}Todos los testers{% endif %}
                         </button>
                         <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownTesterAsignado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
                             <li>
                                 <a class="dropdown-item py-1"
                                    href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_tester_asignado %}?{{ query_string_sin_tester_asignado }}{% endif %}">
-                                    Todos
+                                    Todos los testers
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
-                            {% for boton in botones_nuevos %}
+                            {% for tester in testers_asignados_lista %}
                                 <li>
                                     <a class="dropdown-item py-1"
-                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}{% if query_string_sin_tester_asignado %}&{{ query_string_sin_tester_asignado }}{% endif %}">
-                                        {{ boton.texto }}
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ tester.tester_nombre }}{% if query_string_sin_tester_asignado %}&{{ query_string_sin_tester_asignado }}{% endif %}">
+                                        {{ tester.nombre_completo }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Dropdown para Región/País -->
+                {% if mostrar_paises and paises_disponibles %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Región/País</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownPais" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if pais_filtrado %}{{ pais_filtrado }}{% else %}Todas las regiones{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownPais" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_pais %}?{{ query_string_sin_pais }}{% endif %}">
+                                    Todas las regiones
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for pais in paises_disponibles %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?pais={{ pais }}{% if query_string_sin_pais %}&{{ query_string_sin_pais }}{% endif %}">
+                                        {{ pais }}
                                     </a>
                                 </li>
                             {% endfor %}

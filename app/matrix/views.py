@@ -372,9 +372,32 @@ def detalle_matriz(request, matriz_id):
             'pais': pais
         })
 
+    # Obtener testers asignados únicos (sin país)
+    testers_asignados_unicos = matriz.casos.exclude(
+        tester_asignado__isnull=True
+    ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido').distinct()
+    
+    testers_asignados_lista = []
+    for tester_id, nombre, apellido in testers_asignados_unicos:
+        nombre_completo = f"{nombre} {apellido}"
+        testers_asignados_lista.append({
+            'tester_id': tester_id,
+            'tester_nombre': nombre_completo,
+            'nombre_completo': nombre_completo
+        })
+    
+    # Obtener países únicos
+    paises_disponibles = list(matriz.casos.exclude(
+        pais__isnull=True
+    ).exclude(
+        pais=''
+    ).values_list('pais', flat=True).distinct().order_by('pais'))
+
     # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
     mostrar_botones_nuevos = len(botones_nuevos) > 0
+    mostrar_tester_asignado = len(testers_asignados_lista) > 0
+    mostrar_paises = len(paises_disponibles) > 0
 
     # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
     campos = {
@@ -467,10 +490,24 @@ def detalle_matriz(request, matriz_id):
         query_params_sin_tester_asignado.append(f"fase={fase_filtrada}")
     if tester_filtrado:
         query_params_sin_tester_asignado.append(f"tester={tester_filtrado}")
+    if pais_filtrado:
+        query_params_sin_tester_asignado.append(f"pais={pais_filtrado}")
     if fallo_filtrado and estado_filtrado != 'bloqueante':
         query_params_sin_tester_asignado.append(f"fallo={fallo_filtrado}")
-    # No incluir pais aquí porque va junto con tester_asignado
     query_string_sin_tester_asignado = "&".join(query_params_sin_tester_asignado)
+    
+    query_params_sin_pais = []
+    if estado_filtrado:
+        query_params_sin_pais.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_pais.append(f"fase={fase_filtrada}")
+    if tester_filtrado:
+        query_params_sin_pais.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_pais.append(f"tester_asignado={tester_asignado_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_pais.append(f"fallo={fallo_filtrado}")
+    query_string_sin_pais = "&".join(query_params_sin_pais)
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -502,6 +539,12 @@ def detalle_matriz(request, matriz_id):
         'query_string_sin_fase': query_string_sin_fase,
         'query_string_sin_tester': query_string_sin_tester,
         'query_string_sin_tester_asignado': query_string_sin_tester_asignado,
+        'query_string_sin_pais': query_string_sin_pais,
+        # NUEVAS VARIABLES PARA DROPDOWNS SEPARADOS
+        'testers_asignados_lista': testers_asignados_lista,
+        'paises_disponibles': paises_disponibles,
+        'mostrar_tester_asignado': mostrar_tester_asignado,
+        'mostrar_paises': mostrar_paises,
     })
 
 
