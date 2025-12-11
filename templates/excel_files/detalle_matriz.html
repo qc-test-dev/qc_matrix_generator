@@ -825,7 +825,7 @@ setInterval(actualizarFallos, 6000);
     overflow-y: auto;
 }
 
-/* ESTILOS MEJORADOS PARA BOTONES DE DROPDOWN - MÁS VISIBLES */
+/* ESTILOS MEJORADOS PARA BOTONES DE DROPDOWN - NEGROS */
 .dropdown-btn-enhanced {
     font-weight: 600 !important;
     border-width: 2px !important;
@@ -833,33 +833,32 @@ setInterval(actualizarFallos, 6000);
     transition: all 0.2s ease-in-out !important;
 }
 
-.dropdown-btn-enhanced:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-}
-
-/* Mejorar el color del botón de Estado */
-.btn-info.dropdown-btn-enhanced {
-    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%) !important;
-    border-color: #0aa2c0 !important;
+/* Cambiar todos los dropdowns a negro */
+.btn-secondary.dropdown-btn-enhanced {
+    background-color: #212529 !important;
+    border-color: #212529 !important;
     color: white !important;
 }
 
-.btn-info.dropdown-btn-enhanced:hover {
-    background: linear-gradient(135deg, #0aa2c0 0%, #088aa0 100%) !important;
-    border-color: #088aa0 !important;
+.btn-secondary.dropdown-btn-enhanced:hover {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
 }
 
-/* Mejorar el color del botón de Fase */
-.btn-warning.dropdown-btn-enhanced {
-    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
-    border-color: #e0a800 !important;
-    color: #212529 !important;
+.btn-secondary.dropdown-btn-enhanced:focus {
+    background-color: #212529 !important;
+    border-color: #212529 !important;
+    color: white !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
 }
 
-.btn-warning.dropdown-btn-enhanced:hover {
-    background: linear-gradient(135deg, #e0a800 0%, #c69500 100%) !important;
-    border-color: #c69500 !important;
+.btn-secondary.dropdown-btn-enhanced:active {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: white !important;
 }
 
 /* Estilos para dropdowns más compactos */
@@ -886,168 +885,132 @@ setInterval(actualizarFallos, 6000);
 }
 
 /* Mejorar el enfoque de los botones para accesibilidad */
-.dropdown-btn-enhanced:focus {
-    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25) !important;
+.dropdown-btn-enhanced:focus-visible {
+    outline: none;
 }
 
-.btn-warning.dropdown-btn-enhanced:focus {
-    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
-}
-
-/* ESTILOS LLAMATIVOS PARA FILTROS APLICADOS */
+/* ESTILOS MINIMALISTAS PARA FILTROS APLICADOS */
 .filtros-aplicados-container {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 2px solid #dee2e6;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-    animation: slideInDown 0.3s ease-out;
-}
-
-@keyframes slideInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
 }
 
 .filtros-titulo {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #495057;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6c757d;
     margin-bottom: 0;
 }
 
 .filtro-badge {
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 0.5rem 0.9rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
+    border: 1px solid;
 }
 
 .filtro-badge:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 0.9;
 }
 
 .filtro-icono {
-    font-size: 1rem;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    display: none;
 }
 
-/* Estado - Azul vibrante */
+/* Estado - Azul suave */
 .filtro-estado {
-    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
-    color: white;
-    border-color: #0aa2c0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #e7f3ff;
+    color: #0d6efd;
+    border-color: #b6d4fe;
 }
 
 .filtro-estado:hover {
-    background: linear-gradient(135deg, #0aa2c0 0%, #088aa0 100%);
-    border-color: #088aa0;
+    background-color: #d0e7ff;
 }
 
-/* Fase - Amarillo/Naranja vibrante */
+/* Fase - Amarillo suave */
 .filtro-fase {
-    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-    color: #212529;
-    border-color: #ff9800;
-    font-weight: 700;
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
 }
 
 .filtro-fase:hover {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-    border-color: #f57c00;
+    background-color: #ffe69c;
 }
 
-/* Tester - Gris oscuro elegante */
+/* Tester - Gris suave */
 .filtro-tester {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-    border-color: #495057;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #ced4da;
 }
 
 .filtro-tester:hover {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-    border-color: #343a40;
+    background-color: #dee2e6;
 }
 
-/* Tester Asignado - Púrpura vibrante */
+/* Tester Asignado - Púrpura suave */
 .filtro-tester-asignado {
-    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
-    color: white;
-    border-color: #5a32a3;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #e2d9f3;
+    color: #6f42c1;
+    border-color: #c5b3e6;
 }
 
 .filtro-tester-asignado:hover {
-    background: linear-gradient(135deg, #5a32a3 0%, #4a2a8a 100%);
-    border-color: #4a2a8a;
+    background-color: #d4c4e8;
 }
 
-/* País - Verde vibrante */
+/* País - Verde suave */
 .filtro-pais {
-    background: linear-gradient(135deg, #198754 0%, #157347 100%);
-    color: white;
-    border-color: #157347;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-color: #a3cfbb;
 }
 
 .filtro-pais:hover {
-    background: linear-gradient(135deg, #157347 0%, #0f5132 100%);
-    border-color: #0f5132;
+    background-color: #b8dfc7;
 }
 
-/* Fallo - Rojo vibrante */
+/* Fallo - Rojo suave */
 .filtro-fallo {
-    background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%);
-    color: white;
-    border-color: #bb2d3b;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #f8d7da;
+    color: #842029;
+    border-color: #f1aeb5;
 }
 
 .filtro-fallo:hover {
-    background: linear-gradient(135deg, #bb2d3b 0%, #9d1f2e 100%);
-    border-color: #9d1f2e;
+    background-color: #f5c2c7;
 }
 
 /* Botón limpiar filtros */
 .btn-limpiar-filtros {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    background-color: #6c757d;
     color: white;
-    border: 2px solid #495057;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    padding: 0.35rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-limpiar-filtros:hover {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-    border-color: #343a40;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    background-color: #5c636a;
+    border-color: #5c636a;
     color: white;
 }
 
 .btn-limpiar-filtros:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    background-color: #565e64;
+    border-color: #565e64;
 }
 
 /* Responsive para filtros */
@@ -1058,16 +1021,16 @@ setInterval(actualizarFallos, 6000);
     
     .filtro-badge {
         font-size: 0.75rem;
-        padding: 0.4rem 0.7rem;
+        padding: 0.3rem 0.6rem;
     }
     
     .filtros-titulo {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .btn-limpiar-filtros {
         font-size: 0.75rem;
-        padding: 0.4rem 0.8rem;
+        padding: 0.3rem 0.6rem;
         margin-top: 0.5rem;
     }
 }
