@@ -22,64 +22,49 @@ def limpiar(valor):
         return valor.strip()
     return valor
 
-
-import openpyxl
-from .models import CasoDePrueba  # ajusta el import según tu estructura
-
 def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
-    """
-    Importa casos de prueba desde un archivo Excel y los asigna a una matriz.
-    Usa los nombres de encabezado reales del archivo.
-    Filtra por alcance si se proporciona una lista de alcances_permitidos.
-    """
     wb = openpyxl.load_workbook(ruta_excel)
     sheet = wb.active
 
-    # Leer la primera fila como encabezados
-    encabezados = [str(celda).strip().lower() for celda in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+    # Leer encabezados normalizados
+    encabezados = [str(c).strip().lower() for c in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
 
-    # Crear mapa de encabezados normalizados -> índice
     columnas = {nombre: i for i, nombre in enumerate(encabezados)}
 
-    for fila in sheet.iter_rows(min_row=2, values_only=True):
-        # Extraer los datos según el nombre de la columna
-        etiqueta = fila[columnas.get("etiqueta")]
-        alcance = fila[columnas.get("alcance de evaluación")]
-        fase = fila[columnas.get("fase")]
-        tipo_usuario = fila[columnas.get("tipo de usuario")]
-        caso_de_prueba = fila[columnas.get("caso de prueba")]
-        medio_pago = fila[columnas.get("medio de pago")]
-        monto = fila[columnas.get("monto")]
-        criticidad = fila[columnas.get("criticidad")]
-        estado = "por_ejecutar"
-        navegador = fila[columnas.get("navegador")]
-        comentarios = fila[columnas.get("comentarios y datos de prueba")]
-        pasos = fila[columnas.get("pasos")]
+    # Función para obtener columna normalizada
+    def col(nombre):
+        return columnas.get(nombre.strip().lower())
 
-        # Validar campos clave
+    for fila in sheet.iter_rows(min_row=2, values_only=True):
+
+        etiqueta       = fila[col("id caso")]
+        alcance        = fila[col("alcance de evaluacion")]
+        fase           = fila[col("funcionalidad")]
+        tipo_usuario   = fila[col("tipo de usuario")]
+        caso_de_prueba = fila[col("descripcion")]
+        criticidad     = fila[col("criticidad")]
+        comentarios    = fila[col("otros")]
+        pasos          = fila[col("pasos a seguir")]
+
         if not (alcance and fase and caso_de_prueba and criticidad):
             continue
 
-        # Filtrar por alcance
         if alcances_permitidos and alcance not in alcances_permitidos:
             continue
 
-        # Crear el caso de prueba
         CasoDePrueba.objects.create(
             matriz=matriz,
             alcance=alcance,
             fase=fase,
             caso_de_prueba=caso_de_prueba,
-            estado=estado or "por_ejecutar",
+            estado="por_ejecutar",
             criticidad=criticidad,
             nota=comentarios or "",
             etiqueta=etiqueta,
             tipo_usuario=tipo_usuario,
             pasos=pasos,
-            mdp=medio_pago,
-            monto=monto,
-            navegador=navegador
         )
+
 
 
 

@@ -128,9 +128,6 @@ class CasoDePrueba(models.Model):
     etiqueta=models.CharField(max_length=50, blank=True, null=True)
     tipo_usuario=models.CharField(max_length=70, blank=True, null=True)
     pasos=models.CharField(max_length=700,blank=True, null=True)
-    mdp=models.CharField(max_length=100,blank=True, null=True)
-    monto=models.CharField(max_length=100,blank=True, null=True)
-    navegador=models.CharField(max_length=100,blank=True, null=True)
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):
