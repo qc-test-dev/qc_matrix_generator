@@ -8,19 +8,8 @@ Dispositivos - {{ equipo.nombre }}
 {% include 'includes/header.html' %}
 
 <div class="container mt-4">
-    <!-- Mensajes -->
-    {% if messages %}
-    <div class="mb-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
+    <!-- Mensajes serán mostrados por JavaScript -->
+    
     <!-- Header -->
     <div class="row mb-4">
         <div class="col">
@@ -89,18 +78,17 @@ Dispositivos - {{ equipo.nombre }}
                                                 <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
                                             </p>
                                         </div>
-                                            <div class="btn-group">
-                                                <button
-                                                     class="btn btn-sm btn-outline-primary"
-                                                     data-bs-toggle="modal"
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
                                                     data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                   <i class="fas fa-edit">Editar</i>
-                                               </button>
-                                                  <button class="btn btn-sm btn-outline-danger"
-                                                          data-bs-toggle="modal"
-                                                          data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                                        <i class="fas fa-trash me-1"></i>Eliminar
-                                                  </button>
+                                                <i class="fas fa-edit me-1"></i>Editar
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-trash me-1"></i>Eliminar
+                                            </button>
                                         </div>
                                     </div>
                                     {% endfor %}
@@ -136,11 +124,10 @@ Dispositivos - {{ equipo.nombre }}
                                             </p>
                                         </div>
                                         <div class="btn-group">
-                                            <button
-                                                class="btn btn-sm btn-outline-primary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-edit">Editar</i>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-edit me-1"></i>Editar
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger"
                                                     data-bs-toggle="modal"
@@ -185,11 +172,10 @@ Dispositivos - {{ equipo.nombre }}
                                             </span>
                                         </div>
                                         <div class="btn-group">
-                                            <button
-                                                class="btn btn-sm btn-outline-primary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-edit">Editar</i>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
+                                                <i class="fas fa-edit me-1"></i>Editar
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger"
                                                     data-bs-toggle="modal"
@@ -231,13 +217,13 @@ Dispositivos - {{ equipo.nombre }}
                 {% csrf_token %}
                 <div class="modal-body">
                     <!-- Mostrar errores del formulario -->
-                    {% if form.errors %}
+                    {% if form.errors and not abrir_modal_edicion %}
                     <div class="alert alert-danger">
                         <strong>Por favor corrija los siguientes errores:</strong>
                         <ul class="mb-0">
                             {% for field, errors in form.errors.items %}
                                 {% for error in errors %}
-                                    <li>{{ error }}</li>
+                                    <li>{{ field }}: {{ error }}</li>
                                 {% endfor %}
                             {% endfor %}
                         </ul>
@@ -247,18 +233,14 @@ Dispositivos - {{ equipo.nombre }}
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="id_nombre" class="form-label">Nombre del Dispositivo</label>
-                                <input type="text" name="nombre" class="form-control" id="id_nombre" 
-                                       value="{{ form.nombre.value|default:'' }}" required>
-                                {% if form.nombre.errors %}
-                                <div class="text-danger small">{{ form.nombre.errors }}</div>
-                                {% endif %}
+                                <label for="id_nombre_crear" class="form-label">Nombre del Dispositivo</label>
+                                <input type="text" name="nombre" class="form-control" id="id_nombre_crear" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="id_equipo" class="form-label">Equipo</label>
-                                <select name="equipo" class="form-control" id="id_equipo" required>
+                                <label for="id_equipo_crear" class="form-label">Equipo</label>
+                                <select name="equipo" class="form-control" id="id_equipo_crear" required>
                                     <option value="{{ equipo.id }}" selected>{{ equipo.nombre }}</option>
                                 </select>
                             </div>
@@ -266,25 +248,21 @@ Dispositivos - {{ equipo.nombre }}
                     </div>
                     
                     <div class="mb-3">
-                        <label for="id_archivo_excel" class="form-label">Archivo Excel</label>
-                        <input type="file" name="archivo_excel" class="form-control" id="id_archivo_excel" accept=".xlsx" required>
+                        <label for="id_archivo_excel_crear" class="form-label">Archivo Excel</label>
+                        <input type="file" name="archivo_excel" class="form-control" id="id_archivo_excel_crear" accept=".xlsx" required>
                         <div class="form-text">Seleccione el archivo .xlsx de la matriz base</div>
-                        {% if form.archivo_excel.errors %}
-                        <div class="text-danger small">{{ form.archivo_excel.errors }}</div>
-                        {% endif %}
                     </div>
                     
                     <div class="mb-3">
                         <div class="form-check">
-                            <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo"
-                                   {% if form.operativo.value %}checked{% endif %}>
-                            <label class="form-check-label" for="id_operativo">
+                            <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo_crear">
+                            <label class="form-check-label" for="id_operativo_crear">
                                 ¿Es operativo?
                             </label>
                         </div>
                         <div class="form-text">
                             <strong>No operativo:</strong> El Excel debe tener los encabezados: Alcance Evaluación, Fase, Caso de prueba, Estado, Criticidad, Nota sobre la prueba<br>
-                            <strong>Operativo:</strong> Validación específica (pendiente de implementar)
+                            <strong>Operativo:</strong> Validación específica
                         </div>
                     </div>
                 </div>
@@ -297,8 +275,10 @@ Dispositivos - {{ equipo.nombre }}
     </div>
 </div>
 
+<!-- Modales para editar dispositivos -->
 {% for dispositivo in equipo.dispositivos.all %}
-<div class="modal fade" id="editarDispositivoModal{{ dispositivo.id }}" tabindex="-1" aria-labelledby="editarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
+<div class="modal fade" id="editarDispositivoModal{{ dispositivo.id }}" tabindex="-1" 
+     aria-labelledby="editarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
@@ -307,47 +287,144 @@ Dispositivos - {{ equipo.nombre }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Nombre del Dispositivo</label>
-                                <input type="text" name="nombre" class="form-control" value="{{ dispositivo.nombre }}" required>
-                            </div>
+            
+            {% if form and form.instance.id == dispositivo.id and abrir_modal_edicion %}
+                <!-- Usar el formulario Django cuando está presente (hay errores) -->
+                <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" 
+                      enctype="multipart/form-data" id="formEditar{{ dispositivo.id }}">
+                    {% csrf_token %}
+                    
+                    <div class="modal-body">
+                        <!-- Mostrar errores del formulario -->
+                        {% if form.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show mb-3">
+                            <strong>Errores encontrados:</strong>
+                            <ul class="mb-0 mt-2">
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Estado Operativo</label>
-                                <div class="form-check mt-2">
-                                    <input type="checkbox" name="operativo" class="form-check-input" id="operativo_edit{{ dispositivo.id }}"
-                                           {% if dispositivo.operativo %}checked{% endif %}>
-                                    <label class="form-check-label" for="operativo_edit{{ dispositivo.id }}">
-                                        ¿Es operativo?
-                                    </label>
-                                </div>
-                            </div>
+                        {% endif %}
+                        
+                        <!-- Campo Nombre -->
+                        <div class="mb-3">
+                            <label for="id_nombre_edit{{ dispositivo.id }}" class="form-label">Nombre del Dispositivo *</label>
+                            <input type="text" name="nombre" class="form-control" id="id_nombre_edit{{ dispositivo.id }}" 
+                                   value="{{ form.nombre.value|default:dispositivo.nombre }}" required>
+                            {% if form.nombre.errors %}
+                            <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Archivo Excel (opcional)</label>
-                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx">
-                        <div class="form-text">
+                        
+                        <!-- Campo Equipo (oculto) -->
+                        <input type="hidden" name="equipo" value="{{ equipo.id }}">
+                        
+                        <!-- Campo Operativo -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo_edit{{ dispositivo.id }}"
+                                       {% if form.operativo.value %}checked{% elif dispositivo.operativo %}checked{% endif %}>
+                                <label class="form-check-label" for="id_operativo_edit{{ dispositivo.id }}">
+                                    <strong>¿Es operativo?</strong>
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                <strong>No operativo:</strong> Excel con encabezados específicos<br>
+                                <strong>Operativo:</strong> Validación diferente
+                            </div>
+                            {% if form.operativo.errors %}
+                            <div class="text-danger small mt-1">{{ form.operativo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Campo Archivo Excel -->
+                        <div class="mb-3">
+                            <label for="id_archivo_excel_edit{{ dispositivo.id }}" class="form-label">Archivo Excel</label>
+                            <input type="file" name="archivo_excel" class="form-control" 
+                                   id="id_archivo_excel_edit{{ dispositivo.id }}" accept=".xlsx">
+                            <div class="form-text">
+                                <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
+                                <strong>Nota:</strong> Solo selecciona un archivo si deseas reemplazar el actual.
+                                Si no seleccionas ningún archivo, se mantendrá el archivo existente.
+                            </div>
+                            {% if form.archivo_excel.errors %}
+                            <div class="text-danger small mt-1">{{ form.archivo_excel.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Información del archivo actual -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
                             <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
-                            Si no seleccionas un archivo nuevo, se mantendrá el actual.
+                            <small>Última actualización: {{ dispositivo.updated_at|date:"d/m/Y H:i"|default:"N/A" }}</small>
                         </div>
                     </div>
-
-                    <!-- Campo oculto para el equipo -->
-                    <input type="hidden" name="equipo" value="{{ equipo.id }}">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
-                </div>
-            </form>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <!-- Formulario sin errores (primera vez que se abre) -->
+                <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" 
+                      enctype="multipart/form-data" id="formEditar{{ dispositivo.id }}">
+                    {% csrf_token %}
+                    
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Dispositivo *</label>
+                            <input type="text" name="nombre" class="form-control" 
+                                   value="{{ dispositivo.nombre }}" required>
+                        </div>
+                        
+                        <input type="hidden" name="equipo" value="{{ equipo.id }}">
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="operativo" class="form-check-input" 
+                                       id="operativo_edit{{ dispositivo.id }}"
+                                       {% if dispositivo.operativo %}checked{% endif %}>
+                                <label class="form-check-label" for="operativo_edit{{ dispositivo.id }}">
+                                    <strong>¿Es operativo?</strong>
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                <strong>No operativo:</strong> Excel con encabezados específicos<br>
+                                <strong>Operativo:</strong> Validación diferente
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Archivo Excel</label>
+                            <input type="file" name="archivo_excel" class="form-control" accept=".xlsx">
+                            <div class="form-text">
+                                <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
+                                <strong>Nota:</strong> Solo selecciona un archivo si deseas reemplazar el actual.
+                                Si no seleccionas ningún archivo, se mantendrá el archivo existente.
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -391,7 +468,6 @@ Dispositivos - {{ equipo.nombre }}
 </div>
 {% endfor %}
 
-
 <style>
 .nav-tabs .nav-link {
     border: none;
@@ -416,59 +492,219 @@ Dispositivos - {{ equipo.nombre }}
     border-top-left-radius: 0;
     border-top-right-radius: 0;
 }
+
+/* Estilos para mensajes flotantes */
+.mensajes-flotantes {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+}
+
+.mensajes-flotantes .alert {
+    animation: slideInRight 0.3s ease-out;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Estilo para campos con error */
+.form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(.375em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+}
+
+.form-check-input.is-invalid {
+    border-color: #dc3545;
+}
+
+.form-check-input.is-invalid:checked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
 </style>
 {% endblock content %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar mensajes inmediatamente
+    function mostrarMensajes() {
+        {% if messages %}
+            // Crear contenedor para mensajes si no existe
+            let mensajesContainer = document.querySelector('.mensajes-flotantes');
+            if (!mensajesContainer) {
+                mensajesContainer = document.createElement('div');
+                mensajesContainer.className = 'mensajes-flotantes';
+                document.body.appendChild(mensajesContainer);
+            }
+            
+            // Mostrar cada mensaje
+            {% for message in messages %}
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-{{ message.tags }} alert-dismissible fade show shadow mb-2`;
+                alertDiv.innerHTML = `
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+                    {{ message|safe }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                mensajesContainer.appendChild(alertDiv);
+                
+                // Auto-cerrar después de 5 segundos para éxito
+                {% if message.tags == 'success' %}
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            const bsAlert = new bootstrap.Alert(alertDiv);
+                            bsAlert.close();
+                        }
+                    }, 5000);
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    }
+    
+    // Mostrar mensajes al cargar
+    mostrarMensajes();
+    
     // Abrir automáticamente el modal de edición si hay errores
     {% if form.errors and abrir_modal_edicion and form.instance.id %}
-        try {
-            const modalElement = document.getElementById('editarDispositivoModal{{ form.instance.id }}');
+        setTimeout(() => {
+            const modalId = 'editarDispositivoModal{{ form.instance.id }}';
+            const modalElement = document.getElementById(modalId);
             if (modalElement) {
                 const modal = new bootstrap.Modal(modalElement);
                 modal.show();
-            }
-        } catch (error) {
-            console.error('Error al abrir modal de edición:', error);
-        }
-    {% endif %}
-
-    // Mostrar errores específicos en el modal activo
-    {% if form.errors %}
-        try {
-            const errorAlert = document.createElement('div');
-            errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-            errorAlert.innerHTML = `
-                <strong>Errores en el formulario:</strong>
-                <ul>
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                            <li><strong>{{ field }}:</strong> {{ error }}</li>
-                        {% endfor %}
+                
+                // Marcar campos con errores
+                const formElement = modalElement.querySelector('form');
+                if (formElement) {
+                    {% for field in form %}
+                        {% if field.errors %}
+                            const fieldElement = formElement.querySelector('[name="{{ field.name }}"]');
+                            if (fieldElement) {
+                                fieldElement.classList.add('is-invalid');
+                            }
+                        {% endif %}
                     {% endfor %}
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            const activeModal = document.querySelector('.modal.show');
-            if (activeModal) {
-                const modalBody = activeModal.querySelector('.modal-body');
-                if (modalBody) {
-                    modalBody.insertBefore(errorAlert, modalBody.firstChild);
-                }
-            } else {
-                // Si no hay modal activo, mostrar errores en la página principal
-                const container = document.querySelector('.container .mb-3');
-                if (container) {
-                    container.insertBefore(errorAlert, container.firstChild);
+                    
+                    // Scroll al primer campo con error
+                    setTimeout(() => {
+                        const errorField = formElement.querySelector('.is-invalid');
+                        if (errorField) {
+                            errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            errorField.focus();
+                        }
+                    }, 300);
                 }
             }
-        } catch (error) {
-            console.error('Error al mostrar errores del formulario:', error);
-        }
+        }, 300);
     {% endif %}
+    
+    // Manejar envío de formularios para prevenir doble envío
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Procesando...';
+                
+                // Habilitar nuevamente si hay error de validación
+                setTimeout(() => {
+                    if (!this.checkValidity()) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = submitButton.getAttribute('data-original-text') || 'Guardar Cambios';
+                    }
+                }, 3000);
+            }
+        });
+    });
+    
+    // Guardar texto original de los botones
+    document.querySelectorAll('form button[type="submit"]').forEach(button => {
+        button.setAttribute('data-original-text', button.innerHTML);
+    });
+    
+    // Limpiar errores cuando se cierra un modal
+    document.addEventListener('hidden.bs.modal', function (event) {
+        const modal = event.target;
+        const form = modal.querySelector('form');
+        if (form) {
+            // Remover clases de error
+            form.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            
+            // Habilitar botón de envío
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton && submitButton.getAttribute('data-original-text')) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = submitButton.getAttribute('data-original-text');
+            }
+        }
+    });
+    
+    // Validación en tiempo real para archivos Excel
+    document.querySelectorAll('input[type="file"][accept=".xlsx"]').forEach(input => {
+        input.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                const fileName = file.name;
+                
+                // Validar extensión
+                if (!fileName.endsWith('.xlsx')) {
+                    alert('Por favor selecciona un archivo con extensión .xlsx');
+                    this.value = '';
+                    return;
+                }
+                
+                // Validar tamaño (max 10MB)
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    alert('El archivo es demasiado grande. Tamaño máximo: 10MB');
+                    this.value = '';
+                    return;
+                }
+            }
+        });
+    });
+    
+    // Mostrar confirmación antes de eliminar
+    document.querySelectorAll('form[action*="eliminar_dispositivo"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('¿Estás completamente seguro de que deseas eliminar este dispositivo?')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Deshabilitar botón durante eliminación
+            const submitButton = this.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Eliminando...';
+            }
+        });
+    });
+    
+    // Actualizar contadores de dispositivos cuando se elimina uno
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('form[action*="eliminar_dispositivo"]')) {
+            // Esto podría usarse para actualizar la UI sin recargar
+            // Pero por ahora, dejamos que se recargue la página
+        }
+    });
 });
 </script>
-{% endblock %}
+{% endblock extra_js %}

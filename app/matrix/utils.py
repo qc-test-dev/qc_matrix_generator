@@ -37,14 +37,14 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
 
     for fila in sheet.iter_rows(min_row=2, values_only=True):
 
-        etiqueta       = fila[col("id caso")]
-        alcance        = fila[col("alcance de evaluacion")]
-        fase           = fila[col("funcionalidad")]
-        tipo_usuario   = fila[col("tipo de usuario")]
-        caso_de_prueba = fila[col("descripcion")]
-        criticidad     = fila[col("criticidad")]
-        comentarios    = fila[col("otros")]
-        pasos          = fila[col("pasos a seguir")]
+        etiqueta= fila[col("id caso")]
+        alcance= fila[col("alcance de evaluacion")]
+        fase= fila[col("funcionalidad")]
+        tipo_usuario= fila[col("tipo de usuario")]
+        caso_de_prueba= fila[col("descripcion")]
+        criticidad= fila[col("criticidad")]
+        comentarios= fila[col("otros")]
+        pasos= fila[col("pasos a seguir")]
 
         if not (alcance and fase and caso_de_prueba and criticidad):
             continue
