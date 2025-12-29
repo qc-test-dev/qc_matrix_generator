@@ -247,3 +247,4 @@ cython_debug/
 #.idea/
  
 .idea
+static/excel_files/*
