@@ -3,52 +3,151 @@ from django.db import models
 from ..accounts.models import Equipo
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+import os
+from django.utils import timezone
+# Configurar storage para archivos Excel
+excel_storage = FileSystemStorage(
+    location=os.path.join(settings.MEDIA_ROOT, 'excel'),
+    base_url=os.path.join(settings.MEDIA_URL, 'excel')
+)
 class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
-    matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
+    matriz_base = models.CharField(max_length=75, blank=True, null=True)
+    
     operativo = models.BooleanField(
         default=False,
         blank=True,
         null=True,
         verbose_name="Operativo"
     )
+    
+    archivo_excel = models.FileField(
+        upload_to='',  # Vacío, lo manejaremos manualmente
+        storage=excel_storage,
+        verbose_name="Archivo Excel",
+        blank=True,
+        null=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=False, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=False, default=timezone.now)
+    
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.nombre}"
     
+    def generar_nombre_unico(self, nombre_original):
+        """
+        Genera un nombre único para el archivo.
+        Si ya existe en el mismo equipo, añade _1, _2, etc.
+        
+        Ejemplo:
+        - Si 'reporte.xlsx' ya existe → 'reporte_1.xlsx'
+        - Si 'reporte.xlsx' y 'reporte_1.xlsx' existen → 'reporte_2.xlsx'
+        """
+        # Obtener solo el nombre del archivo (sin ruta)
+        nombre_base = os.path.basename(nombre_original)
+        
+        # Separar nombre y extensión
+        if '.' in nombre_base:
+            nombre, extension = nombre_base.rsplit('.', 1)
+            extension = '.' + extension
+        else:
+            nombre = nombre_base
+            extension = ''
+        
+        # Verificar nombres existentes en el MISMO equipo
+        nombres_existentes = list(Dispositivo.objects.filter(
+            equipo=self.equipo
+        ).exclude(pk=self.pk).values_list('matriz_base', flat=True))
+        
+        # Si el nombre original no existe, usarlo
+        if nombre_base not in nombres_existentes:
+            return nombre_base
+        
+        # Si existe, buscar el siguiente número disponible
+        contador = 1
+        while True:
+            nombre_propuesto = f"{nombre}_{contador}{extension}"
+            
+            if nombre_propuesto not in nombres_existentes:
+                return nombre_propuesto
+            
+            contador += 1
+            
+            # Prevención de bucle infinito
+            if contador > 100:
+                # Usar timestamp como fallback
+                import time
+                timestamp = int(time.time())
+                return f"{nombre}_{timestamp}{extension}"
+    
+    def save(self, *args, **kwargs):
+        # Guardar primero para obtener ID si es nuevo
+        is_new = not self.pk
+        
+        # Si hay archivo Excel, procesarlo
+        if self.archivo_excel and hasattr(self.archivo_excel, 'name'):
+            # Generar nombre único para el archivo
+            nombre_original = self.archivo_excel.name
+            nombre_unico = self.generar_nombre_unico(nombre_original)
+            
+            # Crear nombre seguro para la carpeta del equipo
+            nombre_equipo_carpeta = self.equipo.nombre.replace(' ', '_')
+            
+            # Establecer la ruta completa
+            ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
+            
+            # Solo actualizar si la ruta es diferente
+            if self.archivo_excel.name != ruta_final:
+                # Crear directorio del equipo si no existe
+                equipo_dir = os.path.join(settings.MEDIA_ROOT, 'excel', nombre_equipo_carpeta)
+                os.makedirs(equipo_dir, exist_ok=True)
+                
+                # Actualizar campos
+                self.archivo_excel.name = ruta_final
+                self.matriz_base = nombre_unico
+        
+        # Guardar el objeto
+        super().save(*args, **kwargs)
+    
     def get_excel_url(self):
-        """Retorna la URL estática del archivo Excel"""
-        if self.matriz_base:
-            filename = self.matriz_base
-            if not filename.lower().endswith('.xlsx'):
-                filename += '.xlsx'
-            return f"{settings.STATIC_URL}excel_files/{filename}"
+        """Retorna la URL para descargar el archivo Excel"""
+        if self.archivo_excel and self.archivo_excel.name:
+            return self.archivo_excel.url
         return None
     
     def get_excel_path(self):
         """Retorna la ruta física del archivo Excel"""
-        if self.matriz_base:
-            filename = self.matriz_base
-            if not filename.lower().endswith('.xlsx'):
-                filename += '.xlsx'
-            
-            # Buscar específicamente en static/excel_files/
-            static_path = os.path.join(settings.BASE_DIR, 'static', 'excel_files', filename)
-            if os.path.exists(static_path):
-                return static_path
-            
-            # Fallback: usar staticfiles finder
-            found_path = find(f'excel_files/{filename}')
-            return found_path
-        
+        if self.archivo_excel and self.archivo_excel.name:
+            return self.archivo_excel.path
         return None
     
     def excel_exists(self):
-        """Verifica si el archivo Excel existe en static/excel_files/"""
+        """Verifica si el archivo Excel existe"""
         path = self.get_excel_path()
-        exists = path is not None and os.path.exists(path)
-        return exists
+        return path and os.path.exists(path)
+    
+    def get_filename(self):
+        """Retorna solo el nombre del archivo"""
+        if self.matriz_base:
+            return self.matriz_base
+        elif self.archivo_excel and self.archivo_excel.name:
+            return os.path.basename(self.archivo_excel.name)
+        return ""
+    
+    def delete(self, *args, **kwargs):
+        """Eliminar el archivo físico al eliminar el dispositivo"""
+        if self.archivo_excel:
+            # Eliminar el archivo físico
+            self.archivo_excel.delete(save=False)
+        
+        # Eliminar el objeto de la base de datos
+        super().delete(*args, **kwargs)
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
     descripcion = models.TextField(blank=True, null=True, max_length=200)

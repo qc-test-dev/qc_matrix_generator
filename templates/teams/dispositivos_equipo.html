@@ -15,7 +15,7 @@ Matrices - {{ equipo.nombre }}
                 <i class="fas fa-table text-primary me-2"></i>{{ equipo.nombre }}
             </h1>
             <p class="text-muted mb-0">
-                <span class="badge bg-light text-dark">matrices de aplicaciones: {{ total_dispositivos }} </span>
+                <span class="badge bg-light text-dark">Matrices de aplicaciones: {{ total_dispositivos }}</span>
             </p>
         </div>
         <div>
@@ -56,30 +56,44 @@ Matrices - {{ equipo.nombre }}
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-file-excel text-success me-2"></i>
                                         <div>
-                                            <span class="d-block">{{ dispositivo.matriz_base }}</span>
+                                            <span class="d-block">{{ dispositivo.matriz_base|default:dispositivo.get_filename }}</span>
                                             <small class="text-muted">
                                                 <i class="fas fa-calendar-alt me-1"></i>
-                                                {{ dispositivo.updated_at|date:"d/m/Y"|default:"-" }}
+                                                {{ dispositivo.created_at|date:"d/m/Y" }}
                                             </small>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-outline-danger" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                        <i class="fas fa-trash me-1"></i> Eliminar
-                                    </button>
-                                    <button class="btn btn-sm btn btn-outline-success" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                        <i class="fas fa-trash me-1"></i> Ver
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                        <i class="fas fa-trash me-1"></i> Descargar
-                                    </button>
+                                    <div class="btn-group" role="group">
+                                        {% if dispositivo.excel_exists %}
+                                        <!-- Botón Ver (abrir en nueva pestaña) -->
+                                        <a href="{{ dispositivo.get_excel_url }}" 
+                                           target="_blank"
+                                           class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-eye me-1"></i> Ver
+                                        </a>
+                                        
+                                        <!-- Botón Descargar -->
+                                        <a href="{{ dispositivo.get_excel_url }}" 
+                                           download="{{ dispositivo.get_filename }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download me-1"></i> Descargar
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-circle me-1"></i>
+                                            Archivo no disponible
+                                        </span>
+                                        {% endif %}
+                                        
+                                        <!-- Botón Eliminar -->
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                            <i class="fas fa-trash me-1"></i> Eliminar
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -117,6 +131,19 @@ Matrices - {{ equipo.nombre }}
             <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
+                    <!-- Mostrar errores del formulario si existen -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Nombre de la Matriz</label>
                         <input type="text" name="nombre" class="form-control" placeholder="Ej: Matriz de pruebas" required>
@@ -129,9 +156,12 @@ Matrices - {{ equipo.nombre }}
                         <input type="file" name="archivo_excel" class="form-control" accept=".xlsx" required>
                         <div class="form-text">
                             <i class="fas fa-info-circle me-1"></i>
-                            Sube el archivo .xlsx con la matriz base
+                            Sube el archivo .xlsx con la matriz base (máximo 10MB)
                         </div>
                     </div>
+                    
+                    <!-- Campo oculto para operativo -->
+                    <input type="hidden" name="operativo" value="false">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -164,8 +194,13 @@ Matrices - {{ equipo.nombre }}
                 <h5 class="mb-3">¿Eliminar esta matriz?</h5>
                 <div class="alert alert-warning text-start">
                     <p class="mb-1"><strong>Nombre:</strong> {{ dispositivo.nombre }}</p>
-                    <p class="mb-0"><strong>Archivo:</strong> {{ dispositivo.matriz_base }}</p>
+                    <p class="mb-1"><strong>Archivo:</strong> {{ dispositivo.matriz_base|default:dispositivo.get_filename }}</p>
+                    <p class="mb-0"><strong>Creado:</strong> {{ dispositivo.created_at|date:"d/m/Y H:i" }}</p>
                 </div>
+                <p class="text-danger small">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    Esta acción eliminará permanentemente la matriz y el archivo Excel asociado.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">

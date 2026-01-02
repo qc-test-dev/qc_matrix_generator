@@ -49,90 +49,67 @@ class DispositivoForm(forms.ModelForm):
     archivo_excel = forms.FileField(
         label='Archivo Excel',
         help_text='Seleccione el archivo .xlsx de la matriz base',
-        required=True  # Asegurar que siempre sea requerido
+        required=True,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.xlsx'
+        })
     )
     
     class Meta:
         model = Dispositivo
-        fields = ['nombre', 'equipo', 'operativo']
+        fields = ['nombre', 'equipo', 'archivo_excel']
         widgets = {
-            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del dispositivo'}),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Nombre de la matriz'
+            }),
             'equipo': forms.Select(attrs={'class': 'form-control'}),
-            'operativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Hacer que archivo_excel no sea requerido en edición
-        if self.instance and self.instance.pk:
-            self.fields['archivo_excel'].required = False
     
     def clean_archivo_excel(self):
         archivo = self.cleaned_data.get('archivo_excel')
         
-        # Si no hay archivo y estamos editando, es válido (no se cambia)
-        if not archivo and self.instance and self.instance.pk:
-            return None
-        
-        # Si no hay archivo y estamos creando, error
         if not archivo:
             raise forms.ValidationError("Debe seleccionar un archivo Excel")
         
         # Validar extensión
-        if not archivo.name.endswith('.xlsx'):
+        if not archivo.name.lower().endswith('.xlsx'):
             raise forms.ValidationError("El archivo debe ser un Excel (.xlsx)")
+        
+        # Validar tamaño (max 10MB)
+        max_size = 10 * 1024 * 1024
+        if archivo.size > max_size:
+            raise forms.ValidationError(f"El archivo es muy grande. Máximo: 10MB")
         
         return archivo
     
     def clean(self):
         cleaned_data = super().clean()
         archivo_excel = cleaned_data.get('archivo_excel')
-        operativo = cleaned_data.get('operativo')
         
-        # Solo validar si hay un archivo nuevo
         if archivo_excel:
             try:
-                # Validar duplicados
-                self.validar_archivo_duplicado(archivo_excel)
-                
-                # Leer y validar el archivo Excel
-                archivo_excel.seek(0)  # Asegurar que podemos leer el archivo
+                # Validar que sea un Excel válido
+                archivo_excel.seek(0)
                 df = pd.read_excel(archivo_excel)
                 
-                if operativo:
-                    validar_formato_operativo(df)
-                else:
-                    validar_formato_no_operativo(df)
+                if len(df.columns) == 0:
+                    raise forms.ValidationError("El archivo Excel está vacío")
                 
-                # Guardar el nombre del archivo
-                cleaned_data['nombre_archivo'] = archivo_excel.name
-                
-                # Restaurar posición del archivo para guardarlo después
+                # Restaurar posición
                 archivo_excel.seek(0)
                 
-            except forms.ValidationError:
-                raise  # Re-lanzar errores de validación específicos
             except Exception as e:
-                raise forms.ValidationError(f"Error al procesar el archivo Excel: {str(e)}")
+                raise forms.ValidationError(f"Error al leer el archivo Excel: {str(e)}")
         
         return cleaned_data
     
-    def validar_archivo_duplicado(self, archivo_excel):
-        """Valida que el nombre del archivo no esté duplicado."""
-        nombre_archivo = archivo_excel.name
+    def save(self, commit=True):
+        dispositivo = super().save(commit=False)
         
-        # Buscar si hay otro dispositivo con el mismo nombre de archivo
-        qs = Dispositivo.objects.filter(matriz_base=nombre_archivo)
+        if commit:
+            # El método save() del modelo se encargará del renombrado automático
+            dispositivo.save()
         
-        # Si estamos editando, excluir el dispositivo actual
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        
-        if qs.exists():
-            # Obtener información sobre el dispositivo duplicado
-            dispositivo_duplicado = qs.first()
-            raise forms.ValidationError(
-                f'El archivo "{nombre_archivo}" ya está siendo usado por el dispositivo '
-                f'"{dispositivo_duplicado.nombre}" (Equipo: {dispositivo_duplicado.equipo.nombre}). '
-                f'Por favor, use un archivo con un nombre diferente o renombre el archivo actual.'
-            )
+        return dispositivo
