@@ -177,10 +177,32 @@ def detalle_super_matriz(request, super_matriz_id):
                     messages.error(request, f"El dispositivo no tiene archivo base asociado.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
-                ruta_excel_matriz = os.path.join(settings.BASE_DIR, 'static', 'excel_files', dispositivo.matriz_base)
+                # ====== CAMBIO AQUÍ ======
+                # Buscar el archivo en media/excel/{nombre_equipo}/{matriz_base}
+                nombre_equipo = dispositivo.equipo.nombre.replace(' ', '_')
+                nombre_archivo = dispositivo.matriz_base
+                
+                # Ruta nueva: media/excel/{nombre_equipo}/{nombre_archivo}
+                ruta_excel_matriz = os.path.join(
+                    settings.MEDIA_ROOT, 
+                    'excel', 
+                    nombre_equipo, 
+                    nombre_archivo
+                )
+                
+                # Verificar si el archivo existe
                 if not os.path.exists(ruta_excel_matriz):
-                    messages.error(request, f"El archivo '{dispositivo.matriz_base}' no existe en el servidor.")
-                    return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+                    # También podríamos intentar con el campo archivo_excel.url si existe
+                    if hasattr(dispositivo, 'archivo_excel') and dispositivo.archivo_excel:
+                        ruta_excel_matriz = dispositivo.archivo_excel.path
+                        
+                        if not os.path.exists(ruta_excel_matriz):
+                            messages.error(request, f"El archivo '{nombre_archivo}' no existe en la ruta: {ruta_excel_matriz}")
+                            return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+                    else:
+                        messages.error(request, f"El archivo '{nombre_archivo}' no existe en el servidor.")
+                        return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+                # ====== FIN DEL CAMBIO ======
 
                 # LLAMAR A LA FUNCIÓN MODIFICADA QUE RETORNA (success, error_message)
                 success, mensaje = importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)

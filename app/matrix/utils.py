@@ -30,6 +30,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         tuple: (success, error_message) donde success es booleano y error_message es el mensaje de error si hubo
     """
     try:
+        # Cargar openpyxl solo cuando se necesita
         wb = openpyxl.load_workbook(ruta_excel)
         sheet = wb.active
 
@@ -125,7 +126,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
 
             if alcances_permitidos and alcance not in alcances_permitidos:
                 continue
-
+               
             CasoDePrueba.objects.create(
                 matriz=matriz,
                 alcance=alcance,
@@ -143,8 +144,6 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         
     except Exception as e:
         return False, f"Error al importar matriz: {str(e)}"
-
-
 
 
 # def importar_validates_desde_excel(super_matriz, ruta_excel):
