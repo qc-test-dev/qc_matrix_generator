@@ -1,465 +1,180 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}
-Dispositivos - {{ equipo.nombre }}
+Matrices - {{ equipo.nombre }}
 {% endblock title %}
 
 {% block content %}
 {% include 'includes/header.html' %}
 
-<div class="container mt-4">
-    <!-- Mensajes serán mostrados por JavaScript -->
-    
+<div class="container py-4">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="display-6 fw-bold text-success mb-2">Dispositivos del Equipo</h1>
-                    <h2 class="h4 text-muted">{{ equipo.nombre }}</h2>
-                    <p class="text-muted mb-0">Total: {{ total_dispositivos }} dispositivo{{ total_dispositivos|pluralize }}</p>
-                </div>
-                <div>
-                    <a href="{% url 'accounts_app:list_teams' %}" class="btn btn-outline-secondary me-2">
-                        <i class="fas fa-arrow-left me-2"></i>Volver a Equipos
-                    </a>
-                    <!-- Botón para agregar dispositivo -->
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#crearDispositivoModal">
-                        <i class="fas fa-plus me-2"></i>Agregar Dispositivo
-                    </button>
-                </div>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="fas fa-table text-primary me-2"></i>{{ equipo.nombre }}
+            </h1>
+            <p class="text-muted mb-0">
+                <span class="badge bg-light text-dark">matrices de aplicaciones: {{ total_dispositivos }} </span>
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'accounts_app:list_teams' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearDispositivoModal">
+                <i class="fas fa-plus me-1"></i>Agregar
+            </button>
         </div>
     </div>
 
-    <!-- Tabs de Navegación -->
-    <div class="row">
-        <div class="col-12">
-            <ul class="nav nav-tabs" id="dispositivosTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="operativos-tab" data-bs-toggle="tab" data-bs-target="#operativos" type="button" role="tab">
-                        <i class="fas fa-check-circle me-2 text-success"></i>
-                        Operativos
-                        <span class="badge bg-success ms-2">{{ dispositivos_operativos.count }}</span>
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="no-operativos-tab" data-bs-toggle="tab" data-bs-target="#no-operativos" type="button" role="tab">
-                        <i class="fas fa-times-circle me-2 text-secondary"></i>
-                        No Operativos
-                        <span class="badge bg-secondary ms-2">{{ dispositivos_no_operativos.count }}</span>
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="todos-tab" data-bs-toggle="tab" data-bs-target="#todos" type="button" role="tab">
-                        <i class="fas fa-list me-2 text-primary"></i>
-                        Todos
-                        <span class="badge bg-primary ms-2">{{ total_dispositivos }}</span>
-                    </button>
-                </li>
-            </ul>
-
-            <!-- Contenido de los Tabs -->
-            <div class="tab-content" id="dispositivosTabsContent">
-                <!-- Tab Operativos -->
-                <div class="tab-pane fade show active" id="operativos" role="tabpanel">
-                    {% if dispositivos_operativos %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush">
-                                    {% for dispositivo in dispositivos_operativos %}
-                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                                        <div class="flex-grow-1">
-                                            <h5 class="mb-1 text-dark">
-                                                <i class="fas fa-check-circle text-success me-2"></i>
-                                                {{ dispositivo.nombre }}
-                                            </h5>
-                                            <p class="mb-1 text-muted small">
-                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
-                                            </p>
-                                        </div>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-edit me-1"></i>Editar
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-trash me-1"></i>Eliminar
-                                            </button>
+    <!-- Lista de Matrices -->
+    {% if total_dispositivos > 0 %}
+        <div class="card border">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Matrices Registradas
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Nombre</th>
+                                <th>Archivo</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dispositivo in equipo.dispositivos.all %}
+                            <tr>
+                                <td class="ps-4">
+                                    <h6 class="mb-0">{{ dispositivo.nombre }}</h6>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-excel text-success me-2"></i>
+                                        <div>
+                                            <span class="d-block">{{ dispositivo.matriz_base }}</span>
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                {{ dispositivo.updated_at|date:"d/m/Y"|default:"-" }}
+                                            </small>
                                         </div>
                                     </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No hay dispositivos operativos</h5>
-                                <p class="text-muted">Todos los dispositivos están marcados como no operativos.</p>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Tab No Operativos -->
-                <div class="tab-pane fade" id="no-operativos" role="tabpanel">
-                    {% if dispositivos_no_operativos %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush">
-                                    {% for dispositivo in dispositivos_no_operativos %}
-                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                                        <div class="flex-grow-1">
-                                            <h5 class="mb-1 text-dark">
-                                                <i class="fas fa-times-circle text-secondary me-2"></i>
-                                                {{ dispositivo.nombre }}
-                                            </h5>
-                                            <p class="mb-1 text-muted small">
-                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
-                                            </p>
-                                        </div>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-edit me-1"></i>Editar
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-trash me-1"></i>Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No hay dispositivos no operativos</h5>
-                                <p class="text-muted">Todos los dispositivos están operativos.</p>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Tab Todos -->
-                <div class="tab-pane fade" id="todos" role="tabpanel">
-                    {% if total_dispositivos > 0 %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush">
-                                    {% for dispositivo in equipo.dispositivos.all %}
-                                    <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                                        <div class="flex-grow-1">
-                                            <h5 class="mb-1 text-dark">
-                                                <i class="fas fa-{% if dispositivo.operativo %}check-circle text-success{% else %}times-circle text-secondary{% endif %} me-2"></i>
-                                                {{ dispositivo.nombre }}
-                                            </h5>
-                                            <p class="mb-1 text-muted small">
-                                                <strong>Matriz Base:</strong> {{ dispositivo.matriz_base }}
-                                            </p>
-                                            <span class="badge {% if dispositivo.operativo %}bg-success{% else %}bg-secondary{% endif %} small">
-                                                {% if dispositivo.operativo %}Operativo{% else %}No Operativo{% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-edit me-1"></i>Editar
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
-                                                <i class="fas fa-trash me-1"></i>Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="card border-top-0 rounded-0">
-                            <div class="card-body text-center py-5">
-                                <i class="fas fa-microchip fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No hay dispositivos registrados</h5>
-                                <p class="text-muted">Este equipo no tiene dispositivos asociados.</p>
-                            </div>
-                        </div>
-                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                        <i class="fas fa-trash me-1"></i> Eliminar
+                                    </button>
+                                    <button class="btn btn-sm btn btn-outline-success" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                        <i class="fas fa-trash me-1"></i> Ver
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
+                                        <i class="fas fa-trash me-1"></i> Descargar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
+    {% else %}
+        <div class="card border text-center">
+            <div class="card-body py-5">
+                <div class="mb-3">
+                    <i class="fas fa-file-excel fa-3x text-muted"></i>
+                </div>
+                <h4 class="text-muted mb-3">No hay matrices registradas</h4>
+                <p class="text-muted mb-4">Comienza agregando la primera matriz.</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearDispositivoModal">
+                    <i class="fas fa-plus-circle me-2"></i>Agregar primera matriz
+                </button>
+            </div>
+        </div>
+    {% endif %}
 </div>
 
-<!-- Modal para crear dispositivo -->
-<div class="modal fade" id="crearDispositivoModal" tabindex="-1" aria-labelledby="crearDispositivoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<!-- Modal Crear Matriz -->
+<div class="modal fade" id="crearDispositivoModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="crearDispositivoModalLabel">
-                    <i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Dispositivo
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Nueva Matriz
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <!-- Mostrar errores del formulario -->
-                    {% if form.errors and not abrir_modal_edicion %}
-                    <div class="alert alert-danger">
-                        <strong>Por favor corrija los siguientes errores:</strong>
-                        <ul class="mb-0">
-                            {% for field, errors in form.errors.items %}
-                                {% for error in errors %}
-                                    <li>{{ field }}: {{ error }}</li>
-                                {% endfor %}
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_nombre_crear" class="form-label">Nombre del Dispositivo</label>
-                                <input type="text" name="nombre" class="form-control" id="id_nombre_crear" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="id_equipo_crear" class="form-label">Equipo</label>
-                                <select name="equipo" class="form-control" id="id_equipo_crear" required>
-                                    <option value="{{ equipo.id }}" selected>{{ equipo.nombre }}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="mb-3">
-                        <label for="id_archivo_excel_crear" class="form-label">Archivo Excel</label>
-                        <input type="file" name="archivo_excel" class="form-control" id="id_archivo_excel_crear" accept=".xlsx" required>
-                        <div class="form-text">Seleccione el archivo .xlsx de la matriz base</div>
+                        <label class="form-label fw-semibold">Nombre de la Matriz</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Matriz de pruebas" required>
                     </div>
-                    
+                    <input type="hidden" name="equipo" value="{{ equipo.id }}">
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo_crear">
-                            <label class="form-check-label" for="id_operativo_crear">
-                                ¿Es operativo?
-                            </label>
-                        </div>
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-file-excel text-success me-1"></i>Archivo Excel
+                        </label>
+                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx" required>
                         <div class="form-text">
-                            <strong>No operativo:</strong> El Excel debe tener los encabezados: Alcance Evaluación, Fase, Caso de prueba, Estado, Criticidad, Nota sobre la prueba<br>
-                            <strong>Operativo:</strong> Validación específica
+                            <i class="fas fa-info-circle me-1"></i>
+                            Sube el archivo .xlsx con la matriz base
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Crear Dispositivo</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Crear Matriz
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modales para editar dispositivos -->
+<!-- Modales Eliminar -->
 {% for dispositivo in equipo.dispositivos.all %}
-<div class="modal fade" id="editarDispositivoModal{{ dispositivo.id }}" tabindex="-1" 
-     aria-labelledby="editarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="eliminarDispositivoModal{{ dispositivo.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="editarDispositivoModalLabel{{ dispositivo.id }}">
-                    <i class="fas fa-edit me-2"></i>Editar Dispositivo: {{ dispositivo.nombre }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            
-            {% if form and form.instance.id == dispositivo.id and abrir_modal_edicion %}
-                <!-- Usar el formulario Django cuando está presente (hay errores) -->
-                <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" 
-                      enctype="multipart/form-data" id="formEditar{{ dispositivo.id }}">
-                    {% csrf_token %}
-                    
-                    <div class="modal-body">
-                        <!-- Mostrar errores del formulario -->
-                        {% if form.errors %}
-                        <div class="alert alert-danger alert-dismissible fade show mb-3">
-                            <strong>Errores encontrados:</strong>
-                            <ul class="mb-0 mt-2">
-                                {% for field, errors in form.errors.items %}
-                                    {% for error in errors %}
-                                        <li><strong>{{ field|title }}:</strong> {{ error }}</li>
-                                    {% endfor %}
-                                {% endfor %}
-                            </ul>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                        {% endif %}
-                        
-                        <!-- Campo Nombre -->
-                        <div class="mb-3">
-                            <label for="id_nombre_edit{{ dispositivo.id }}" class="form-label">Nombre del Dispositivo *</label>
-                            <input type="text" name="nombre" class="form-control" id="id_nombre_edit{{ dispositivo.id }}" 
-                                   value="{{ form.nombre.value|default:dispositivo.nombre }}" required>
-                            {% if form.nombre.errors %}
-                            <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Campo Equipo (oculto) -->
-                        <input type="hidden" name="equipo" value="{{ equipo.id }}">
-                        
-                        <!-- Campo Operativo -->
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" name="operativo" class="form-check-input" id="id_operativo_edit{{ dispositivo.id }}"
-                                       {% if form.operativo.value %}checked{% elif dispositivo.operativo %}checked{% endif %}>
-                                <label class="form-check-label" for="id_operativo_edit{{ dispositivo.id }}">
-                                    <strong>¿Es operativo?</strong>
-                                </label>
-                            </div>
-                            <div class="form-text">
-                                <strong>No operativo:</strong> Excel con encabezados específicos<br>
-                                <strong>Operativo:</strong> Validación diferente
-                            </div>
-                            {% if form.operativo.errors %}
-                            <div class="text-danger small mt-1">{{ form.operativo.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Campo Archivo Excel -->
-                        <div class="mb-3">
-                            <label for="id_archivo_excel_edit{{ dispositivo.id }}" class="form-label">Archivo Excel</label>
-                            <input type="file" name="archivo_excel" class="form-control" 
-                                   id="id_archivo_excel_edit{{ dispositivo.id }}" accept=".xlsx">
-                            <div class="form-text">
-                                <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
-                                <strong>Nota:</strong> Solo selecciona un archivo si deseas reemplazar el actual.
-                                Si no seleccionas ningún archivo, se mantendrá el archivo existente.
-                            </div>
-                            {% if form.archivo_excel.errors %}
-                            <div class="text-danger small mt-1">{{ form.archivo_excel.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Información del archivo actual -->
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
-                            <small>Última actualización: {{ dispositivo.updated_at|date:"d/m/Y H:i"|default:"N/A" }}</small>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Guardar Cambios
-                        </button>
-                    </div>
-                </form>
-            {% else %}
-                <!-- Formulario sin errores (primera vez que se abre) -->
-                <form method="post" action="{% url 'accounts_app:editar_dispositivo' equipo.id dispositivo.id %}" 
-                      enctype="multipart/form-data" id="formEditar{{ dispositivo.id }}">
-                    {% csrf_token %}
-                    
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Nombre del Dispositivo *</label>
-                            <input type="text" name="nombre" class="form-control" 
-                                   value="{{ dispositivo.nombre }}" required>
-                        </div>
-                        
-                        <input type="hidden" name="equipo" value="{{ equipo.id }}">
-                        
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input type="checkbox" name="operativo" class="form-check-input" 
-                                       id="operativo_edit{{ dispositivo.id }}"
-                                       {% if dispositivo.operativo %}checked{% endif %}>
-                                <label class="form-check-label" for="operativo_edit{{ dispositivo.id }}">
-                                    <strong>¿Es operativo?</strong>
-                                </label>
-                            </div>
-                            <div class="form-text">
-                                <strong>No operativo:</strong> Excel con encabezados específicos<br>
-                                <strong>Operativo:</strong> Validación diferente
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Archivo Excel</label>
-                            <input type="file" name="archivo_excel" class="form-control" accept=".xlsx">
-                            <div class="form-text">
-                                <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}<br>
-                                <strong>Nota:</strong> Solo selecciona un archivo si deseas reemplazar el actual.
-                                Si no seleccionas ningún archivo, se mantendrá el archivo existente.
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Archivo actual:</strong> {{ dispositivo.matriz_base }}
-                        </div>
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Guardar Cambios
-                        </button>
-                    </div>
-                </form>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endfor %}
-
-<!-- Modal de confirmación para eliminar dispositivo -->
-{% for dispositivo in equipo.dispositivos.all %}
-<div class="modal fade" id="eliminarDispositivoModal{{ dispositivo.id }}" tabindex="-1" aria-labelledby="eliminarDispositivoModalLabel{{ dispositivo.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="eliminarDispositivoModalLabel{{ dispositivo.id }}">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title text-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <strong>¡Advertencia!</strong> Esta acción no se puede deshacer.
+            <div class="modal-body text-center py-4">
+                <div class="mb-3">
+                    <i class="fas fa-trash text-danger fa-2x"></i>
                 </div>
-                <p>¿Estás seguro de que deseas eliminar el dispositivo <strong>"{{ dispositivo.nombre }}"</strong>?</p>
-                <p class="text-muted small">
-                    <strong>Matriz base asociada:</strong> {{ dispositivo.matriz_base }}<br>
-                    <strong>Nota:</strong> El archivo Excel se mantendrá en el sistema y podrá ser utilizado por otros dispositivos.
-                </p>
+                <h5 class="mb-3">¿Eliminar esta matriz?</h5>
+                <div class="alert alert-warning text-start">
+                    <p class="mb-1"><strong>Nombre:</strong> {{ dispositivo.nombre }}</p>
+                    <p class="mb-0"><strong>Archivo:</strong> {{ dispositivo.matriz_base }}</p>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-2"></i>Cancelar
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
                 </button>
                 <form method="post" action="{% url 'accounts_app:eliminar_dispositivo' equipo.id dispositivo.id %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Eliminar Dispositivo
+                        <i class="fas fa-trash me-1"></i>Sí, eliminar
                     </button>
                 </form>
             </div>
@@ -468,243 +183,4 @@ Dispositivos - {{ equipo.nombre }}
 </div>
 {% endfor %}
 
-<style>
-.nav-tabs .nav-link {
-    border: none;
-    border-bottom: 3px solid transparent;
-    color: #6c757d;
-    font-weight: 500;
-    padding: 12px 20px;
-}
-
-.nav-tabs .nav-link.active {
-    border-bottom: 3px solid #198754;
-    color: #198754;
-    background-color: transparent;
-}
-
-.nav-tabs .nav-link:hover {
-    border-bottom: 3px solid #dee2e6;
-    color: #198754;
-}
-
-.card.border-top-0 {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-
-/* Estilos para mensajes flotantes */
-.mensajes-flotantes {
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    z-index: 9999;
-    min-width: 300px;
-}
-
-.mensajes-flotantes .alert {
-    animation: slideInRight 0.3s ease-out;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Estilo para campos con error */
-.form-control.is-invalid {
-    border-color: #dc3545;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right calc(.375em + .1875rem) center;
-    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
-}
-
-.form-check-input.is-invalid {
-    border-color: #dc3545;
-}
-
-.form-check-input.is-invalid:checked {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-</style>
 {% endblock content %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Mostrar mensajes inmediatamente
-    function mostrarMensajes() {
-        {% if messages %}
-            // Crear contenedor para mensajes si no existe
-            let mensajesContainer = document.querySelector('.mensajes-flotantes');
-            if (!mensajesContainer) {
-                mensajesContainer = document.createElement('div');
-                mensajesContainer.className = 'mensajes-flotantes';
-                document.body.appendChild(mensajesContainer);
-            }
-            
-            // Mostrar cada mensaje
-            {% for message in messages %}
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-{{ message.tags }} alert-dismissible fade show shadow mb-2`;
-                alertDiv.innerHTML = `
-                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
-                    {{ message|safe }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
-                mensajesContainer.appendChild(alertDiv);
-                
-                // Auto-cerrar después de 5 segundos para éxito
-                {% if message.tags == 'success' %}
-                    setTimeout(() => {
-                        if (alertDiv.parentNode) {
-                            const bsAlert = new bootstrap.Alert(alertDiv);
-                            bsAlert.close();
-                        }
-                    }, 5000);
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-    }
-    
-    // Mostrar mensajes al cargar
-    mostrarMensajes();
-    
-    // Abrir automáticamente el modal de edición si hay errores
-    {% if form.errors and abrir_modal_edicion and form.instance.id %}
-        setTimeout(() => {
-            const modalId = 'editarDispositivoModal{{ form.instance.id }}';
-            const modalElement = document.getElementById(modalId);
-            if (modalElement) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-                
-                // Marcar campos con errores
-                const formElement = modalElement.querySelector('form');
-                if (formElement) {
-                    {% for field in form %}
-                        {% if field.errors %}
-                            const fieldElement = formElement.querySelector('[name="{{ field.name }}"]');
-                            if (fieldElement) {
-                                fieldElement.classList.add('is-invalid');
-                            }
-                        {% endif %}
-                    {% endfor %}
-                    
-                    // Scroll al primer campo con error
-                    setTimeout(() => {
-                        const errorField = formElement.querySelector('.is-invalid');
-                        if (errorField) {
-                            errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            errorField.focus();
-                        }
-                    }, 300);
-                }
-            }
-        }, 300);
-    {% endif %}
-    
-    // Manejar envío de formularios para prevenir doble envío
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const submitButton = this.querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Procesando...';
-                
-                // Habilitar nuevamente si hay error de validación
-                setTimeout(() => {
-                    if (!this.checkValidity()) {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = submitButton.getAttribute('data-original-text') || 'Guardar Cambios';
-                    }
-                }, 3000);
-            }
-        });
-    });
-    
-    // Guardar texto original de los botones
-    document.querySelectorAll('form button[type="submit"]').forEach(button => {
-        button.setAttribute('data-original-text', button.innerHTML);
-    });
-    
-    // Limpiar errores cuando se cierra un modal
-    document.addEventListener('hidden.bs.modal', function (event) {
-        const modal = event.target;
-        const form = modal.querySelector('form');
-        if (form) {
-            // Remover clases de error
-            form.querySelectorAll('.is-invalid').forEach(el => {
-                el.classList.remove('is-invalid');
-            });
-            
-            // Habilitar botón de envío
-            const submitButton = form.querySelector('button[type="submit"]');
-            if (submitButton && submitButton.getAttribute('data-original-text')) {
-                submitButton.disabled = false;
-                submitButton.innerHTML = submitButton.getAttribute('data-original-text');
-            }
-        }
-    });
-    
-    // Validación en tiempo real para archivos Excel
-    document.querySelectorAll('input[type="file"][accept=".xlsx"]').forEach(input => {
-        input.addEventListener('change', function(e) {
-            if (this.files.length > 0) {
-                const file = this.files[0];
-                const fileName = file.name;
-                
-                // Validar extensión
-                if (!fileName.endsWith('.xlsx')) {
-                    alert('Por favor selecciona un archivo con extensión .xlsx');
-                    this.value = '';
-                    return;
-                }
-                
-                // Validar tamaño (max 10MB)
-                const maxSize = 10 * 1024 * 1024; // 10MB
-                if (file.size > maxSize) {
-                    alert('El archivo es demasiado grande. Tamaño máximo: 10MB');
-                    this.value = '';
-                    return;
-                }
-            }
-        });
-    });
-    
-    // Mostrar confirmación antes de eliminar
-    document.querySelectorAll('form[action*="eliminar_dispositivo"]').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            if (!confirm('¿Estás completamente seguro de que deseas eliminar este dispositivo?')) {
-                e.preventDefault();
-                return false;
-            }
-            
-            // Deshabilitar botón durante eliminación
-            const submitButton = this.querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Eliminando...';
-            }
-        });
-    });
-    
-    // Actualizar contadores de dispositivos cuando se elimina uno
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('form[action*="eliminar_dispositivo"]')) {
-            // Esto podría usarse para actualizar la UI sin recargar
-            // Pero por ahora, dejamos que se recargue la página
-        }
-    });
-});
-</script>
-{% endblock extra_js %}

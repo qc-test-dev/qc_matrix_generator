@@ -248,3 +248,4 @@ cython_debug/
  
 .idea
 static/excel_files/*
+notas.txt
