@@ -8,6 +8,71 @@ Matrices - {{ equipo.nombre }}
 {% include 'includes/header.html' %}
 
 <div class="container py-4">
+    <!-- Mostrar mensajes de éxito -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle fa-2x me-3"></i>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1">¡Éxito!</h5>
+                        <p class="mb-0">{{ message }}</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% elif message.tags == 'error' %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-circle fa-2x me-3"></i>
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-1">Error</h5>
+                        <p class="mb-0">{{ message }}</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Mostrar errores del formulario fuera del modal -->
+    {% if form.errors %}
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-2">Error al crear matriz</h5>
+                <ul class="mb-0">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>
+                                {% if field == 'archivo_excel' and 'El archivo Excel no tiene el formato correcto' in error %}
+                                    <strong>Formato incorrecto:</strong> El archivo Excel no cumple con los requisitos. Verifique que contenga todas las columnas requeridas.
+                                {% elif field == 'archivo_excel' and 'El archivo Excel está vacío' in error %}
+                                    <strong>Archivo vacío:</strong> El archivo Excel no contiene datos.
+                                {% elif field == 'archivo_excel' %}
+                                    <strong>Archivo:</strong> {{ error }}
+                                {% elif field == 'nombre' %}
+                                    <strong>Nombre:</strong> {{ error }}
+                                {% elif field == '__all__' %}
+                                    {{ error }}
+                                {% else %}
+                                    <strong>{{ field|title }}:</strong> {{ error }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -68,7 +133,7 @@ Matrices - {{ equipo.nombre }}
                                     <div class="btn-group" role="group">
                                         {% if dispositivo.excel_exists %}
                                         <!-- Botón Ver (abrir en nueva pestaña) -->
-                                        <a href="{{ dispositivo.get_excel_url }}" 
+                                        <a href="{{ dispositivo.archivo_excel }}" 
                                            target="_blank"
                                            class="btn btn-sm btn-outline-success">
                                             <i class="fas fa-eye me-1"></i> Ver
@@ -118,45 +183,133 @@ Matrices - {{ equipo.nombre }}
     {% endif %}
 </div>
 
-<!-- Modal Crear Matriz -->
+<!-- Modal Crear Matriz - Más grande -->
 <div class="modal fade" id="crearDispositivoModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
                     <i class="fas fa-plus-circle me-2"></i>Nueva Matriz
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data">
+            <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data" id="crearMatrizForm">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <!-- Mostrar errores del formulario si existen -->
-                    {% if form.errors %}
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            {% for field, errors in form.errors.items %}
-                                {% for error in errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
+                    <!-- Nota: Los errores ahora se muestran fuera del modal -->
                     
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nombre de la Matriz</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Matriz de pruebas" required>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Nombre de la Matriz <span class="text-danger">*</span></label>
+                                <input type="text" name="nombre" class="form-control" 
+                                       value="{% if form.nombre.value %}{{ form.nombre.value }}{% endif %}" 
+                                       placeholder="Ej: Matriz de pruebas - Claro video"
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Ingrese un nombre descriptivo para identificar esta matriz
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    
                     <input type="hidden" name="equipo" value="{{ equipo.id }}">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="fas fa-file-excel text-success me-1"></i>Archivo Excel
-                        </label>
-                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx" required>
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Sube el archivo .xlsx con la matriz base (máximo 10MB)
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-file-excel text-success me-1"></i>Archivo Excel <span class="text-danger">*</span>
+                                </label>
+                                <input type="file" name="archivo_excel" class="form-control" 
+                                       accept=".xlsx" required
+                                       id="excelFileInput">
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Solo archivos .xlsx, tamaño máximo 10MB
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Información de validación -->
+                    <div class="mt-3 p-3 border rounded bg-light">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-clipboard-check me-1"></i>Requisitos del archivo Excel
+                        </h6>
+                        
+                        <div class="alert alert-warning mb-3">
+                            <div class="d-flex">
+                                <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
+                                <div>
+                                    <strong>Importante:</strong> El archivo Excel debe contener <strong>todas</strong> las siguientes columnas.
+                                    <br><small>Los nombres no son sensibles a mayúsculas/minúsculas.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="mb-3"><strong>Columnas requeridas:</strong></p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Columna Requerida</th>
+                                        <th>Variantes Aceptadas</th>
+                                        <th>Ejemplo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="badge bg-primary">Alcance</span></td>
+                                        <td>"alcance de evaluación"<br>"alcance de evaluacion"</td>
+                                        <td><code>alcance de evaluacion</code></td>
+                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-primary">Fase/Funcionalidad</span></td>
+                                        <td>"fase"<br>"funcionalidad"</td>
+                                        <td><code>fase</code><br><code>funcionalidad</code></td>
+                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-primary">Descripción</span></td>
+                                        <td>"caso de prueba"<br>"descripcion"</td>
+                                        <td><code>caso de prueba</code><br><code>descripcion</code></td>
+                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-primary">Criticidad</span></td>
+                                        <td>"criticidad"</td>
+                                        <td><code>criticidad</code></td>
+                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-primary">Pasos</span></td>
+                                        <td>"pasos"<br>"otros"</td>
+                                        <td><code>pasos</code><br><code>otros</code></td>
+                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Recomendación:</strong> Revise su archivo Excel antes de cargarlo para asegurarse de que contiene todas las columnas requeridas.
+                        </div>
+                    </div>
+                    
+                    <!-- Vista previa de columnas -->
+                    <div class="mt-3" id="columnPreview" style="display: none;">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fas fa-list-alt me-1"></i>Vista previa del archivo
+                        </h6>
+                        <div class="alert alert-info p-3" id="columnList">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin me-1"></i>
+                                Analizando archivo...
+                            </div>
                         </div>
                     </div>
                     
@@ -164,10 +317,10 @@ Matrices - {{ equipo.nombre }}
                     <input type="hidden" name="operativo" value="false">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Cancelar
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-success" id="submitBtn">
                         <i class="fas fa-save me-1"></i>Crear Matriz
                     </button>
                 </div>
@@ -219,3 +372,118 @@ Matrices - {{ equipo.nombre }}
 {% endfor %}
 
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+// Función para mostrar vista previa de columnas
+document.getElementById('excelFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const columnPreview = document.getElementById('columnPreview');
+    const columnList = document.getElementById('columnList');
+    
+    if (file && file.name.endsWith('.xlsx')) {
+        columnPreview.style.display = 'block';
+        
+        // Mostrar información básica del archivo
+        columnList.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-file-excel fa-2x text-success"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${file.name}</h6>
+                    <p class="mb-0 text-muted">
+                        <small>
+                            <i class="fas fa-hdd me-1"></i>Tamaño: ${(file.size / 1024).toFixed(2)} KB
+                        </small>
+                    </p>
+                </div>
+            </div>
+            <hr class="my-2">
+            <div class="alert alert-light mt-2 p-2">
+                <i class="fas fa-info-circle me-1"></i>
+                Las columnas serán validadas automáticamente al enviar el formulario.
+            </div>
+        `;
+        
+        // Intentar leer el archivo para mostrar columnas (si el navegador lo permite)
+        if (window.FileReader) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    // Solo mostramos que se puede leer el archivo
+                    columnList.innerHTML += `
+                        <div class="alert alert-success mt-2 p-2">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Archivo válido detectado. Listo para cargar.
+                        </div>
+                    `;
+                } catch (err) {
+                    // No mostramos error, solo que no podemos previsualizar
+                    console.log("No se puede previsualizar el archivo Excel en el navegador");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    } else {
+        columnPreview.style.display = 'none';
+    }
+});
+
+// Validación básica del formulario
+document.getElementById('crearMatrizForm').addEventListener('submit', function(e) {
+    const nombre = this.nombre.value.trim();
+    const archivo = this.archivo_excel.files[0];
+    
+    if (!nombre) {
+        e.preventDefault();
+        alert('Por favor ingrese un nombre para la matriz.');
+        this.nombre.focus();
+        return false;
+    }
+    
+    if (!archivo) {
+        e.preventDefault();
+        alert('Por favor seleccione un archivo Excel.');
+        return false;
+    }
+    
+    if (!archivo.name.endsWith('.xlsx')) {
+        e.preventDefault();
+        alert('El archivo debe ser un Excel (.xlsx).');
+        return false;
+    }
+    
+    // Deshabilitar botón para evitar doble envío
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+    
+    return true;
+});
+
+// Si hay errores del formulario, abrir automáticamente el modal
+{% if form.errors %}
+document.addEventListener('DOMContentLoaded', function() {
+    // Esperar un momento para que el DOM se cargue completamente
+    setTimeout(function() {
+        const modal = new bootstrap.Modal(document.getElementById('crearDispositivoModal'));
+        modal.show();
+    }, 500);
+});
+{% endif %}
+
+// Cerrar automáticamente las alertas después de 5 segundos
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            const closeBtn = alert.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        });
+    }, 5000);
+});
+</script>
+{% endblock extra_js %}

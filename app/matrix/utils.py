@@ -49,6 +49,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
             ("fase", "funcionalidad"),
             ("caso de prueba", "descripcion"),
             ("criticidad",),
+            ("pasos","otros"),
         ]
         
         errores = []
@@ -73,7 +74,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                 "criticidad",
                 "tipo de usuario",
                 "comentarios y datos de prueba (o otros)",
-                "pasos a seguir (o pasos)"
+                "pasos (otros)"
             ]
             mensaje_error = "Formato de matriz incorrecto. Errores encontrados:\n"
             mensaje_error += "\n".join([f"• {error}" for error in errores])

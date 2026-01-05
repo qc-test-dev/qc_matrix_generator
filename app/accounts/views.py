@@ -16,7 +16,7 @@ from .forms import DispositivoForm
 from django.conf import settings
 
 from django.core.exceptions import PermissionDenied
-from .utils import validar_formato_operativo, validar_formato_no_operativo,validar_archivo_duplicado
+# from .utils import validar_formato_operativo, validar_formato_no_operativo,validar_archivo_duplicado
 from .mixins import LoginAndLiderRequiredMixin
 
 User = get_user_model()

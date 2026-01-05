@@ -2,7 +2,7 @@ from django import forms
 from .models import User, Equipo
 from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import ValidationError
-from .utils import validar_formato_no_operativo,validar_formato_operativo
+# from .utils import validar_formato_no_operativo,validar_formato_operativo
 from app.matrix.models import Dispositivo
 import pandas as pd
 import re
@@ -71,16 +71,15 @@ class DispositivoForm(forms.ModelForm):
         archivo = self.cleaned_data.get('archivo_excel')
         
         if not archivo:
-            raise forms.ValidationError("Debe seleccionar un archivo Excel")
+            raise ValidationError("Debe seleccionar un archivo Excel")
         
         # Validar extensión
         if not archivo.name.lower().endswith('.xlsx'):
-            raise forms.ValidationError("El archivo debe ser un Excel (.xlsx)")
+            raise ValidationError("El archivo debe ser un Excel (.xlsx)")
         
-        # Validar tamaño (max 10MB)
-        max_size = 10 * 1024 * 1024
-        if archivo.size > max_size:
-            raise forms.ValidationError(f"El archivo es muy grande. Máximo: 10MB")
+        # Validar tamaño del archivo (opcional, 10MB máximo)
+        if archivo.size > 10 * 1024 * 1024:  # 10MB
+            raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 10MB")
         
         return archivo
     
@@ -92,16 +91,56 @@ class DispositivoForm(forms.ModelForm):
             try:
                 # Validar que sea un Excel válido
                 archivo_excel.seek(0)
-                df = pd.read_excel(archivo_excel)
+                df = pd.read_excel(archivo_excel, engine='openpyxl')
                 
-                if len(df.columns) == 0:
-                    raise forms.ValidationError("El archivo Excel está vacío")
+                if df.empty or len(df.columns) == 0:
+                    raise ValidationError("El archivo Excel está vacío o no tiene datos")
                 
-                # Restaurar posición
+                # Limpiar nombres de columnas
+                column_names = [str(col).strip().lower() for col in df.columns]
+                
+                # Definir columnas requeridas con variantes aceptadas
+                columnas_requeridas = [
+                    ("alcance de evaluación", "alcance de evaluacion"),
+                    ("fase", "funcionalidad"),
+                    ("caso de prueba", "descripcion"),
+                    ("criticidad",),
+                    ("pasos", "otros")
+                ]
+                
+                # Validar cada grupo de columnas
+                for grupo in columnas_requeridas:
+                    encontrada = False
+                    
+                    for variante in grupo:
+                        if any(variante in col_name for col_name in column_names):
+                            encontrada = True
+                            break
+                    
+                    if not encontrada:
+                        raise ValidationError(
+                            "El archivo Excel no tiene el formato correcto. "
+                            "Verifique que contenga las columnas requeridas."
+                        )
+                
+                # Validar que haya al menos una fila con datos
+                df_sin_vacios = df.dropna(how='all')
+                if len(df_sin_vacios) == 0:
+                    raise ValidationError(
+                        "El archivo Excel no contiene datos válidos."
+                    )
+                
+                # Restaurar posición del archivo
                 archivo_excel.seek(0)
                 
+            except pd.errors.EmptyDataError:
+                raise ValidationError("El archivo Excel está vacío o no se puede leer.")
             except Exception as e:
-                raise forms.ValidationError(f"Error al leer el archivo Excel: {str(e)}")
+                # Mensaje de error general
+                if 'Workbook' in str(e) or 'openpyxl' in str(e):
+                    raise ValidationError("El archivo no es un Excel válido.")
+                else:
+                    raise ValidationError("Error al procesar el archivo Excel.")
         
         return cleaned_data
     
@@ -109,7 +148,6 @@ class DispositivoForm(forms.ModelForm):
         dispositivo = super().save(commit=False)
         
         if commit:
-            # El método save() del modelo se encargará del renombrado automático
             dispositivo.save()
         
         return dispositivo
