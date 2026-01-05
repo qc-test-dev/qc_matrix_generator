@@ -105,7 +105,7 @@ class DispositivoForm(forms.ModelForm):
                     ("fase", "funcionalidad"),
                     ("caso de prueba", "descripcion"),
                     ("criticidad",),
-                    ("pasos", "otros")
+                    ("comentarios y datos de prueba", "otros")
                 ]
                 
                 # Validar cada grupo de columnas

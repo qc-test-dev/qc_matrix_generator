@@ -44,12 +44,12 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         
         # VERIFICAR COLUMNAS MÍNIMAS REQUERIDAS
         columnas_requeridas = [
-            ("etiqueta", "id caso"),  # al menos una de estas
+            # ("etiqueta", "id caso"),  # al menos una de estas
             ("alcance de evaluación", "alcance de evaluacion"),
             ("fase", "funcionalidad"),
             ("caso de prueba", "descripcion"),
             ("criticidad",),
-            ("pasos","otros"),
+            ("comentarios y datos de prueba","otros"),
         ]
         
         errores = []
