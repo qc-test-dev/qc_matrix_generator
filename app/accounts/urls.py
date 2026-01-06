@@ -1,6 +1,5 @@
 from django.urls import path
-from .views import CustomLoginView, CustomLogoutView, crear_usuario, cambiar_contrasena_usuario, lista_usuarios,cambiar_contraseña, ListTeamsView, DispositivosEquipoView, CrearDispositivoView,eliminar_dispositivo
-
+from .views import CustomLoginView, CustomLogoutView, crear_usuario, cambiar_contrasena_usuario, lista_usuarios,cambiar_contraseña, ListTeamsView, DispositivosEquipoView, CrearDispositivoView,eliminar_dispositivo,descargar_excel
 app_name = 'accounts_app'
 urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
@@ -13,4 +12,5 @@ urlpatterns = [
     path('equipo/<int:pk>/dispositivos/', DispositivosEquipoView.as_view(), name='dispositivos_equipo'),
     path('equipo/<int:equipo_id>/dispositivos/crear/', CrearDispositivoView.as_view(), name='crear_dispositivo'),
     path('equipo/<int:equipo_id>/dispositivos/<int:dispositivo_id>/eliminar/',eliminar_dispositivo,name='eliminar_dispositivo'),
-]
+    path('equipo/<int:equipo_id>/dispositivo/<int:dispositivo_id>/descargar/',descargar_excel, name='descargar_excel'),
+    ]

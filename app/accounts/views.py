@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.utils.translation import activate
-
+from django.http import FileResponse
 from .forms import UserCreateForm, CustomPasswordChangeForm, AdminPasswordChangeForm
 from .models import Equipo
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
@@ -185,6 +185,19 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
         except Exception as e:
             messages.error(self.request, f'Error al crear matriz: {str(e)}')
             return self.form_invalid(form)
+@login_required
+def descargar_excel(request, equipo_id, dispositivo_id):
+    """Descarga el archivo Excel"""
+    dispositivo = get_object_or_404(Dispositivo, id=dispositivo_id, equipo_id=equipo_id)
+    
+    if dispositivo.excel_exists():
+        file_path = dispositivo.get_excel_path()
+        file = open(file_path, 'rb')
+        response = FileResponse(file, as_attachment=True, filename=dispositivo.get_filename())
+        return response
+    else:
+        messages.error(request, "El archivo no existe")
+        return redirect('accounts_app:dispositivos_equipo', pk=equipo_id)
 @login_required
 def eliminar_dispositivo(request, equipo_id, dispositivo_id):
     """Vista para eliminar un dispositivo y su archivo Excel asociado"""
