@@ -1,0 +1,388 @@
+
+.calendar-wrapper {
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.calendar-container {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    text-align: center;
+    font-size: 1rem;
+    padding: 15px;
+    background-color: #cce5ff;
+    border-radius: 8px;
+    min-width: 600px;
+    min-height: 450px;
+    max-height: 450px;
+    overflow: hidden;
+}
+
+.calendar-day {
+    padding: 8px 5px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.weekend-day {
+    background-color: #f8f9fa;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.weekend-day .day-number {
+    color: #6c757d;
+}
+
+.event-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin: 1px;
+    display: inline-block;
+}
+
+.dots-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-top: auto;
+    padding-top: 5px;
+}
+
+.calendar-container > div:not(.calendar-day) {
+    font-weight: bold;
+    padding: 8px 5px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.calendar-container > div:nth-child(7),
+.calendar-container > div:nth-child(1) {
+    background-color: #d1ecf1;
+}
+
+.espacio-trabajo-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.espacio-trabajo-card:hover {
+    transform: translateY(-5px);
+}
+
+.espacio-trabajo-header {
+    padding: 15px;
+    color: white;
+    font-weight: bold;
+}
+
+.espacio-trabajo-body {
+    padding: 15px;
+    background: white;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.progress-container {
+    margin-top: 10px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: between;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+    color: #6c757d;
+}
+
+.progress {
+    height: 8px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+#equiposContainer button {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: white;
+    border: none;
+}
+
+.equipo-activo {
+    transform: translateX(10px);
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+}
+
+.modal-matriz-header {
+    color: white;
+    border-bottom: none;
+    padding: 1.5rem;
+}
+
+.matriz-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+    border: none;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.matriz-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.matriz-card-header {
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.matriz-card-body {
+    padding: 1.5rem;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    height: 100%;
+    transition: background-color 0.3s;
+}
+
+.stat-card:hover {
+    background: #e9ecef;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.progress {
+    height: 12px;
+    border-radius: 10px;
+    margin: 0.5rem 0;
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+.badge-custom {
+    padding: 0.5em 0.8em;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.tester-badge {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    margin: 0.2rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    display: inline-block;
+    font-size: 0.8rem;
+}
+
+.region-title {
+    color: #5a67d8;
+    font-weight: 600;
+    margin-top: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.info-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.info-item h6 {
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.info-item p {
+    color: #2d3748;
+    font-weight: 600;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #a0aec0;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alert-success {
+    background-color: #d1edff;
+    color: #0c5460;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.pdf-btn-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Nuevos estilos para fallas blocker en cards */
+.fallas-container {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+}
+
+.fallas-badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+}
+
+.fallas-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.fallas-success {
+    background-color: #d1edff;
+    border: 1px solid #b8daff;
+    color: #0c5460;
+}
+
+@media (max-width: 768px) {
+    .calendar-container {
+        min-width: 100%;
+        min-height: 400px;
+        max-height: 400px;
+        padding: 10px;
+        gap: 4px;
+    }
+    
+    .calendar-day {
+        min-height: 60px;
+        padding: 5px 3px;
+    }
+    
+    .day-number {
+        font-size: 0.8rem;
+    }
+    
+    .event-dot {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .calendar-container > div:not(.calendar-day) {
+        font-size: 0.75rem;
+        padding: 5px 3px;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .matriz-card-body {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-container {
+        min-height: 350px;
+        max-height: 350px;
+    }
+    
+    .calendar-day {
+        min-height: 50px;
+    }
+    
+    .day-number {
+        font-size: 0.75rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}

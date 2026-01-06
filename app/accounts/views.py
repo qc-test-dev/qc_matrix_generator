@@ -172,14 +172,20 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
             equipo_id = self.kwargs.get('equipo_id')
             equipo = get_object_or_404(Equipo, id=equipo_id)
             
-            # Guardar el dispositivo
+            # Guardar el dispositivo (ya procesa el Excel en save())
             dispositivo = form.save(commit=False)
             dispositivo.equipo = equipo
             
-            # El archivo ya se maneja en el save() del modelo
+            # Obtener número de filas procesadas (si está disponible)
+            num_filas = getattr(form, 'num_filas_procesadas', 0)
+            
             dispositivo.save()
             
-            messages.success(self.request, f'Matriz "{dispositivo.nombre}" creada exitosamente.')
+            mensaje = f'Matriz "{dispositivo.nombre}" creada exitosamente.'
+            if num_filas:
+                mensaje += f' Se procesaron {num_filas} casos de prueba.'
+            
+            messages.success(self.request, mensaje)
             return redirect('accounts_app:dispositivos_equipo', pk=equipo.id)
             
         except Exception as e:

@@ -4,6 +4,7 @@ from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import ValidationError
 # from .utils import validar_formato_no_operativo,validar_formato_operativo
 from app.matrix.models import Dispositivo
+from app.matrix.models import procesar_excel_matriz
 import pandas as pd
 import re
 
@@ -89,58 +90,52 @@ class DispositivoForm(forms.ModelForm):
         
         if archivo_excel:
             try:
-                # Validar que sea un Excel válido
+                # Validar estructura básica
                 archivo_excel.seek(0)
-                df = pd.read_excel(archivo_excel, engine='openpyxl')
                 
-                if df.empty or len(df.columns) == 0:
-                    raise ValidationError("El archivo Excel está vacío o no tiene datos")
+                # Leer para validación básica
+                df = pd.read_excel(archivo_excel, engine='openpyxl', nrows=1)  # Solo primera fila
                 
-                # Limpiar nombres de columnas
-                column_names = [str(col).strip().lower() for col in df.columns]
+                # Verificar que tenga al menos una columna
+                if len(df.columns) == 0:
+                    raise ValidationError("El archivo Excel no tiene columnas")
                 
-                # Definir columnas requeridas con variantes aceptadas
-                columnas_requeridas = [
-                    ("alcance de evaluación", "alcance de evaluacion"),
-                    ("fase", "funcionalidad"),
-                    ("caso de prueba", "descripcion"),
-                    ("criticidad",),
-                    ("comentarios y datos de prueba", "otros")
+                # Convertir nombres a minúsculas para validación
+                columnas = [str(col).strip().lower() for col in df.columns]
+                print(f"📋 Columnas para validación: {columnas}")  # Debug
+                
+                # Verificar que existan ALGUNA de las columnas clave (más flexible)
+                grupos_columnas = [
+                    # Grupo 1: descripción o caso de prueba
+                    ['descripcion', 'descripción', 'caso de prueba', 'caso prueba'],
+                    # Grupo 2: criticidad o prioridad
+                    ['criticidad', 'prioridad']
                 ]
                 
-                # Validar cada grupo de columnas
-                for grupo in columnas_requeridas:
+                for grupo in grupos_columnas:
                     encontrada = False
-                    
-                    for variante in grupo:
-                        if any(variante in col_name for col_name in column_names):
-                            encontrada = True
+                    for col_excel in columnas:
+                        for palabra_clave in grupo:
+                            if palabra_clave in col_excel or col_excel in palabra_clave:
+                                encontrada = True
+                                print(f"✅ Validación: '{palabra_clave}' encontrada en '{col_excel}'")
+                                break
+                        if encontrada:
                             break
                     
                     if not encontrada:
                         raise ValidationError(
-                            "El archivo Excel no tiene el formato correcto. "
-                            "Verifique que contenga las columnas requeridas."
+                            f"No se encontró ninguna de estas columnas: {grupo}. "
+                            f"Columnas en el archivo: {df.columns.tolist()}"
                         )
-                
-                # Validar que haya al menos una fila con datos
-                df_sin_vacios = df.dropna(how='all')
-                if len(df_sin_vacios) == 0:
-                    raise ValidationError(
-                        "El archivo Excel no contiene datos válidos."
-                    )
                 
                 # Restaurar posición del archivo
                 archivo_excel.seek(0)
                 
             except pd.errors.EmptyDataError:
-                raise ValidationError("El archivo Excel está vacío o no se puede leer.")
+                raise ValidationError("El archivo Excel está vacío")
             except Exception as e:
-                # Mensaje de error general
-                if 'Workbook' in str(e) or 'openpyxl' in str(e):
-                    raise ValidationError("El archivo no es un Excel válido.")
-                else:
-                    raise ValidationError("Error al procesar el archivo Excel.")
+                raise ValidationError(f"Error al validar el archivo Excel: {str(e)}")
         
         return cleaned_data
     

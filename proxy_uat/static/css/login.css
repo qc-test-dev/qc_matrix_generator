@@ -1,0 +1,765 @@
+
+.body-login{
+  font-family: var(--font-family);
+  background: var(--background-color);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  position: relative;
+}
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+    
+    .password-toggle:hover {
+        opacity: 1;
+    }
+    
+    .password-toggle:active {
+        transform: translateY(-50%) scale(0.95);
+    }
+    
+    .password-toggle svg {
+        width: 20px;
+        height: 20px;
+        fill: #666;
+        transition: fill 0.3s ease;
+    }
+    
+    .password-toggle:hover svg {
+        fill: #28a745;
+    }
+    
+    /* Asegurar que el input de contraseña tenga padding derecho para el botón */
+    input[name="password"] {
+        padding-right: 45px !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Icono de paloma de revisión */
+    .dove-icon-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 25px;
+    }
+    
+    .dove-icon {
+        width: 80px;
+        height: 80px;
+        animation: dove-float 3s infinite ease-in-out;
+    }
+    
+    .dove-icon svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 4px 8px rgba(40, 167, 69, 0.3));
+    }
+    
+    /* Animaciones */
+    @keyframes dove-float {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(2deg); }
+    }
+    
+    @keyframes check-success {
+        0% { stroke-dashoffset: 100; opacity: 0; }
+        100% { stroke-dashoffset: 0; opacity: 1; }
+    }
+/* Fondo animado con elementos de éxito */
+.success-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Elementos de éxito flotantes - MÁS NOTABLES */
+.success-element {
+    position: absolute;
+    z-index: 0;
+    animation-timing-function: ease-in-out;
+    filter: drop-shadow(0 4px 12px rgba(40, 167, 69, 0.4));
+}
+
+.success-check {
+    width: 100px; /* Más grandes */
+    height: 100px;
+    border-left: 12px solid rgba(40, 167, 69, 0.6); /* Más gruesas y visibles */
+    border-bottom: 12px solid rgba(40, 167, 69, 0.6);
+    transform: rotate(-45deg);
+    animation-name: float-success-enhanced;
+    animation-duration: 25s;
+    animation-iteration-count: infinite;
+    opacity: 0.25; /* Más visibles */
+    background: rgba(40, 167, 69, 0.15);
+    border-radius: 15px;
+}
+
+.success-circle {
+    width: 80px; 
+    height: 80px;
+    border: 10px solid rgba(40, 167, 69, 0.5); 
+    border-radius: 50%;
+    animation-name: pulse-success-enhanced;
+    animation-duration: 15s;
+    animation-iteration-count: infinite;
+    opacity: 0.2; /* Más visibles */
+    background: radial-gradient(circle at 30% 30%, rgba(40, 167, 69, 0.2), transparent 70%);
+}
+
+.success-star {
+    width: 70px; 
+    height: 70px;
+    background: rgba(40, 167, 69, 0.5);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation-name: rotate-success-enhanced;
+    animation-duration: 30s;
+    animation-iteration-count: infinite;
+    opacity: 0.25; /* Más visibles */
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+}
+
+@keyframes float-success-enhanced {
+    0% {
+        transform: rotate(-45deg) translateY(0) translateX(0) scale(1);
+        opacity: 0.2;
+    }
+    25% {
+        transform: rotate(135deg) translateY(-40px) translateX(40px) scale(1.1);
+        opacity: 0.35;
+    }
+    50% {
+        transform: rotate(315deg) translateY(20px) translateX(-20px) scale(1);
+        opacity: 0.25;
+    }
+    75% {
+        transform: rotate(495deg) translateY(-30px) translateX(30px) scale(1.05);
+        opacity: 0.3;
+    }
+    100% {
+        transform: rotate(675deg) translateY(0) translateX(0) scale(1);
+        opacity: 0.2;
+    }
+}
+
+@keyframes pulse-success-enhanced {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.15;
+        border-width: 10px;
+    }
+    33% {
+        transform: scale(1.15) rotate(120deg);
+        opacity: 0.3;
+        border-width: 8px;
+    }
+    66% {
+        transform: scale(1.08) rotate(240deg);
+        opacity: 0.2;
+        border-width: 12px;
+    }
+}
+
+@keyframes rotate-success-enhanced {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 0.2;
+        filter: hue-rotate(0deg);
+    }
+    50% {
+        transform: rotate(180deg) scale(1.15);
+        opacity: 0.35;
+        filter: hue-rotate(45deg);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+        opacity: 0.2;
+        filter: hue-rotate(0deg);
+    }
+}
+
+/* Logo enfocado en éxito */
+.success-logo-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: logo-entrance 1s ease-out;
+}
+
+@media (max-width: 768px) {
+    .success-logo-container {
+        position: relative;
+        justify-content: center;
+        top: 0;
+        left: 0;
+        margin-bottom: 20px;
+        width: 100%;
+        padding: 0 20px;
+    }
+}
+
+.success-logo {
+    width: 50px;
+    height: 50px;
+    background: var(--button-dashboard);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: logo-pulse 2s infinite alternate;
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.success-logo::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+}
+
+.success-logo-icon {
+    width: 25px;
+    height: 25px;
+    fill: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.success-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--dark-color);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    letter-spacing: 1px;
+}
+
+@media (max-width: 480px) {
+    .success-title {
+        font-size: 20px;
+    }
+
+    .success-logo {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+.success-title span {
+    background: var(--success-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% 200%;
+    animation: gradient-shift 4s infinite alternate;
+}
+
+/* Tarjeta de login enfocada en éxito */
+.success-login-card {
+    background: white;
+    padding: 40px 35px;
+    border-radius: 20px;
+    box-shadow:
+        0 20px 40px rgba(40, 167, 69, 0.15),
+        0 5px 15px rgba(0, 0, 0, 0.07);
+    width: 100%;
+    max-width: 450px;
+    position: relative;
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    margin: 20px;
+}
+
+@media (max-width: 480px) {
+    .success-login-card {
+        padding: 30px 20px;
+        margin: 15px;
+    }
+}
+
+.success-login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg,
+            #28a745 0%,
+            #20c997 25%,
+            #28a745 50%,
+            #20c997 75%,
+            #28a745 100%);
+    background-size: 300% 100%;
+    animation: success-gradient-move 3s infinite linear;
+}
+
+.success-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.success-animated-icon {
+    width: 70px;
+    height: 70px;
+    position: relative;
+    animation: success-icon-float 3s infinite ease-in-out;
+}
+
+@media (max-width: 480px) {
+    .success-animated-icon {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+.success-animated-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: url(#success-gradient);
+    filter: drop-shadow(0 6px 12px rgba(40, 167, 69, 0.3));
+}
+
+.title {
+    text-align: center;
+    color: var(--dark-color);
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 24px;
+    }
+}
+
+.title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 3px;
+    background: var(--success-gradient);
+    border-radius: 2px;
+    animation: success-line-pulse 2s infinite alternate;
+}
+
+.success-subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 0 10px;
+}
+
+@media (max-width: 480px) {
+    .success-subtitle {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Medidor de éxito */
+.success-meter {
+    height: 6px;
+    background: #e8f5e9;
+    border-radius: 3px;
+    margin: 25px 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.success-progress {
+    height: 100%;
+    background: var(--backgroundform-color);
+    border-radius: 3px;
+    width: 0%;
+    animation: success-load-progress 2s infinite alternate;
+}
+
+/* Alertas en español con enfoque en éxito */
+.alert-success-custom {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    animation: success-slideIn 0.5s ease-out;
+    border-left: 4px solid var(--button-success-bg);
+    background: linear-gradient(135deg, var(--alert-success-bg), #e8f5e9);
+    color: var(--alert-success-color);
+    font-size: 14px;
+}
+
+.alert-error-custom {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    animation: success-slideIn 0.5s ease-out;
+    border-left: 4px solid var(--button-danger-bg);
+    background: linear-gradient(135deg, var(--alert-error-bg), #ffebee);
+    color: var(--alert-error-color);
+    font-size: 14px;
+}
+
+.alert-warning-custom {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    animation: success-slideIn 0.5s ease-out;
+    border-left: 4px solid var(--button-archive);
+    background: linear-gradient(135deg, #fff3cd, #fff8e1);
+    color: #856404;
+    font-size: 14px;
+}
+
+/* Formulario enfocado en éxito */
+.form-group-success {
+    margin-bottom: 25px;
+    position: relative;
+}
+
+.form-group-success label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--dark-color);
+    font-size: 14px;
+    padding-left: 8px;
+    border-left: 3px solid var(--button-success-bg);
+}
+
+.form-group-success input {
+    width: 100%;
+    padding: 14px 50px 14px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: var(--transition);
+    background: #f8fff9;
+    color: var(--dark-color);
+}
+
+.form-group-success input:focus {
+    outline: none;
+    border-color: var(--button-success-bg);
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.15);
+    background: white;
+    transform: translateY(-2px);
+}
+
+.form-group-success input::placeholder {
+    color: #999;
+}
+
+.form-icon-success {
+    position: absolute;
+    right: 15px;
+    top: 42px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.5;
+    transition: var(--transition);
+    cursor: pointer;
+    z-index: 3;
+}
+
+.form-group-success input:focus~.form-icon-success {
+    opacity: 1;
+    transform: scale(1.1);
+    fill: var(--button-success-bg);
+}
+
+/* Botón para mostrar/ocultar contraseña */
+.password-toggle {
+    position: absolute;
+    right: 15px;
+    top: 42px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.5;
+    transition: var(--transition);
+    cursor: pointer;
+    z-index: 3;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    opacity: 0.8;
+}
+
+.password-toggle svg {
+    width: 100%;
+    height: 100%;
+    fill: #666;
+}
+
+.form-group-success input:focus~.password-toggle svg {
+    fill: var(--button-success-bg);
+}
+
+.text-error-success {
+    color: var(--button-danger-bg);
+    font-size: 13px;
+    margin-top: 6px;
+    padding-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Botón de login con éxito */
+.success-login-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--button-dashboard);
+    background-size: 200% 200%;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    
+    margin-top: 10px;
+    letter-spacing: 0.5px;
+    animation: success-btn-pulse 2s infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .success-login-btn {
+        padding: 14px;
+        font-size: 15px;
+    }
+}
+
+.success-login-btn:hover {
+    background: var(--button-success-hover);
+    box-shadow: 0 12px 25px rgba(40, 167, 69, 0.5);
+    animation-play-state: paused;
+}
+
+/* ANIMACIONES ENFOCADAS EN ÉXITO */
+@keyframes float-success {
+    0% {
+        transform: rotate(-45deg) translateY(0) translateX(0);
+        opacity: 0.05;
+    }
+
+    50% {
+        transform: rotate(315deg) translateY(-15px) translateX(15px);
+        opacity: 0.1;
+    }
+
+    100% {
+        transform: rotate(675deg) translateY(0) translateX(0);
+        opacity: 0.05;
+    }
+}
+
+@keyframes pulse-success {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.05;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.1;
+    }
+}
+
+@keyframes rotate-success {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes logo-entrance {
+    0% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes logo-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+    }
+
+    100% {
+        transform: scale(1.05);
+        box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+    }
+}
+
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes success-gradient-move {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 300% 0%;
+    }
+}
+
+@keyframes success-icon-float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes success-line-pulse {
+    0% {
+        width: 60px;
+        opacity: 1;
+    }
+
+    100% {
+        width: 100px;
+        opacity: 0.8;
+    }
+}
+
+@keyframes success-load-progress {
+    0% {
+        width: 30%;
+    }
+
+    100% {
+        width: 85%;
+    }
+}
+
+@keyframes success-slideIn {
+    0% {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes success-btn-pulse {
+    0% {
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+    }
+}
+
+@keyframes success-btn-shine {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+/* Responsive adicional */
+@media (max-width: 768px) {
+    .success-element {
+        opacity: 0.15; 
+    }
+}
+
+@media (max-width: 320px) {
+    .success-login-card {
+        padding: 25px 15px;
+        margin: 10px;
+    }
+
+    .title {
+            font-size: 22px;
+        }
+
+        .success-subtitle {
+            font-size: 13px;
+        }
+}
