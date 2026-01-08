@@ -285,51 +285,41 @@ class DetallesValidate(models.Model):
 def procesar_excel_matriz(archivo_excel):
     """
     Procesa el archivo Excel según los requisitos:
-    - Busca y mapea headers flexibles a los 6 headers requeridos
-    - Limpia datos innecesarios
-    - Establece estado = 'por_ejecutar' para todas las filas
-    - Guarda nuevo Excel procesado
+    - Busca los headers en CUALQUIER FILA del Excel
+    - EXTRAE DATOS MANUALMENTE usando la estructura correcta
+    - Descarta filas anteriores a los headers encontrados
+    - Procesa solo los datos después de los headers
     
     Retorna el archivo procesado (BytesIO)
     """
     try:
-        # Leer el archivo Excel
-        df = pd.read_excel(archivo_excel, engine='openpyxl')
+        # ============================================
+        # 1. LEER EXCEL CRUDO
+        # ============================================
+        print(f"\n🔄 LEYENDO EXCEL CRUDO...")
         
-        # Limpiar nombres de columnas: minúsculas, sin espacios extra
-        df.columns = [str(col).strip().lower() for col in df.columns]
-        print(f"📄 Columnas encontradas en Excel: {df.columns.tolist()}")
+        # Leer el Excel COMPLETO sin headers
+        df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
+        print(f"📄 Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
         
-        # Mapeo FLEXIBLE de columnas del Excel a los 6 headers requeridos
-        # Formato: {'header_final': ['posibles_nombres_en_excel', ...]}
-        mapeo_flexible = {
-            'alcance de evaluacion': [
-                'alcance de evaluacion', 'alcance de evaluación', 
-                'alcance'
-            ],
-            'funcionalidad': [
-                'funcionalidad', 'fase', 
-            ],
-            'descripcion': [
-                'descripcion', 'descripción', 'caso de prueba', 
-                'caso prueba', 'prueba'
-            ],
-            'criticidad': [
-                'criticidad', 'prioridad', 'importancia', 
-                'severidad', 'gravedad', 'nivel'
-            ],
-            'estado': [
-                'estado', 'status', 'situacion', 'condición'
-            ],
-            'otros': [
-                'otros', 'comentarios', 'comentarios y datos de prueba',
-                'notas', 'datos',
-                
-            ]
-        }
+        # Mostrar estructura real del Excel
+        print(f"\n🔍 ESTRUCTURA DEL EXCEL (primeras 10 filas):")
+        for i in range(min(10, len(df_raw))):
+            row_values = []
+            for cell in df_raw.iloc[i]:
+                if pd.isna(cell):
+                    row_values.append("")
+                else:
+                    row_values.append(str(cell).strip())
+            print(f"Fila {i}: {row_values}")
         
-        # Headers requeridos FINALES (en este orden)
-        headers_requeridos = [
+        # ============================================
+        # 2. BUSCAR LA FILA CON LOS HEADERS REALES
+        # ============================================
+        print(f"\n🔍 BUSCANDO HEADERS REALES...")
+        
+        # Los headers que realmente buscamos
+        target_headers = [
             'alcance de evaluacion',
             'funcionalidad',
             'descripcion',
@@ -338,140 +328,178 @@ def procesar_excel_matriz(archivo_excel):
             'otros'
         ]
         
-        # Diccionario para mapear: header_requerido → header_encontrado
-        columnas_encontradas = {}
+        # También aceptar variantes
+        header_variants = {
+            'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
+            'funcionalidad': ['fase', 'funcionalidad o fase'],
+            'descripcion': ['descripción', 'caso de prueba', 'caso prueba'],
+            'criticidad': ['prioridad'],
+            'estado': ['status'],
+            'otros': ['comentarios', 'comentarios y datos de prueba']
+        }
         
-        print("\n🔍 Buscando coincidencias...")
+        header_row_idx = None
+        header_positions = {}  # {header_name: column_index}
         
-        # Para cada header requerido, buscar coincidencias en las columnas del Excel
-        for header_final, posibles_nombres in mapeo_flexible.items():
-            mejor_coincidencia = None
-            mejor_puntaje = 0
+        for row_idx in range(min(50, len(df_raw))):
+            row = df_raw.iloc[row_idx]
+            found_headers = {}
             
-            for col_excel in df.columns:
-                col_excel_clean = col_excel.strip().lower()
+            # Buscar cada header en esta fila
+            for col_idx, cell in enumerate(row):
+                if pd.isna(cell):
+                    continue
+                    
+                cell_str = str(cell).strip().lower()
                 
-                # Calcular puntaje de coincidencia
-                puntaje = 0
-                
-                for posible in posibles_nombres:
-                    posible_clean = posible.strip().lower()
+                # Buscar cada header target
+                for target in target_headers:
+                    target_lower = target.lower()
                     
-                    # 1. Coincidencia EXACTA (puntaje alto)
-                    if col_excel_clean == posible_clean:
-                        puntaje = 100
-                        break
+                    # Coincidencia exacta
+                    if cell_str == target_lower:
+                        found_headers[target] = col_idx
                     
-                    # 2. El nombre del Excel CONTIENE la palabra clave
-                    elif posible_clean in col_excel_clean:
-                        # Dar más puntaje si la coincidencia es larga
-                        puntaje = max(puntaje, len(posible_clean) * 10)
-                    
-                    # 3. La palabra clave CONTIENE el nombre del Excel
-                    elif col_excel_clean in posible_clean:
-                        puntaje = max(puntaje, len(col_excel_clean) * 8)
-                    
-                    # 4. Coincidencia de palabras individuales
-                    palabras_col = set(col_excel_clean.split())
-                    palabras_posible = set(posible_clean.split())
-                    if palabras_col & palabras_posible:  # Intersección
-                        puntaje = max(puntaje, 5)
-                
-                # Actualizar mejor coincidencia
-                if puntaje > mejor_puntaje:
-                    mejor_puntaje = puntaje
-                    mejor_coincidencia = col_excel
+                    # Coincidencia con variantes
+                    elif target in header_variants:
+                        for variant in header_variants[target]:
+                            if variant.lower() in cell_str:
+                                found_headers[target] = col_idx
+                                break
             
-            # Si encontramos una coincidencia razonable, la asignamos
-            if mejor_coincidencia and mejor_puntaje >= 5:
-                columnas_encontradas[header_final] = mejor_coincidencia
-                print(f"  ✅ '{mejor_coincidencia}' → '{header_final}' (puntaje: {mejor_puntaje})")
-            else:
-                print(f"  ❌ No se encontró coincidencia para '{header_final}'")
+            # Si encontramos varios headers en la misma fila, esta es la fila de headers
+            if len(found_headers) >= 3:
+                header_row_idx = row_idx
+                header_positions = found_headers
+                print(f"✅ HEADERS REALES ENCONTRADOS en fila {row_idx}")
+                print(f"   Headers y sus columnas: {found_headers}")
+                break
         
-        print(f"\n📋 Resumen de mapeo:")
-        for req, encontrado in columnas_encontradas.items():
-            print(f"  {req} ← {encontrado}")
+        if header_row_idx is None:
+            raise ValidationError("No se encontraron los headers requeridos en el Excel")
         
-        # Verificar columnas ESENCIALES mínimas
-        columnas_esenciales = ['descripcion', 'criticidad']
-        for col_esencial in columnas_esenciales:
-            if col_esencial not in columnas_encontradas:
-                # Intentar buscar manualmente
-                for col_excel in df.columns:
-                    col_lower = col_excel.lower()
-                    if col_esencial == 'descripcion' and any(p in col_lower for p in ['caso', 'descrip', 'prueba']):
-                        columnas_encontradas[col_esencial] = col_excel
-                        print(f"  🔍 Encontrada '{col_excel}' como '{col_esencial}' (búsqueda manual)")
-                        break
-                    elif col_esencial == 'criticidad' and any(p in col_lower for p in ['critic', 'prior']):
-                        columnas_encontradas[col_esencial] = col_excel
-                        print(f"  🔍 Encontrada '{col_excel}' como '{col_esencial}' (búsqueda manual)")
-                        break
-                
-                # Si aún no se encontró, error
-                if col_esencial not in columnas_encontradas:
-                    raise ValidationError(
-                        f"No se encontró la columna '{col_esencial}' o equivalente. "
-                        f"Columnas en el archivo: {df.columns.tolist()}"
-                    )
+        # ============================================
+        # 3. EXTRAER DATOS MANUALMENTE
+        # ============================================
+        print(f"\n📥 EXTRAYENDO DATOS DESDE FILA {header_row_idx + 1}...")
         
-        # Crear nuevo DataFrame con las columnas requeridas
-        nuevo_df = pd.DataFrame()
+        # Los datos empiezan en la fila DESPUÉS de los headers
+        data_start_row = header_row_idx + 1
         
-        for header_final in headers_requeridos:
-            if header_final in columnas_encontradas:
-                header_original = columnas_encontradas[header_final]
-                nuevo_df[header_final] = df[header_original]
-                print(f"  📥 Copiando datos: '{header_original}' → '{header_final}'")
-            else:
-                # Si no se encontró, crear columna vacía
-                nuevo_df[header_final] = ""
-                print(f"  📝 Columna '{header_final}' creada vacía")
+        # Preparar lista para almacenar datos
+        extracted_data = []
         
-        # Ordenar columnas en el orden correcto
-        nuevo_df = nuevo_df[headers_requeridos]
+        for row_idx in range(data_start_row, len(df_raw)):
+            row = df_raw.iloc[row_idx]
+            row_data = {}
+            has_valid_data = False
+            
+            # Extraer cada campo según la posición de su header
+            for header_name, col_idx in header_positions.items():
+                if col_idx < len(row):
+                    cell_value = row[col_idx]
+                    
+                    # Limpiar el valor
+                    if pd.isna(cell_value):
+                        row_data[header_name] = ""
+                    else:
+                        value = str(cell_value).strip()
+                        row_data[header_name] = value
+                        
+                        if value and value.lower() not in ['nan', 'none', '']:
+                            has_valid_data = True
+                else:
+                    row_data[header_name] = ""
+            
+            # Solo agregar filas con datos válidos
+            if has_valid_data:
+                extracted_data.append(row_data)
         
-        # LIMPIEZA DE DATOS
-        print("\n🧹 Limpiando datos...")
+        if not extracted_data:
+            raise ValidationError("No se encontraron datos válidos después de los headers")
         
-        # 1. Eliminar filas completamente vacías
-        filas_iniciales = len(nuevo_df)
-        nuevo_df = nuevo_df.dropna(how='all')
-        filas_despues_vacias = len(nuevo_df)
-        print(f"  - Filas eliminadas (vacías): {filas_iniciales - filas_despues_vacias}")
+        # ============================================
+        # 4. CREAR DATAFRAME CON DATOS EXTRAÍDOS
+        # ============================================
+        print(f"\n📊 CREANDO DATAFRAME CON {len(extracted_data)} FILAS...")
         
-        # 2. Eliminar filas donde 'descripcion' esté vacío
-        if 'descripcion' in nuevo_df.columns and len(nuevo_df) > 0:
-            mask_descripcion_valida = (
-                nuevo_df['descripcion'].notna() & 
-                (nuevo_df['descripcion'].astype(str).str.strip() != "")
+        # Crear DataFrame
+        nuevo_df = pd.DataFrame(extracted_data)
+        
+        # Asegurar que tengamos todas las columnas requeridas
+        required_columns = [
+            'alcance de evaluacion',
+            'funcionalidad',
+            'descripcion',
+            'criticidad',
+            'estado',
+            'otros'
+        ]
+        
+        # Agregar columnas faltantes (vacías)
+        for col in required_columns:
+            if col not in nuevo_df.columns:
+                nuevo_df[col] = ""
+        
+        # Ordenar columnas
+        nuevo_df = nuevo_df[required_columns]
+        
+        # ============================================
+        # 5. LIMPIEZA DE DATOS (CORREGIDO)
+        # ============================================
+        print("\n🧹 LIMPIANDO DATOS...")
+        
+        original_count = len(nuevo_df)
+        
+        # A. Eliminar filas donde 'descripcion' y 'criticidad' estén vacías
+        # ¡CORRECCIÓN IMPORTANTE: Usar paréntesis en operaciones lógicas con &
+        if len(nuevo_df) > 0:
+            # FORMA CORRECTA: Cada condición entre paréntesis
+            mask_valid = (
+                (nuevo_df['descripcion'].astype(str).str.strip() != "") &
+                (nuevo_df['criticidad'].astype(str).str.strip() != "")
             )
-            nuevo_df = nuevo_df[mask_descripcion_valida]
-            print(f"  - Filas con 'descripcion' válida: {len(nuevo_df)}")
+            nuevo_df = nuevo_df[mask_valid].copy()
         
-        # 3. Asignar valor por defecto a 'estado'
+        # B. Asignar 'por_ejecutar' a estado
         if 'estado' in nuevo_df.columns and len(nuevo_df) > 0:
             nuevo_df['estado'] = 'por_ejecutar'
-            print(f"  - Estado asignado: 'por_ejecutar' para todas las filas")
         
-        # Resetear índice
+        # C. Limpiar espacios en blanco
+        for col in nuevo_df.columns:
+            nuevo_df[col] = nuevo_df[col].apply(
+                lambda x: str(x).strip() if pd.notna(x) and str(x).strip().lower() != 'nan' else ""
+            )
+        
+        # D. Resetear índice
         nuevo_df = nuevo_df.reset_index(drop=True)
         
-        # Verificar que haya datos
+        # ============================================
+        # 6. VERIFICAR RESULTADO
+        # ============================================
         if len(nuevo_df) == 0:
-            raise ValidationError("No hay datos válidos después del procesamiento.")
+            raise ValidationError("No hay datos válidos después del procesamiento")
         
-        print(f"\n✅ Resultado final:")
-        print(f"  - Filas procesadas: {len(nuevo_df)}")
-        print(f"  - Columnas: {list(nuevo_df.columns)}")
+        print(f"\n✅ PROCESAMIENTO COMPLETADO:")
+        print(f"   - Headers encontrados en fila: {header_row_idx}")
+        print(f"   - Datos extraídos desde fila: {data_start_row}")
+        print(f"   - Filas originales extraídas: {original_count}")
+        print(f"   - Filas después de limpieza: {len(nuevo_df)}")
+        print(f"   - Filas eliminadas: {original_count - len(nuevo_df)}")
         
-        # Mostrar primeras filas para debug
+        # Mostrar ejemplo REAL de datos
+        print(f"\n📋 EJEMPLO REAL DE DATOS PROCESADOS:")
         if len(nuevo_df) > 0:
-            print(f"\n📋 Vista previa de datos:")
-            print(nuevo_df.head(3).to_string())
+            print(nuevo_df.head(3).to_string(index=False))
+            print("\n🔍 VALORES REALES (primeras filas):")
+            for i in range(min(3, len(nuevo_df))):
+                print(f"Fila {i}:")
+                for col in nuevo_df.columns:
+                    print(f"  {col}: '{nuevo_df.iloc[i][col]}'")
         
-        # Guardar en buffer
+        # ============================================
+        # 7. GUARDAR EN BUFFER
+        # ============================================
         from io import BytesIO
         output = BytesIO()
         
@@ -485,4 +513,7 @@ def procesar_excel_matriz(archivo_excel):
     except ValidationError:
         raise
     except Exception as e:
-        raise ValidationError(f"Error al procesar Excel: {str(e)}")
+        print(f"❌ Error inesperado: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise ValidationError(f"Error al procesar el archivo Excel: {str(e)}")

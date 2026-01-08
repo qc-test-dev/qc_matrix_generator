@@ -90,52 +90,98 @@ class DispositivoForm(forms.ModelForm):
         
         if archivo_excel:
             try:
-                # Validar estructura básica
+                # IMPORTANTE: Usar la MISMA lógica que procesar_excel_matriz
                 archivo_excel.seek(0)
                 
-                # Leer para validación básica
-                df = pd.read_excel(archivo_excel, engine='openpyxl', nrows=1)  # Solo primera fila
+                # Leer el Excel COMPLETO para buscar headers
+                df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
                 
-                # Verificar que tenga al menos una columna
-                if len(df.columns) == 0:
-                    raise ValidationError("El archivo Excel no tiene columnas")
+                # Verificar que el Excel tenga datos
+                if len(df_raw) == 0:
+                    raise ValidationError("El archivo Excel está vacío")
                 
-                # Convertir nombres a minúsculas para validación
-                columnas = [str(col).strip().lower() for col in df.columns]
-                print(f"📋 Columnas para validación: {columnas}")  # Debug
-                
-                # Verificar que existan ALGUNA de las columnas clave (más flexible)
-                grupos_columnas = [
-                    # Grupo 1: descripción o caso de prueba
-                    ['descripcion', 'descripción', 'caso de prueba', 'caso prueba'],
-                    # Grupo 2: criticidad o prioridad
-                    ['criticidad', 'prioridad']
+                # Definir headers que buscamos
+                headers_buscados = [
+                    'alcance de evaluacion',
+                    'funcionalidad',
+                    'descripcion', 
+                    'criticidad',
+                    'estado',
+                    'otros'
                 ]
                 
-                for grupo in grupos_columnas:
-                    encontrada = False
-                    for col_excel in columnas:
-                        for palabra_clave in grupo:
-                            if palabra_clave in col_excel or col_excel in palabra_clave:
-                                encontrada = True
-                                print(f"✅ Validación: '{palabra_clave}' encontrada en '{col_excel}'")
-                                break
-                        if encontrada:
-                            break
+                # También aceptar variantes
+                variantes_headers = {
+                    'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
+                    'funcionalidad': ['fase'],
+                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba'],
+                    'criticidad': ['prioridad'],
+                    'estado': ['status'],
+                    'otros': ['comentarios', 'comentarios y datos de prueba']
+                }
+                
+                # Buscar en cada fila (igual que en procesar_excel_matriz)
+                headers_encontrados = False
+                
+                for idx_fila in range(min(50, len(df_raw))):
+                    fila = df_raw.iloc[idx_fila]
+                    coincidencias = 0
                     
-                    if not encontrada:
-                        raise ValidationError(
-                            f"No se encontró ninguna de estas columnas: {grupo}. "
-                            f"Columnas en el archivo: {df.columns.tolist()}"
-                        )
+                    for celda in fila:
+                        if pd.isna(celda):
+                            continue
+                            
+                        celda_str = str(celda).strip().lower()
+                        
+                        # Buscar cada header en esta celda
+                        for header in headers_buscados:
+                            header_lower = header.lower()
+                            
+                            if celda_str == header_lower:
+                                coincidencias += 1
+                                break
+                            
+                            elif header in variantes_headers:
+                                for variante in variantes_headers[header]:
+                                    if variante.lower() in celda_str or celda_str in variante.lower():
+                                        coincidencias += 1
+                                        break
+                    
+                    # Si encontramos al menos 4 de los 6 headers
+                    if coincidencias >= 4:
+                        headers_encontrados = True
+                        print(f"✅ Validación: Headers encontrados en fila {idx_fila + 1}")
+                        break
+                
+                if not headers_encontrados:
+                    raise ValidationError(
+                        "No se encontraron los headers requeridos en el Excel. "
+                        "El archivo debe contener al menos estas columnas: "
+                        "alcance de evaluacion, funcionalidad, descripcion, criticidad, estado, otros"
+                    )
+                
+                # Verificar que haya datos después de los headers
+                # Contar filas con datos (no completamente vacías)
+                filas_con_datos = 0
+                for idx in range(len(df_raw)):
+                    fila = df_raw.iloc[idx]
+                    if not fila.isna().all():  # Si no está completamente vacía
+                        filas_con_datos += 1
+                
+                if filas_con_datos <= 1:  # Solo headers o menos
+                    raise ValidationError("El archivo Excel no contiene datos después de los headers")
                 
                 # Restaurar posición del archivo
                 archivo_excel.seek(0)
                 
             except pd.errors.EmptyDataError:
-                raise ValidationError("El archivo Excel está vacío")
+                raise ValidationError("El archivo Excel está vacío o no se puede leer")
             except Exception as e:
-                raise ValidationError(f"Error al validar el archivo Excel: {str(e)}")
+                # Mensaje de error más amigable
+                if 'Workbook' in str(e) or 'openpyxl' in str(e):
+                    raise ValidationError("El archivo no es un Excel válido o está corrupto")
+                else:
+                    raise ValidationError(f"Error al validar el archivo Excel: {str(e)}")
         
         return cleaned_data
     

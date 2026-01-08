@@ -223,20 +223,30 @@ def eliminar_dispositivo(request, equipo_id, dispositivo_id):
     nombre_archivo = dispositivo.matriz_base
     
     # Eliminar archivo Excel si existe
-    if nombre_archivo:
-        # Asumiendo que tu proyecto tiene una estructura estándar
-        # con static/excel_files/ en la raíz del proyecto
-        base_dir = settings.BASE_DIR
-        file_path = os.path.join(base_dir, 'static', 'excel_files', str(nombre_archivo))
-        
+    archivo_msg = ""
+    if nombre_archivo and dispositivo.archivo_excel:
         try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                archivo_msg = f'Archivo "{nombre_archivo}" eliminado.'
-            else:
-                archivo_msg = f'Archivo "{nombre_archivo}" no encontrado.'
+            # Usar el método delete del FileField (más seguro)
+            dispositivo.archivo_excel.delete(save=False)
+            archivo_msg = f'Archivo "{nombre_archivo}" eliminado correctamente.'
+            
         except Exception as e:
-            archivo_msg = f'Error al eliminar archivo: {str(e)}'
+            # Si falla, intentar eliminar manualmente
+            try:
+                # Construir la ruta correcta según tu configuración
+                # Basado en tu código: 'excel/{nombre_equipo_carpeta}/{nombre_unico}'
+                
+                # Obtener la ruta del archivo desde el modelo
+                file_path = dispositivo.get_excel_path()
+                
+                if file_path and os.path.exists(file_path):
+                    os.remove(file_path)
+                    archivo_msg = f'Archivo "{nombre_archivo}" eliminado manualmente.'
+                else:
+                    archivo_msg = f'Archivo "{nombre_archivo}" no encontrado en disco.'
+                    
+            except Exception as e2:
+                archivo_msg = f'Error al eliminar archivo: {str(e2)}'
     else:
         archivo_msg = "No había archivo asociado."
     
