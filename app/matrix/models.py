@@ -4,14 +4,15 @@ from ..accounts.models import Equipo
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-import os
 from django.utils import timezone
-import pandas as pd , re 
-# Configurar storage para archivos Excel
+import os
+import pandas as pd
+# Storage personalizado ara archivos Excel
 excel_storage = FileSystemStorage(
     location=os.path.join(settings.MEDIA_ROOT, 'excel'),
-    base_url=os.path.join(settings.MEDIA_URL, 'excel')
+    base_url=f'{settings.MEDIA_URL}excel/'
 )
+
 class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
@@ -45,10 +46,6 @@ class Dispositivo(models.Model):
         """
         Genera un nombre único para el archivo.
         Si ya existe en el mismo equipo, añade _1, _2, etc.
-        
-        Ejemplo:
-        - Si 'reporte.xlsx' ya existe → 'reporte_1.xlsx'
-        - Si 'reporte.xlsx' y 'reporte_1.xlsx' existen → 'reporte_2.xlsx'
         """
         # Obtener solo el nombre del archivo (sin ruta)
         nombre_base = os.path.basename(nombre_original)
@@ -88,43 +85,15 @@ class Dispositivo(models.Model):
                 return f"{nombre}_{timestamp}{extension}"
     
     def save(self, *args, **kwargs):
-    # Si hay archivo Excel, procesarlo ANTES de guardar
-        if self.archivo_excel and hasattr(self.archivo_excel, 'file'):
-            try:
-                # Procesar el Excel
-                excel_procesado, num_filas = procesar_excel_matriz(self.archivo_excel.file)
-                
-                # Generar nombre único para el archivo
-                nombre_original = self.archivo_excel.name
-                nombre_unico = self.generar_nombre_unico(nombre_original)
-                
-                # Crear nombre seguro para la carpeta del equipo
-                nombre_equipo_carpeta = self.equipo.nombre.replace(' ', '_')
-                ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
-                
-                # Ruta completa del archivo
-                ruta_completa = os.path.join(settings.MEDIA_ROOT, 'excel', nombre_equipo_carpeta, nombre_unico)
-                os.makedirs(os.path.dirname(ruta_completa), exist_ok=True)
-                
-                # Guardar el archivo procesado
-                with open(ruta_completa, 'wb') as f:
-                    f.write(excel_procesado.read())
-                
-                # Actualizar campos
-                self.archivo_excel.name = ruta_final
-                self.matriz_base = nombre_unico
-                
-                # Podrías querer guardar el número de filas en algún campo
-                # self.num_casos_prueba = num_filas
-                
-            except Exception as e:
-                # Si hay error en el procesamiento, no guardar
-                raise ValidationError(f"Error al procesar el archivo Excel: {str(e)}")
-    
-    # Guardar el objeto
-
+        """
+        IMPORTANTE: Este método NO procesa el Excel.
+        El procesamiento se hace en el formulario.
+        """
+        # Actualizar timestamps
+        if not self.pk:  # Si es nuevo
+            self.created_at = timezone.now()
+        self.updated_at = timezone.now()
         
-        # Guardar el objeto
         super().save(*args, **kwargs)
     
     def get_excel_url(self):

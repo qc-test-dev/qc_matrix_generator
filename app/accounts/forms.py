@@ -5,8 +5,9 @@ from django.core.exceptions import ValidationError
 # from .utils import validar_formato_no_operativo,validar_formato_operativo
 from app.matrix.models import Dispositivo
 from app.matrix.models import procesar_excel_matriz
+from django.core.files.base import ContentFile
 import pandas as pd
-import re
+import re,os
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     def clean_new_password1(self):
@@ -86,11 +87,15 @@ class DispositivoForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        equipo = cleaned_data.get('equipo')
         archivo_excel = cleaned_data.get('archivo_excel')
+        
+        if not equipo:
+            raise ValidationError("Debe seleccionar un equipo")
         
         if archivo_excel:
             try:
-                # IMPORTANTE: Usar la MISMA lógica que procesar_excel_matriz
+                # Validar que el Excel tenga los headers correctos
                 archivo_excel.seek(0)
                 
                 # Leer el Excel COMPLETO para buscar headers
@@ -160,17 +165,6 @@ class DispositivoForm(forms.ModelForm):
                         "alcance de evaluacion, funcionalidad, descripcion, criticidad, estado, otros"
                     )
                 
-                # Verificar que haya datos después de los headers
-                # Contar filas con datos (no completamente vacías)
-                filas_con_datos = 0
-                for idx in range(len(df_raw)):
-                    fila = df_raw.iloc[idx]
-                    if not fila.isna().all():  # Si no está completamente vacía
-                        filas_con_datos += 1
-                
-                if filas_con_datos <= 1:  # Solo headers o menos
-                    raise ValidationError("El archivo Excel no contiene datos después de los headers")
-                
                 # Restaurar posición del archivo
                 archivo_excel.seek(0)
                 
@@ -186,9 +180,95 @@ class DispositivoForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        dispositivo = super().save(commit=False)
+        # Primero, procesar el Excel
+        archivo_excel = self.cleaned_data.get('archivo_excel')
+        equipo = self.cleaned_data.get('equipo')
         
-        if commit:
-            dispositivo.save()
+        if not archivo_excel or not equipo:
+            raise ValidationError("Faltan datos para procesar el archivo")
         
-        return dispositivo
+        try:
+            # 1. Procesar el Excel
+            archivo_excel.seek(0)
+            excel_procesado, num_filas = procesar_excel_matriz(archivo_excel)
+            
+            # 2. Generar nombre único
+            nombre_original = archivo_excel.name
+            nombre_base = os.path.basename(nombre_original)
+            
+            # Separar nombre y extensión
+            if '.' in nombre_base:
+                nombre, extension = nombre_base.rsplit('.', 1)
+                extension = '.' + extension
+            else:
+                nombre = nombre_base
+                extension = ''
+            
+            # Verificar nombres existentes en el MISMO equipo
+            nombres_existentes = list(Dispositivo.objects.filter(
+                equipo=equipo
+            ).values_list('matriz_base', flat=True))
+            
+            # Si el nombre original no existe, usarlo
+            if nombre_base not in nombres_existentes:
+                nombre_unico = nombre_base
+            else:
+                # Si existe, buscar el siguiente número disponible
+                contador = 1
+                while True:
+                    nombre_propuesto = f"{nombre}_{contador}{extension}"
+                    
+                    if nombre_propuesto not in nombres_existentes:
+                        nombre_unico = nombre_propuesto
+                        break
+                    
+                    contador += 1
+                    
+                    if contador > 100:
+                        import time
+                        timestamp = int(time.time())
+                        nombre_unico = f"{nombre}_{timestamp}{extension}"
+                        break
+            
+            # 3. Crear nombre seguro para la carpeta del equipo
+            nombre_equipo_carpeta = equipo.nombre.replace(' ', '_').replace(',', '').replace('(', '').replace(')', '')
+            
+            # 4. Construir la ruta final
+            ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
+            
+            print(f"📁 Ruta final para guardar: {ruta_final}")
+            
+            # 5. Obtener la instancia del dispositivo
+            dispositivo = super().save(commit=False)
+            
+            # 6. Guardar el archivo procesado usando el storage
+            # Crear ContentFile desde el buffer
+            content_file = ContentFile(excel_procesado.getvalue())
+            
+            # Asignar nombre al content file
+            content_file.name = nombre_unico
+            
+            # Guardar usando el storage (esto manejará la ruta completa)
+            dispositivo.archivo_excel.save(ruta_final, content_file, save=False)
+            
+            # 7. Actualizar campos
+            dispositivo.matriz_base = nombre_unico
+            
+            # 8. Cerrar buffers
+            excel_procesado.close()
+            
+            # 9. Guardar el dispositivo si commit=True
+            if commit:
+                dispositivo.save()
+                print(f"✅ Dispositivo guardado: {dispositivo.nombre}")
+                print(f"✅ Archivo guardado en: {dispositivo.archivo_excel.name}")
+                print(f"✅ Ruta física: {dispositivo.archivo_excel.path}")
+            
+            # Guardar número de filas para usar en la vista
+            self.num_filas_procesadas = num_filas
+            
+            return dispositivo
+            
+        except Exception as e:
+            print(f"❌ Error en save() del formulario: {str(e)}")
+            raise ValidationError(f"Error al procesar y guardar el archivo Excel: {str(e)}")

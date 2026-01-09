@@ -159,9 +159,8 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
         equipo_id = self.kwargs.get('equipo_id')
         equipo = get_object_or_404(Equipo, id=equipo_id)
         
-        # Agregar el contexto necesario para el template de lista
         context['equipo'] = equipo
-        context['dispositivos'] = equipo.dispositivos.all()  # Cambiado a todos
+        context['dispositivos'] = equipo.dispositivos.all()
         context['total_dispositivos'] = equipo.dispositivos.count()
         
         return context
@@ -172,23 +171,23 @@ class CrearDispositivoView(LoginAndLiderRequiredMixin, CreateView):
             equipo_id = self.kwargs.get('equipo_id')
             equipo = get_object_or_404(Equipo, id=equipo_id)
             
-            # Guardar el dispositivo (ya procesa el Excel en save())
-            dispositivo = form.save(commit=False)
-            dispositivo.equipo = equipo
+            # Asignar el equipo al formulario
+            form.instance.equipo = equipo
             
-            # Obtener número de filas procesadas (si está disponible)
+            # Guardar el dispositivo (el formulario ya procesó el Excel)
+            dispositivo = form.save()
+            
+            # Mensaje de éxito
             num_filas = getattr(form, 'num_filas_procesadas', 0)
-            
-            dispositivo.save()
-            
             mensaje = f'Matriz "{dispositivo.nombre}" creada exitosamente.'
             if num_filas:
                 mensaje += f' Se procesaron {num_filas} casos de prueba.'
             
             messages.success(self.request, mensaje)
-            return redirect('accounts_app:dispositivos_equipo', pk=equipo.id)
+            return redirect('accounts_app:dispositivos_equipo', pk=dispositivo.equipo.id)
             
         except Exception as e:
+            print(f"❌ Error en form_valid: {str(e)}")
             messages.error(self.request, f'Error al crear matriz: {str(e)}')
             return self.form_invalid(form)
 @login_required
