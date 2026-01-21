@@ -133,16 +133,16 @@ Matrices - {{ equipo.nombre }}
                                     <div class="btn-group" role="group">
                                         {% if dispositivo.excel_exists %}
                                         <!-- Botón Ver -->
-                                        <a href="{{ dispositivo.get_excel_url }}" 
+                                        <!-- <a href="{{ dispositivo.get_excel_url }}" 
                                         target="_blank"
                                         class="btn btn-sm btn-outline-success">
                                             <i class="fas fa-eye me-1"></i> Ver
                                         </a>
-                                        
+                                         -->
                                         <!-- Botón Descargar (NUEVO) -->
                                         <a href="{% url 'accounts_app:descargar_excel' equipo.id dispositivo.id %}" 
                                         class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-download me-1"></i> Descargar
+                                            <i class="fas fa-download me-1"></i> Descargar y ver
                                         </a>
                                         {% else %}
                                         <span class="badge bg-danger">
