@@ -1,9 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.text import get_valid_filename
-from app.matrix.models import Dispositivo
 from django.conf import settings
-
+import pandas as pd
+from io import BytesIO
 def procesar_excel_matriz(archivo_excel):
     """
     Procesa el archivo Excel y retorna BytesIO con el archivo procesado.
@@ -12,16 +12,16 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 1. LEER EXCEL CRUDO
         # ============================================
-        print(f"\n🔄 LEYENDO EXCEL CRUDO...")
+        # print(f"\n LEYENDO EXCEL CRUDO...")
         
-        # Leer el Excel COMPLETO sin headers
+        # # Leer el Excel COMPLETO sin headers
         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
-        print(f"📄 Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
+        # print(f" Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
         
-        # ============================================
-        # 2. BUSCAR LA FILA CON LOS HEADERS REALES
-        # ============================================
-        print(f"\n🔍 BUSCANDO HEADERS REALES...")
+        # # ============================================
+        # # 2. BUSCAR LA FILA CON LOS HEADERS REALES
+        # # ============================================
+        # print(f"\n BUSCANDO HEADERS REALES...")
         
         # Los headers que realmente buscamos
         target_headers = [
@@ -76,8 +76,8 @@ def procesar_excel_matriz(archivo_excel):
             if len(found_headers) >= 3:
                 header_row_idx = row_idx
                 header_positions = found_headers
-                print(f"✅ HEADERS REALES ENCONTRADOS en fila {row_idx}")
-                print(f"   Headers y sus columnas: {found_headers}")
+                # print(f" HEADERS REALES ENCONTRADOS en fila {row_idx}")
+                # print(f"   Headers y sus columnas: {found_headers}")
                 break
         
         if header_row_idx is None:
@@ -86,7 +86,7 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 3. EXTRAER DATOS MANUALMENTE
         # ============================================
-        print(f"\n📥 EXTRAYENDO DATOS DESDE FILA {header_row_idx + 1}...")
+        #print(f"\n📥 EXTRAYENDO DATOS DESDE FILA {header_row_idx + 1}...")
         
         # Los datos empiezan en la fila DESPUÉS de los headers
         data_start_row = header_row_idx + 1
@@ -126,7 +126,7 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 4. CREAR DATAFRAME CON DATOS EXTRAÍDOS
         # ============================================
-        print(f"\n📊 CREANDO DATAFRAME CON {len(extracted_data)} FILAS...")
+        #print(f"\n CREANDO DATAFRAME CON {len(extracted_data)} FILAS...")
         
         # Crear DataFrame
         nuevo_df = pd.DataFrame(extracted_data)
@@ -152,7 +152,7 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 5. LIMPIEZA DE DATOS
         # ============================================
-        print("\n🧹 LIMPIANDO DATOS...")
+        #print("\n🧹 LIMPIANDO DATOS...")
         
         original_count = len(nuevo_df)
         
@@ -166,7 +166,7 @@ def procesar_excel_matriz(archivo_excel):
         
         # B. Asignar 'por_ejecutar' a estado
         if 'estado' in nuevo_df.columns and len(nuevo_df) > 0:
-            nuevo_df['estado'] = 'por_ejecutar'
+            nuevo_df['estado'] = 'por ejecutar'
         
         # C. Limpiar espacios en blanco
         for col in nuevo_df.columns:
@@ -183,11 +183,11 @@ def procesar_excel_matriz(archivo_excel):
         if len(nuevo_df) == 0:
             raise ValidationError("No hay datos válidos después del procesamiento")
         
-        print(f"\n✅ PROCESAMIENTO COMPLETADO:")
-        print(f"   - Headers encontrados en fila: {header_row_idx}")
-        print(f"   - Datos extraídos desde fila: {data_start_row}")
-        print(f"   - Filas originales extraídas: {original_count}")
-        print(f"   - Filas después de limpieza: {len(nuevo_df)}")
+        # print(f"\n PROCESAMIENTO COMPLETADO:")
+        # print(f"   - Headers encontrados en fila: {header_row_idx}")
+        # print(f"   - Datos extraídos desde fila: {data_start_row}")
+        # print(f"   - Filas originales extraídas: {original_count}")
+        # print(f"   - Filas después de limpieza: {len(nuevo_df)}")
         
         # ============================================
         # 7. GUARDAR EN BUFFER
@@ -204,7 +204,7 @@ def procesar_excel_matriz(archivo_excel):
     except ValidationError:
         raise
     except Exception as e:
-        print(f"❌ Error inesperado: {str(e)}")
+        #print(f"❌ Error inesperado: {str(e)}")
         import traceback
         traceback.print_exc()
         raise ValidationError(f"Error al procesar el archivo Excel: {str(e)}")

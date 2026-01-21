@@ -13,6 +13,7 @@ from .models import Matriz,SuperMatriz
 from app.accounts.models import Equipo
 from django.db.models import Q, F
 import openpyxl
+import traceback
 from .models import CasoDePrueba
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
@@ -37,19 +38,19 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         encabezados = [str(c).strip().lower() for c in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
         columnas = {nombre: i for i, nombre in enumerate(encabezados)}
         
-        print(f"🔍 Columnas detectadas en Excel: {list(columnas.keys())}")
+        #print(f"🔍 Columnas detectadas en Excel: {list(columnas.keys())}")
         
-        # DEBUG: Mostrar PRIMERAS 3 FILAS completas
-        print("\n🔍 Primeras 3 filas de datos:")
-        for i, fila in enumerate(sheet.iter_rows(min_row=1, max_row=4, values_only=True), 1):
-            print(f"Fila {i}: {fila}")
+        # # DEBUG: Mostrar PRIMERAS 3 FILAS completas
+        # print("\n🔍 Primeras 3 filas de datos:")
+        # for i, fila in enumerate(sheet.iter_rows(min_row=1, max_row=4, values_only=True), 1):
+        #     print(f"Fila {i}: {fila}")
         
         # Función para obtener columna
         def col(nombre):
             return columnas.get(nombre.strip().lower())
         
         # DEBUG: Verificar que se encuentra cada columna
-        print("\n🔍 Buscando columnas específicas:")
+        #print("\n🔍 Buscando columnas específicas:")
         columnas_a_buscar = [
             "alcance de evaluacion",
             "funcionalidad", 
@@ -59,12 +60,12 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
             "otros"
         ]
         
-        for col_name in columnas_a_buscar:
-            idx = col(col_name)
-            if idx is not None:
-                print(f"  ✅ '{col_name}' encontrada en índice {idx}")
-            else:
-                print(f"  ❌ '{col_name}' NO encontrada")
+        # for col_name in columnas_a_buscar:
+        #     idx = col(col_name)
+        #     if idx is not None:
+        #         print(f"  ✅ '{col_name}' encontrada en índice {idx}")
+        #     else:
+        #         print(f"  ❌ '{col_name}' NO encontrada")
         
         # VERIFICAR COLUMNAS MÍNIMAS REQUERIDAS
         columnas_requeridas = [
@@ -121,15 +122,15 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
             estado = str(estado_raw).strip() if estado_raw is not None and str(estado_raw).strip() else "por_ejecutar"
             otros = str(otros_raw).strip() if otros_raw is not None else ""
             
-            # DEBUG DETALLADO para las primeras 5 filas
-            if total_filas <= 5:
-                print(f"\n🔍 DEBUG Fila {total_filas}:")
-                print(f"  RAW - Alcance: {repr(alcance_raw)} -> '{alcance}'")
-                print(f"  RAW - Funcionalidad: {repr(funcionalidad_raw)} -> '{funcionalidad}'")
-                print(f"  RAW - Descripción: {repr(descripcion_raw)} -> '{descripcion}'")
-                print(f"  RAW - Criticidad: {repr(criticidad_raw)} -> '{criticidad}'")
-                print(f"  RAW - Estado: {repr(estado_raw)} -> '{estado}'")
-                print(f"  RAW - Otros: {repr(otros_raw)} -> '{otros}'")
+            # # DEBUG DETALLADO para las primeras 5 filas
+            # if total_filas <= 5:
+            #     print(f"\n🔍 DEBUG Fila {total_filas}:")
+            #     print(f"  RAW - Alcance: {repr(alcance_raw)} -> '{alcance}'")
+            #     print(f"  RAW - Funcionalidad: {repr(funcionalidad_raw)} -> '{funcionalidad}'")
+            #     print(f"  RAW - Descripción: {repr(descripcion_raw)} -> '{descripcion}'")
+            #     print(f"  RAW - Criticidad: {repr(criticidad_raw)} -> '{criticidad}'")
+            #     print(f"  RAW - Estado: {repr(estado_raw)} -> '{estado}'")
+            #     print(f"  RAW - Otros: {repr(otros_raw)} -> '{otros}'")
             
             # Validar campos OBLIGATORIOS
             campos_obligatorios = [alcance, funcionalidad, descripcion, criticidad]
@@ -142,7 +143,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                         alcance=alcance,
                         fase=funcionalidad,
                         caso_de_prueba=descripcion,
-                        estado=estado,
+                        estado="por_ejecutar",
                         criticidad=criticidad,
                         nota=otros,
                         etiqueta="",
@@ -150,22 +151,22 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                         pasos="",
                     )
                     filas_procesadas += 1
-                    if total_filas <= 5:
-                        print(f"  ✅ Creado caso de prueba")
+                    # if total_filas <= 5:
+                    #     print(f"  ✅ Creado caso de prueba")
                     
                 except Exception as e:
                     print(f"  ❌ Error al crear caso {total_filas}: {e}")
                     filas_omitidas += 1
-            else:
-                if total_filas <= 5:
-                    print(f"  ⚠️  Campos faltantes: alcance='{alcance}', funcionalidad='{funcionalidad}', descripcion='{descripcion}', criticidad='{criticidad}'")
-                filas_omitidas += 1
+            # else:
+            #     if total_filas <= 5:
+            #         print(f"  ⚠️  Campos faltantes: alcance='{alcance}', funcionalidad='{funcionalidad}', descripcion='{descripcion}', criticidad='{criticidad}'")
+            #     filas_omitidas += 1
         
         # Resultado final
-        print(f"\n📊 Resultado de importación:")
-        print(f"  Total filas en Excel: {total_filas}")
-        print(f"  Filas procesadas: {filas_procesadas}")
-        print(f"  Filas omitidas: {filas_omitidas}")
+        # print(f"\n📊 Resultado de importación:")
+        # print(f"  Total filas en Excel: {total_filas}")
+        # print(f"  Filas procesadas: {filas_procesadas}")
+        # print(f"  Filas omitidas: {filas_omitidas}")
         
         if filas_procesadas == 0:
             return False, "No se importó ningún caso de prueba. Verifica que todas las columnas obligatorias tengan datos."
@@ -173,8 +174,8 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         return True, f"Matriz importada correctamente. Se importaron {filas_procesadas} casos de prueba."
         
     except Exception as e:
-        print(f"❌ Error crítico: {str(e)}")
-        import traceback
+       # print(f"❌ Error crítico: {str(e)}")
+        
         traceback.print_exc()
         return False, f"Error al importar matriz: {str(e)}"
 

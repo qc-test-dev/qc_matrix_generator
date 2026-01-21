@@ -155,7 +155,7 @@ class DispositivoForm(forms.ModelForm):
                     # Si encontramos al menos 4 de los 6 headers
                     if coincidencias >= 4:
                         headers_encontrados = True
-                        print(f"✅ Validación: Headers encontrados en fila {idx_fila + 1}")
+                        #print(f"✅ Validación: Headers encontrados en fila {idx_fila + 1}")
                         break
                 
                 if not headers_encontrados:
@@ -236,7 +236,7 @@ class DispositivoForm(forms.ModelForm):
             # 4. Construir la ruta final
             ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
             
-            print(f"📁 Ruta final para guardar: {ruta_final}")
+            #print(f"📁 Ruta final para guardar: {ruta_final}")
             
             # 5. Obtener la instancia del dispositivo
             dispositivo = super().save(commit=False)
@@ -260,9 +260,9 @@ class DispositivoForm(forms.ModelForm):
             # 9. Guardar el dispositivo si commit=True
             if commit:
                 dispositivo.save()
-                print(f"✅ Dispositivo guardado: {dispositivo.nombre}")
-                print(f"✅ Archivo guardado en: {dispositivo.archivo_excel.name}")
-                print(f"✅ Ruta física: {dispositivo.archivo_excel.path}")
+                # print(f"✅ Dispositivo guardado: {dispositivo.nombre}")
+                # print(f"✅ Archivo guardado en: {dispositivo.archivo_excel.name}")
+                # print(f"✅ Ruta física: {dispositivo.archivo_excel.path}")
             
             # Guardar número de filas para usar en la vista
             self.num_filas_procesadas = num_filas
@@ -270,5 +270,5 @@ class DispositivoForm(forms.ModelForm):
             return dispositivo
             
         except Exception as e:
-            print(f"❌ Error en save() del formulario: {str(e)}")
+            #print(f"❌ Error en save() del formulario: {str(e)}")
             raise ValidationError(f"Error al procesar y guardar el archivo Excel: {str(e)}")
