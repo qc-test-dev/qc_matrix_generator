@@ -8,9 +8,10 @@ from main_website import settings
 from .forms import (
     SuperMatrizForm, MatrizForm, CasoDePruebaForm,
     ValidateEstadoForm, DetallesValidateForm,
-    TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
+    TicketPorLevantarForm, ValidateForm, SuperMatrizFechaFinForm,
+    SuperMatrizDescripcionForm, FeatureUploadForm
 )
-from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
+from .models import SuperMatriz, Matriz, Validate, TicketPorLevantar, DetallesValidate, Dispositivo, Equipo, FeatureFile, FeatureScenario
 from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo,obtener_informacion_matriz,distribuir_casos_equitativamente
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -45,6 +46,7 @@ from datetime import datetime
 from django.utils.timezone import localtime
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import locale, json
+import re
 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -54,6 +56,250 @@ from .forms import MatrizForm, ValidateForm
 from django.utils import timezone
 import os
 import random
+import csv
+
+
+def _parse_feature_scenarios(feature_text: str):
+    """
+    Parser Gherkin: extrae el nombre del Feature, Scenario/Scenario Outline,
+    tags y las líneas de pasos (Given/When/Then, etc.) por escenario.
+    Devuelve {'feature_name': str, 'scenarios': list}.
+    """
+    feature_name = ""
+    scenarios = []
+    current_tags = []
+    lines = feature_text.splitlines()
+
+    i = 0
+    while i < len(lines):
+        raw_line = lines[i]
+        line = raw_line.strip()
+        idx = i + 1  # 1-based line number
+
+        if not line:
+            i += 1
+            continue
+
+        # Nombre del Feature (línea "Feature: ...")
+        if line.lower().startswith('feature'):
+            if ':' in line:
+                feature_name = line.split(':', 1)[1].strip()
+            i += 1
+            continue
+
+        # Tags
+        if line.startswith('@'):
+            current_tags = line.split()
+            i += 1
+            continue
+
+        # Scenario / Scenario Outline
+        if line.lower().startswith('scenario'):
+            nombre = line  # "Scenario: ..." o "Scenario Outline: ..."
+            tags_str = ' '.join(current_tags)
+            # Recoger pasos: líneas siguientes hasta otro Scenario o bloque de tags
+            step_lines = []
+            j = i + 1
+            while j < len(lines):
+                next_raw = lines[j]
+                next_stripped = next_raw.strip()
+                if next_stripped.lower().startswith('scenario'):
+                    break
+                if next_stripped.startswith('@'):
+                    break
+                if next_stripped.lower().startswith('feature'):
+                    break
+                if next_stripped:
+                    step_lines.append(next_raw.rstrip())
+                j += 1
+            steps_text = '\n'.join(step_lines)
+            is_outline = 'scenario outline' in line.lower()
+            scenarios.append({
+                'nombre': nombre,
+                'linea': idx,
+                'tags': tags_str,
+                'steps': steps_text,
+                'is_outline': is_outline,
+            })
+            current_tags = []
+            i = j
+            continue
+        i += 1
+
+    return {'feature_name': feature_name or 'Feature', 'scenarios': scenarios}
+
+
+def sync_scenarios_from_featurefile(feature_file: FeatureFile):
+    """
+    Lee el .feature físico, recalcula SHA, y sincroniza los FeatureScenario:
+    - crea nuevos escenarios
+    - actualiza nombre/linea/tags
+    - conserva estado/observaciones
+    - elimina escenarios que ya no existen
+    """
+    path = feature_file.get_feature_path()
+    if not path or not os.path.exists(path):
+        return
+
+    # Recalcular checksum
+    feature_file.recalcular_sha256()
+    feature_file.save(update_fields=['sha256', 'actualizado_en'])
+
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    parsed = _parse_feature_scenarios(content)
+    feature_name = parsed.get('feature_name') or 'Feature'
+    parsed_scenarios = parsed.get('scenarios', [])
+
+    # Sincronizar modelos FeatureScenario (estado/observaciones por escenario)
+    existentes = {
+        s.stable_id: s
+        for s in feature_file.scenarios.all()
+    }
+    vistos = set()
+
+    for data in parsed_scenarios:
+        nombre = data['nombre']
+        linea = data['linea']
+        tags = data['tags']
+        stable_id = FeatureScenario.build_stable_id(nombre, linea)
+        vistos.add(stable_id)
+
+        if stable_id in existentes:
+            s = existentes[stable_id]
+            s.nombre = nombre
+            s.linea = linea
+            s.tags = tags
+            s.save(update_fields=['nombre', 'linea', 'tags', 'sincronizado_en'])
+        else:
+            FeatureScenario.objects.create(
+                feature_file=feature_file,
+                stable_id=stable_id,
+                nombre=nombre,
+                linea=linea,
+                tags=tags,
+            )
+
+    # Eliminar escenarios que ya no existen en el archivo
+    for stable_id, s in existentes.items():
+        if stable_id not in vistos:
+            s.delete()
+
+    # Además, si este feature está ligado a una Matriz, sincronizar también CasoDePrueba
+    matriz = feature_file.matriz
+    if matriz:
+        from .models import CasoDePrueba  # import local para evitar ciclos al cargar módulos
+
+        # stable_id incluye feature_file.id para soportar varios .feature por matriz
+        def caso_stable_id(nombre_escenario: str, linea_esc: int) -> str:
+            base = FeatureScenario.build_stable_id(nombre_escenario, linea_esc)
+            return f"{feature_file.id}-{base}"
+
+        # Solo casos que pertenecen a este feature_file (por prefijo de stable_id)
+        prefix = f"{feature_file.id}-"
+        casos_existentes = {
+            c.scenario_stable_id: c
+            for c in matriz.casos.all()
+            if c.scenario_stable_id and c.scenario_stable_id.startswith(prefix)
+        }
+        casos_vistos = set()
+
+        # Longitud máxima de pasos en CasoDePrueba (CharField)
+        PASOS_MAX_LEN = 700
+        fase_val = (feature_name or '')[:50]
+
+        def _summary_from_csv_row(row, scenario_nombre):
+            """Resumen corto para caso_de_prueba a partir de la fila CSV."""
+            if not row:
+                return scenario_nombre[:200]
+            if 'addon' in row:
+                addon = row.get('addon', '')
+                mdp = row.get('type_MDP', '')
+                return f"{scenario_nombre[:35]} | {addon} ({mdp})"[:500]
+            parts = [f"{k}={v}" for k, v in list(row.items())[:4]]
+            return f"{scenario_nombre[:30]} | {', '.join(parts)}"[:500]
+
+        def _read_csv_rows(csv_path):
+            """Lee CSV y devuelve lista de dicts (una por fila); salta filas vacías."""
+            rows = []
+            try:
+                with open(csv_path, 'r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f, skipinitialspace=True)
+                    for r in reader:
+                        if not r or all(not str(v).strip() for v in r.values()):
+                            continue
+                        rows.append({k.strip(): v.strip() if v else '' for k, v in r.items()})
+            except Exception:
+                pass
+            return rows
+
+        for data in parsed_scenarios:
+            nombre = data['nombre']
+            linea = data['linea']
+            steps = data.get('steps', '') or ''
+            if len(steps) > PASOS_MAX_LEN:
+                steps = steps[: PASOS_MAX_LEN - 3] + '...'
+            is_outline = data.get('is_outline', False)
+            csv_path = feature_file.get_csv_path() if feature_file.has_csv() else None
+
+            if is_outline and csv_path and os.path.exists(csv_path):
+                # Scenario Outline + CSV: un caso de prueba por fila del CSV
+                csv_rows = _read_csv_rows(csv_path)
+                for row_idx, row in enumerate(csv_rows):
+                    stable_id = f"{feature_file.id}-outline-{linea}-row-{row_idx}"
+                    casos_vistos.add(stable_id)
+                    summary = _summary_from_csv_row(row, nombre)
+                    if stable_id in casos_existentes:
+                        caso = casos_existentes[stable_id]
+                        caso.caso_de_prueba = summary
+                        caso.fase = fase_val
+                        caso.pasos = steps
+                        caso.datos_examples = row
+                        caso.save(update_fields=['caso_de_prueba', 'fase', 'pasos', 'datos_examples'])
+                    else:
+                        CasoDePrueba.objects.create(
+                            matriz=matriz,
+                            alcance='A',
+                            fase=fase_val,
+                            caso_de_prueba=summary,
+                            estado='por_ejecutar',
+                            criticidad='Crítico',
+                            scenario_stable_id=stable_id,
+                            pasos=steps,
+                            datos_examples=row,
+                        )
+            else:
+                # Scenario normal o Scenario Outline sin CSV: un caso por escenario
+                stable_id = caso_stable_id(nombre, linea)
+                casos_vistos.add(stable_id)
+                if stable_id in casos_existentes:
+                    caso = casos_existentes[stable_id]
+                    caso.caso_de_prueba = nombre
+                    caso.fase = fase_val
+                    caso.pasos = steps
+                    if getattr(caso, 'datos_examples', None) is not None:
+                        caso.datos_examples = None
+                        caso.save(update_fields=['caso_de_prueba', 'fase', 'pasos', 'datos_examples'])
+                    else:
+                        caso.save(update_fields=['caso_de_prueba', 'fase', 'pasos'])
+                else:
+                    CasoDePrueba.objects.create(
+                        matriz=matriz,
+                        alcance='A',
+                        fase=fase_val,
+                        caso_de_prueba=nombre,
+                        estado='por_ejecutar',
+                        criticidad='Crítico',
+                        scenario_stable_id=stable_id,
+                        pasos=steps,
+                    )
+
+        # Eliminar casos que ya no correspondan a ningún escenario/fila de este .feature
+        for stable_id, caso in casos_existentes.items():
+            if stable_id not in casos_vistos:
+                caso.delete()
+
 
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
@@ -573,6 +819,7 @@ def detalle_matriz(request, matriz_id):
         'paises_disponibles': paises_disponibles,
         'mostrar_tester_asignado': mostrar_tester_asignado,
         'mostrar_paises': mostrar_paises,
+        'feature_files': list(matriz.feature_files.all().order_by('nombre_archivo')),
     })
 
 
@@ -979,6 +1226,353 @@ def dashboard(request):
     }
     
     return render(request, 'excel_files/dashboard.html', context)
+
+
+@login_required
+def subir_feature(request, super_matriz_id=None, matriz_id=None):
+    """
+    Subir un archivo .feature: crea nueva matriz o añade a una existente (matriz_id por URL o GET/POST).
+    """
+    super_matrices = SuperMatriz.objects.all().order_by('nombre')
+    dispositivos = Dispositivo.objects.all().order_by('nombre')
+    matriz_existente = None
+    matriz_id = matriz_id or request.GET.get('matriz_id') or request.POST.get('matriz_id')
+    if matriz_id:
+        try:
+            matriz_existente = Matriz.objects.get(id=int(matriz_id))
+        except (ValueError, Matriz.DoesNotExist):
+            matriz_existente = None
+
+    initial = {}
+    if super_matriz_id:
+        initial['super_matriz'] = get_object_or_404(SuperMatriz, id=super_matriz_id)
+    elif matriz_existente:
+        initial['super_matriz'] = matriz_existente.super_matriz
+
+    if request.method == 'POST':
+        form = FeatureUploadForm(request.POST, request.FILES)
+        archivos = request.FILES.getlist('feature_files') or (
+            [request.FILES['feature_file']] if request.FILES.get('feature_file') else []
+        )
+        errores = []
+        for a in archivos:
+            if a.name.lower().endswith('.feature') and a.size <= 2 * 1024 * 1024:
+                continue
+            if not a.name.lower().endswith('.feature'):
+                errores.append(f"'{a.name}' no tiene extensión .feature")
+            elif a.size > 2 * 1024 * 1024:
+                errores.append(f"'{a.name}' supera los 2 MB")
+        if archivos and errores:
+            for e in errores:
+                messages.error(request, e)
+        elif archivos and (form.is_valid() or matriz_existente):
+            super_matriz = form.cleaned_data.get('super_matriz') or (matriz_existente and matriz_existente.super_matriz)
+            dispositivo = form.cleaned_data.get('dispositivo') if form.is_valid() else (matriz_existente and matriz_existente.dispositivo)
+            if not super_matriz:
+                messages.error(request, "Falta seleccionar Super Matriz.")
+            else:
+                matriz_id_redirect = None
+                if matriz_existente:
+                    for archivo in archivos:
+                        if not archivo.name.lower().endswith('.feature') or archivo.size > 2 * 1024 * 1024:
+                            continue
+                        try:
+                            ff = FeatureFile(
+                                super_matriz=matriz_existente.super_matriz,
+                                dispositivo=matriz_existente.dispositivo,
+                                matriz=matriz_existente,
+                            )
+                            ff.archivo_feature.save(archivo.name, archivo, save=True)
+                            sync_scenarios_from_featurefile(ff)
+                            matriz_id_redirect = matriz_existente.id
+                        except Exception as e:
+                            messages.error(request, f"Error al subir '{archivo.name}': {e}")
+                    if matriz_id_redirect:
+                        messages.success(request, f"{len(archivos)} archivo(s) .feature añadidos a la matriz.")
+                        return redirect('matrix_app:detalle_matriz', matriz_id=matriz_id_redirect)
+                else:
+                    # Varios archivos = una sola matriz (regla de negocio)
+                    nombre_matriz = archivos[0].name[:70] if archivos else "Matriz Gherkin"
+                    matriz = Matriz.objects.create(
+                        super_matriz=super_matriz,
+                        nombre=nombre_matriz,
+                        alcances_utilizados='A',
+                        dispositivo=dispositivo,
+                    )
+                    for archivo in archivos:
+                        if not archivo.name.lower().endswith('.feature') or archivo.size > 2 * 1024 * 1024:
+                            continue
+                        try:
+                            ff = FeatureFile(
+                                super_matriz=super_matriz,
+                                dispositivo=dispositivo,
+                                matriz=matriz,
+                            )
+                            ff.archivo_feature.save(archivo.name, archivo, save=True)
+                            sync_scenarios_from_featurefile(ff)
+                        except Exception as e:
+                            messages.error(request, f"Error al subir '{archivo.name}': {e}")
+                    messages.success(request, f"{len(archivos)} archivo(s) .feature subidos en una matriz. Escenarios sincronizados.")
+                    return redirect('matrix_app:detalle_matriz', matriz_id=matriz.id)
+    else:
+        form = FeatureUploadForm(initial=initial)
+
+    super_matriz_id_default = super_matriz_id if super_matriz_id else (matriz_existente.super_matriz_id if matriz_existente else (super_matrices.first().id if super_matrices else None))
+
+    return render(request, 'excel_files/subir_feature.html', {
+        'form': form,
+        'super_matrices': super_matrices,
+        'dispositivos': dispositivos,
+        'super_matriz_id_default': super_matriz_id_default,
+        'matriz_existente': matriz_existente,
+    })
+
+
+@login_required
+def subir_otro_feature(request, matriz_id):
+    """Añadir otro archivo .feature a una matriz existente."""
+    return subir_feature(request, super_matriz_id=None, matriz_id=matriz_id)
+
+
+@login_required
+def vista_previa_gherkin(request, feature_file_id):
+    """
+    Vista previa de un archivo .feature (por id). Muestra el contenido en una página.
+    """
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    matriz = feature_file.matriz
+    if not matriz:
+        messages.error(request, "Este archivo .feature no está asociado a una matriz.")
+        return redirect('matrix_app:detalle_super_matriz', super_matriz_id=feature_file.super_matriz_id)
+
+    path = feature_file.get_feature_path()
+    if not path or not os.path.exists(path):
+        messages.error(request, "El archivo .feature no existe en el servidor.")
+        return redirect('matrix_app:detalle_matriz', matriz_id=matriz.id)
+
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            contenido = f.read()
+    except Exception as e:
+        messages.error(request, f"No se pudo leer el archivo: {e}")
+        return redirect('matrix_app:detalle_matriz', matriz_id=matriz.id)
+
+    return render(request, 'excel_files/vista_previa_gherkin.html', {
+        'matriz': matriz,
+        'feature_file': feature_file,
+        'contenido': contenido,
+        'nombre_archivo': feature_file.nombre_archivo,
+    })
+
+
+@login_required
+def vista_previa_gherkin_todos(request, matriz_id):
+    """
+    Vista previa de todos los archivos .feature de una matriz en una sola página (acordeón).
+    """
+    matriz = get_object_or_404(Matriz, id=matriz_id)
+    feature_files = list(matriz.feature_files.all().order_by('nombre_archivo'))
+    if not feature_files:
+        messages.error(request, "Esta matriz no tiene archivos .feature asociados.")
+        return redirect('matrix_app:detalle_matriz', matriz_id=matriz_id)
+
+    archivos_con_contenido = []
+    for ff in feature_files:
+        path = ff.get_feature_path()
+        contenido = ""
+        if path and os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    contenido = f.read()
+            except Exception:
+                contenido = "(No se pudo leer el archivo)"
+        else:
+            contenido = "(Archivo no encontrado en el servidor)"
+        archivos_con_contenido.append({'feature_file': ff, 'contenido': contenido})
+
+    return render(request, 'excel_files/vista_previa_gherkin_todos.html', {
+        'matriz': matriz,
+        'archivos_con_contenido': archivos_con_contenido,
+    })
+
+
+def _feature_file_path_safe(feature_file):
+    """Comprueba que la ruta del .feature esté dentro de FEATURES_ROOT. Devuelve (path, error)."""
+    path = feature_file.get_feature_path()
+    if not path:
+        return None, "Archivo sin ruta"
+    features_root = os.path.realpath(getattr(settings, 'FEATURES_ROOT', ''))
+    if not features_root:
+        return None, "Configuración inválida"
+    path_real = os.path.realpath(path)
+    if not path_real.startswith(features_root):
+        return None, "Ruta no permitida"
+    return path_real, None
+
+
+@login_required
+def editor_feature(request, feature_file_id):
+    """
+    Carga la página del editor del archivo .feature (Monaco + guardado HTTP).
+    Sin edición colaborativa en tiempo real; simplifica dependencias.
+    """
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    path, err = _feature_file_path_safe(feature_file)
+    if err or not path or not os.path.exists(path):
+        messages.error(request, err or "El archivo no existe en el servidor.")
+        if feature_file.matriz_id:
+            return redirect('matrix_app:detalle_matriz', matriz_id=feature_file.matriz_id)
+        return redirect('matrix_app:detalle_super_matriz', super_matriz_id=feature_file.super_matriz_id)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            contenido = f.read()
+    except Exception as e:
+        messages.error(request, f"No se pudo leer el archivo: {e}")
+        if feature_file.matriz_id:
+            return redirect('matrix_app:detalle_matriz', matriz_id=feature_file.matriz_id)
+        return redirect('matrix_app:detalle_super_matriz', super_matriz_id=feature_file.super_matriz_id)
+
+    return render(request, 'excel_files/editor_feature.html', {
+        'feature_file': feature_file,
+        'matriz': feature_file.matriz,
+        'contenido': contenido,
+        'nombre_archivo': feature_file.nombre_archivo,
+        'feature_file_id': feature_file_id,
+    })
+
+
+@login_required
+@require_POST
+def guardar_feature_file(request, feature_file_id):
+    """
+    Guarda el contenido del archivo .feature en disco, actualiza SHA256 y sincroniza escenarios.
+    Acepta POST con body JSON { "content": "..." } o form-data content=...
+    """
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    path, err = _feature_file_path_safe(feature_file)
+    if err or not path:
+        return JsonResponse({'success': False, 'error': err or 'Ruta no permitida'}, status=400)
+
+    content = None
+    content_type = request.content_type or ''
+    if 'application/json' in content_type:
+        try:
+            data = json.loads(request.body)
+            content = data.get('content')
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+    else:
+        content = request.POST.get('content')
+
+    if content is None:
+        return JsonResponse({'success': False, 'error': 'Falta el contenido'}, status=400)
+
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    # Recalcula SHA256, actualiza BD y re-sincroniza escenarios (conserva estados)
+    sync_scenarios_from_featurefile(feature_file)
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Archivo guardado correctamente. Los escenarios se han sincronizado; los nuevos Scenario o Scenario Outline aparecen como casos de prueba en la matriz.',
+    })
+
+
+@login_required
+def vincular_csv_feature(request, feature_file_id):
+    """
+    Vincular un CSV a un .feature para expandir Scenario Outline (una fila = un caso de prueba).
+    GET: formulario de subida. POST: guarda el CSV y re-sincroniza.
+    """
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo_csv')
+        if not archivo:
+            messages.error(request, "Seleccione un archivo CSV.")
+            return redirect('matrix_app:vincular_csv_feature', feature_file_id=feature_file_id)
+        if not archivo.name.lower().endswith('.csv'):
+            messages.error(request, "Solo se permiten archivos .csv")
+            return redirect('matrix_app:vincular_csv_feature', feature_file_id=feature_file_id)
+        if archivo.size > 5 * 1024 * 1024:
+            messages.error(request, "El CSV no puede superar 5 MB.")
+            return redirect('matrix_app:vincular_csv_feature', feature_file_id=feature_file_id)
+        feature_file.archivo_csv.save(archivo.name, archivo, save=True)
+        sync_scenarios_from_featurefile(feature_file)
+        messages.success(request, "CSV vinculado. Los Scenario Outline se han expandido en casos de prueba (una fila = un caso).")
+        if feature_file.matriz_id:
+            return redirect('matrix_app:detalle_matriz', matriz_id=feature_file.matriz_id)
+        return redirect('matrix_app:gestionar_features')
+    return render(request, 'excel_files/vincular_csv_feature.html', {
+        'feature_file': feature_file,
+    })
+
+
+@login_required
+@require_POST
+def quitar_csv_feature(request, feature_file_id):
+    """Quita el CSV vinculado y re-sincroniza (los Scenario Outline vuelven a ser un caso cada uno)."""
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    if feature_file.archivo_csv:
+        feature_file.archivo_csv.delete(save=False)
+        feature_file.archivo_csv = None
+        feature_file.save(update_fields=['archivo_csv'])
+    sync_scenarios_from_featurefile(feature_file)
+    messages.success(request, "CSV desvinculado. Escenarios actualizados.")
+    if feature_file.matriz_id:
+        return redirect('matrix_app:detalle_matriz', matriz_id=feature_file.matriz_id)
+    return redirect('matrix_app:gestionar_features')
+
+
+@login_required
+def gestionar_features(request):
+    """
+    Lista los archivos .feature subidos con opciones para ver, editar y eliminar.
+    Filtro opcional: ?super_matriz_id=X
+    """
+    super_matriz_id = request.GET.get('super_matriz_id')
+    queryset = FeatureFile.objects.select_related('super_matriz', 'matriz', 'dispositivo').order_by('-creado_en')
+    if super_matriz_id:
+        queryset = queryset.filter(super_matriz_id=super_matriz_id)
+    feature_files = list(queryset)
+    super_matrices = SuperMatriz.objects.all().order_by('nombre')
+    return render(request, 'excel_files/gestionar_features.html', {
+        'feature_files': feature_files,
+        'super_matrices': super_matrices,
+        'super_matriz_id_filtro': int(super_matriz_id) if super_matriz_id else None,
+    })
+
+
+@login_required
+@require_POST
+def eliminar_feature_file(request, feature_file_id):
+    """
+    Elimina un archivo .feature: borra el archivo físico, el FeatureFile,
+    FeatureScenario (CASCADE) y los CasoDePrueba asociados (por scenario_stable_id).
+    """
+    feature_file = get_object_or_404(FeatureFile, id=feature_file_id)
+    super_matriz_id = feature_file.super_matriz_id
+    matriz_id = feature_file.matriz_id
+    path, err = _feature_file_path_safe(feature_file)
+    if path and os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    if feature_file.archivo_csv:
+        feature_file.archivo_csv.delete(save=False)
+    prefix = f"{feature_file.id}-"
+    CasoDePrueba.objects.filter(matriz_id=matriz_id, scenario_stable_id__startswith=prefix).delete()
+    feature_file.delete()
+    messages.success(request, f"Archivo '{feature_file.nombre_archivo}' eliminado correctamente.")
+    if matriz_id:
+        return redirect('matrix_app:detalle_matriz', matriz_id=matriz_id)
+    return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz_id)
+
+
 @login_required
 def editar_fecha_fin(request, pk):
     supermatriz = get_object_or_404(SuperMatriz, pk=pk)

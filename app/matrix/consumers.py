@@ -1,6 +1,7 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
 
+
 class MatrizConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.matriz_id = self.scope['url_route']['kwargs']['matriz_id']

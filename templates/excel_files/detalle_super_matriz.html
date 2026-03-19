@@ -74,7 +74,7 @@
         {% if es_lider %}
         <div class="col-md-4">
             <h3>Agregar nueva matriz</h3>
-            <form method="post" class="card p-3 shadow-sm">
+            <form method="post" class="card p-3 shadow-sm mb-3">
                 {% csrf_token %}
                 <input type="hidden" name="crear_matriz" value="1">
 
@@ -118,6 +118,20 @@
 
                 <button type="submit" class="btn btn-dark w-100">Agregar Matriz</button>
             </form>
+
+            <!-- Subir y gestionar archivos .feature -->
+            <div class="card p-3 shadow-sm">
+                <h5 class="mb-3">Archivos .feature (Gherkin)</h5>
+                <p class="small text-muted">
+                    Sube o gestiona archivos Gherkin como fuente de verdad de los casos de prueba.
+                </p>
+                <a href="{% url 'matrix_app:subir_feature' super_matriz.id %}" class="btn btn-outline-dark w-100 mb-2">
+                    Subir archivo(s) .feature
+                </a>
+                <a href="{% url 'matrix_app:gestionar_features' %}?super_matriz_id={{ super_matriz.id }}" class="btn btn-outline-secondary w-100">
+                    Gestionar archivos .feature
+                </a>
+            </div>
         </div>
         {% endif %}
 

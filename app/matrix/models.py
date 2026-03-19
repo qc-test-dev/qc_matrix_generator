@@ -8,6 +8,8 @@ from django.utils import timezone
 from app.accounts.utils import procesar_excel_matriz
 import os
 import pandas as pd
+import hashlib
+from django.utils.text import slugify
 #from io import BytesIO
 # Storage personalizado ara archivos Excel
 excel_storage = FileSystemStorage(
@@ -131,6 +133,172 @@ class Dispositivo(models.Model):
         
         # Eliminar el objeto de la base de datos
         super().delete(*args, **kwargs)
+
+
+# Storage para archivos Gherkin (.feature)
+feature_storage = FileSystemStorage(
+    location=getattr(settings, "FEATURES_ROOT", os.path.join(settings.MEDIA_ROOT, "features")),
+    base_url=f'{settings.MEDIA_URL}features/'
+)
+
+
+class FeatureFile(models.Model):
+    """
+    Archivo .feature en filesystem.
+    La BD solo guarda metadata + referencia al archivo.
+    """
+    super_matriz = models.ForeignKey(
+        'SuperMatriz',
+        on_delete=models.CASCADE,
+        related_name='feature_files'
+    )
+    dispositivo = models.ForeignKey(
+        Dispositivo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='feature_files'
+    )
+
+    # Archivo físico (solo ruta en BD, contenido en disco)
+    archivo_feature = models.FileField(
+        upload_to='',
+        storage=feature_storage,
+        verbose_name="Archivo Gherkin (.feature)"
+    )
+
+    # Metadata
+    nombre_archivo = models.CharField(max_length=255)        # ej: login.feature
+    ruta_relativa = models.CharField(max_length=500)         # ej: features/login.feature
+    sha256 = models.CharField(max_length=64, blank=True)     # checksum del contenido
+
+    # CSV opcional para expandir Scenario Outline: una fila → un caso de prueba
+    archivo_csv = models.FileField(
+        upload_to='csv/',
+        storage=feature_storage,
+        verbose_name="CSV de Examples (opcional)",
+        blank=True,
+        null=True,
+    )
+
+    # Matriz lógica asociada (una matriz puede tener varios .feature)
+    matriz = models.ForeignKey(
+        'Matriz',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='feature_files'
+    )
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-creado_en']
+        unique_together = ('matriz', 'ruta_relativa')
+
+    def __str__(self):
+        return f"{self.super_matriz} :: {self.nombre_archivo}"
+
+    def get_feature_url(self):
+        if self.archivo_feature and self.archivo_feature.name:
+            return self.archivo_feature.url
+        return None
+
+    def get_feature_path(self):
+        if self.archivo_feature and self.archivo_feature.name:
+            return self.archivo_feature.path
+        return None
+
+    def get_csv_path(self):
+        """Ruta absoluta del CSV vinculado (para expandir Scenario Outline)."""
+        if self.archivo_csv and self.archivo_csv.name:
+            return self.archivo_csv.path
+        return None
+
+    def has_csv(self):
+        path = self.get_csv_path()
+        return path and os.path.exists(path)
+
+    def recalcular_sha256(self):
+        """
+        Lee el archivo desde disco y recalcula el SHA256.
+        """
+        path = self.get_feature_path()
+        if not path or not os.path.exists(path):
+            self.sha256 = ""
+            return
+
+        hasher = hashlib.sha256()
+        with open(path, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                hasher.update(chunk)
+        self.sha256 = hasher.hexdigest()
+
+    def save(self, *args, **kwargs):
+        # Mantener nombre y ruta relativa coherentes
+        if self.archivo_feature and self.archivo_feature.name:
+            self.nombre_archivo = os.path.basename(self.archivo_feature.name)
+            self.ruta_relativa = f"features/{self.nombre_archivo}"
+        super().save(*args, **kwargs)
+
+
+class FeatureScenario(models.Model):
+    """
+    Escenario parseado desde un .feature.
+    El texto Gherkin vive en el archivo; aquí solo estado/observaciones
+    y datos mínimos para mostrarlo y emparejarlo entre versiones.
+    """
+    feature_file = models.ForeignKey(
+        FeatureFile,
+        on_delete=models.CASCADE,
+        related_name='scenarios'
+    )
+
+    # Identificador estable derivado del escenario, para conservar estado
+    stable_id = models.CharField(max_length=255)
+
+    # Datos del escenario que vienen del .feature (no se editan desde UI)
+    nombre = models.CharField(max_length=500)       # "Scenario: login success"
+    linea = models.IntegerField()                   # línea donde empieza el Scenario
+    tags = models.CharField(max_length=500, blank=True)  # "@smoke @regression"
+
+    # Estado y observaciones editables desde la UI
+    ESTADO_CHOICES = [
+        ('por_ejecutar', 'Por ejecutar'),
+        ('funciona', 'Funciona'),
+        ('falla_nueva', 'Falla nueva'),
+        ('falla_persistente', 'Falla persistente'),
+        ('bloqueado', 'Bloqueado'),
+        ('n_a', 'N/A'),
+    ]
+    estado = models.CharField(
+        max_length=30,
+        choices=ESTADO_CHOICES,
+        default='por_ejecutar',
+    )
+    observaciones = models.TextField(blank=True, null=True, max_length=500)
+
+    sincronizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('feature_file', 'stable_id')
+        ordering = ['linea']
+
+    def __str__(self):
+        return f"{self.feature_file.nombre_archivo} :: {self.nombre}"
+
+    @staticmethod
+    def build_stable_id(nombre_escenario: str, linea: int) -> str:
+        """
+        Helper para generar un ID estable a partir del nombre + línea.
+        Esto se usa en el proceso de parseo para poder mantener el estado
+        aunque se reescriba el .feature.
+        """
+        base = f"{slugify(nombre_escenario)}-{linea}"
+        return base[:250]
+
+
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
     descripcion = models.TextField(blank=True, null=True, max_length=200)
@@ -210,6 +378,10 @@ class CasoDePrueba(models.Model):
     etiqueta=models.CharField(max_length=50, blank=True, null=True)
     tipo_usuario=models.CharField(max_length=70, blank=True, null=True)
     pasos=models.CharField(max_length=700,blank=True, null=True)
+    # Identificador estable opcional para vincular con escenarios Gherkin (.feature)
+    scenario_stable_id = models.CharField(max_length=255, blank=True, null=True)
+    # Datos de la fila del CSV cuando el caso viene de un Scenario Outline expandido (JSON)
+    datos_examples = models.JSONField(blank=True, null=True)
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):

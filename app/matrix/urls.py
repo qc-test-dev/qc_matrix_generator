@@ -2,13 +2,14 @@ from django.urls import path
 from app.matrix.update_api import api_guardar_estado
 from app.matrix.update_validates_api import api_guardar_validates
 from . import views
-app_name='matrix_app'
-#matrix_app:dashboard_super_matrices
+
+app_name = 'matrix_app'
+
 urlpatterns = [
     path('supermatriz/<int:super_matriz_id>/', views.detalle_super_matriz, name='detalle_super_matriz'),
     path('matriz/<int:matriz_id>/', views.detalle_matriz, name='detalle_matriz'),
     path('editar_validates/<int:super_matriz_id>/', views.editar_validates, name='editar_validates'),
-    path('detalles_validate_modal/<int:super_matriz_id>/', views.detalles_validate_modal, name='detalles_validate_modal'),# Esta es la URL para detalle_matriz
+    path('detalles_validate_modal/<int:super_matriz_id>/', views.detalles_validate_modal, name='detalles_validate_modal'),
     path('super_matriz/<int:super_matriz_id>/tickets/', views.tickets_por_levantar_view, name='tickets_por_levantar'),
     path('editar_ticket/<int:ticket_id>/', views.editar_ticket, name='editar_ticket'),
     path('eliminar/<int:super_matriz_id>/', views.eliminar_super_matriz, name='eliminar_super_matriz'),
@@ -19,7 +20,7 @@ urlpatterns = [
     path('ajax/actualizar_nota/', views.actualizar_nota_caso, name='actualizar_nota_caso'),
     path('supermatriz/<int:supermatriz_id>/reporte_pdf/', views.generar_pdf_supermatriz, name='reporte_pdf_supermatriz'),
     path('supermatriz/<int:super_matriz_id>/asignar_validates/', views.asignar_validates, name='asignar_validates'),
-    path("dashboard",views.dashboard,name="dashboard"),
+    path("dashboard", views.dashboard, name="dashboard"),
     path('supermatriz/<int:pk>/editar-fecha-fin/', views.editar_fecha_fin, name='editar_fecha_fin'),
     path('matriz/<int:matriz_id>/num-fallos/', views.obtener_num_fallos, name='obtener_num_fallos'),
     path('editar-descripcion/<int:pk>/', views.editar_descripcion, name='editar_descripcion'),
@@ -30,5 +31,15 @@ urlpatterns = [
     path('descargar-pdf-todos-equipos/', views.descargar_pdf_todos_equipos, name='descargar_pdf_todos_equipos'),
     path('ajax/actualizar_estado_validate/', views.actualizar_estado_validate, name='actualizar_estado_validate'),
     path('api/verify-session/', views.verify_session, name='verify_session'),
+    path('supermatriz/<int:super_matriz_id>/subir-feature/', views.subir_feature, name='subir_feature'),
+    path('matriz/<int:matriz_id>/subir-otro-feature/', views.subir_otro_feature, name='subir_otro_feature'),
+    path('feature/<int:feature_file_id>/ver-gherkin/', views.vista_previa_gherkin, name='vista_previa_gherkin'),
+    path('matriz/<int:matriz_id>/ver-gherkin-todos/', views.vista_previa_gherkin_todos, name='vista_previa_gherkin_todos'),
+    path('feature/<int:feature_file_id>/editar/', views.editor_feature, name='editor_feature'),
+    path('feature/<int:feature_file_id>/guardar/', views.guardar_feature_file, name='guardar_feature_file'),
+    path('features/gestionar/', views.gestionar_features, name='gestionar_features'),
+    path('feature/<int:feature_file_id>/eliminar/', views.eliminar_feature_file, name='eliminar_feature_file'),
+    path('feature/<int:feature_file_id>/vincular-csv/', views.vincular_csv_feature, name='vincular_csv_feature'),
+    path('feature/<int:feature_file_id>/quitar-csv/', views.quitar_csv_feature, name='quitar_csv_feature'),
 ]   
 

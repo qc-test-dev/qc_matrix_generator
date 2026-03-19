@@ -10,8 +10,60 @@
 <div class="container-fluid p-5">
     <h2 class="mb-3">{{ matriz.nombre }}</h2>
     <h4>Filtro Usado</h4>
-    <p><strong>Alcance: {{alcance}}</strong></p>
-    <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
+    <p><strong>Alcance: {{ alcance }}</strong></p>
+    {% if matriz.dispositivo %}
+    <p><strong>Dispositivo: {{ matriz.dispositivo.nombre }}</strong></p>
+    {% endif %}
+    {% if feature_files %}
+    <p class="mb-0 d-flex flex-wrap align-items-center gap-2">
+        <span class="text-muted small">Gherkin:</span>
+        {% if feature_files|length == 1 %}
+            <a href="{% url 'matrix_app:vista_previa_gherkin' feature_files.0.id %}" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener">
+                Vista previa {{ feature_files.0.nombre_archivo }}
+            </a>
+            <a href="{% url 'matrix_app:editor_feature' feature_files.0.id %}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener">
+                Editar
+            </a>
+            <a href="{% url 'matrix_app:vincular_csv_feature' feature_files.0.id %}" class="btn btn-outline-info btn-sm">
+                {% if feature_files.0.has_csv %}CSV ✓{% else %}Vincular CSV{% endif %}
+            </a>
+        {% else %}
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Vista previa Gherkin
+                </button>
+                <ul class="dropdown-menu">
+                    {% for ff in feature_files %}
+                    <li><a class="dropdown-item" href="{% url 'matrix_app:vista_previa_gherkin' ff.id %}" target="_blank" rel="noopener">{{ ff.nombre_archivo }}</a></li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'matrix_app:vista_previa_gherkin_todos' matriz.id %}" target="_blank" rel="noopener">Ver todos</a></li>
+                </ul>
+            </div>
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Editar
+                </button>
+                <ul class="dropdown-menu">
+                    {% for ff in feature_files %}
+                    <li><a class="dropdown-item" href="{% url 'matrix_app:editor_feature' ff.id %}" target="_blank" rel="noopener">{{ ff.nombre_archivo }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-info btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    CSV
+                </button>
+                <ul class="dropdown-menu">
+                    {% for ff in feature_files %}
+                    <li><a class="dropdown-item" href="{% url 'matrix_app:vincular_csv_feature' ff.id %}">{{ ff.nombre_archivo }}{% if ff.has_csv %} ✓{% endif %}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <a href="{% url 'matrix_app:subir_otro_feature' matriz.id %}" class="btn btn-outline-secondary btn-sm">Subir otro .feature</a>
+    </p>
+    {% endif %}
 
     <!-- FILTROS RÁPIDOS EN DIV SEPARADO -->
     <div class="row mb-4">
@@ -285,8 +337,15 @@
         </table>
     </div>
 
-    <div class="sticky-action-bar">
+    <div class="sticky-action-bar d-flex gap-2 flex-wrap">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
+        {% if feature_files %}
+        {% if feature_files|length == 1 %}
+        <a href="{% url 'matrix_app:vista_previa_gherkin' feature_files.0.id %}" class="btn btn-outline-success" target="_blank" rel="noopener">Vista previa Gherkin</a>
+        {% else %}
+        <a href="{% url 'matrix_app:vista_previa_gherkin_todos' matriz.id %}" class="btn btn-outline-success" target="_blank" rel="noopener">Vista previa Gherkin (todos)</a>
+        {% endif %}
+        {% endif %}
     </div>
 </div>
 
@@ -315,10 +374,22 @@
 
 <!-- El resto de tu JavaScript permanece igual -->
 <script>
-// El resto del código JavaScript permanece igual...
 let tooltipTimeout;
 let currentTooltipElement = null;
 const globalTooltip = document.getElementById('global-tooltip');
+
+// Decodifica secuencias \uXXXX que Django escapejs introduce (para que se vean saltos de línea y comillas)
+function decodificarPasos(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+// Escapa HTML para mostrar texto en innerHTML sin interpretar etiquetas
+function escaparHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+}
 
 function mostrarPasos(element) {
     clearTimeout(tooltipTimeout);
@@ -334,6 +405,9 @@ function mostrarPasos(element) {
     // Verificar si no hay pasos disponibles
     if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
         pasos = 'No hay pasos disponibles';
+    } else {
+        pasos = decodificarPasos(pasos);
+        pasos = escaparHtml(pasos);
     }
 
     currentTooltipElement = element;
@@ -400,10 +474,13 @@ function abrirModalPasos(element) {
     // Verificar si no hay pasos disponibles
     if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
         pasos = 'No hay pasos disponibles';
+    } else {
+        pasos = decodificarPasos(pasos);
+        pasos = escaparHtml(pasos);
     }
 
     // Configurar el contenido del modal
-    document.getElementById('modal-caso-titulo').textContent = caso;
+    document.getElementById('modal-caso-titulo').textContent = decodificarPasos(caso || '');
     document.getElementById('modal-pasos-contenido').innerHTML = `
         <div class="pasos-text-modal">${pasos}</div>
     `;
@@ -650,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("🔄 Verificando conexión...");
             createWebSocketConnection();
         }
-    }, 6*1000);
+    }, 30000);
 });
 
 window.addEventListener('beforeunload', function() {
@@ -702,10 +779,10 @@ function actualizarTablaCasos() {
         });
 }
 
-// Auto‐reload cada 60 s
+// Refresco suave de la tabla cada 60 s (evitar polling agresivo)
 setInterval(() => {
     actualizarTablaCasos();
-}, 6 * 1000);
+}, 60 * 1000);
 
 function actualizarFallos() {
     fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
@@ -716,8 +793,8 @@ function actualizarFallos() {
         .catch(error => console.error("Error al actualizar fallos:", error));
 }
 
-// Actualizar cada 6 segundos
-setInterval(actualizarFallos, 6000);
+// Actualizar contador de fallos cada 60 segundos
+setInterval(actualizarFallos, 60 * 1000);
 </script>
 
 <style>

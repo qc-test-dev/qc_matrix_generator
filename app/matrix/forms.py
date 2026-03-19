@@ -1,5 +1,5 @@
 from django import forms
-from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate,Dispositivo
+from .models import SuperMatriz, Matriz, CasoDePrueba, Validate, TicketPorLevantar, DetallesValidate,Dispositivo, FeatureFile
 from django.contrib.auth import get_user_model
 from ..accounts.models import Equipo
 from django.utils import timezone
@@ -294,3 +294,22 @@ class SuperMatrizDescripcionForm(forms.ModelForm):
                 'placeholder': 'Ingrese la descripción...'
             }),
         }
+
+
+class FeatureUploadForm(forms.Form):
+    """
+    Formulario para subir uno o varios archivos .feature.
+    Usar input multiple con name="feature_files"; la validación se hace en la vista.
+    """
+    super_matriz = forms.ModelChoiceField(
+        queryset=SuperMatriz.objects.all(),
+        required=True,
+        label="Super Matriz",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    dispositivo = forms.ModelChoiceField(
+        queryset=Dispositivo.objects.all(),
+        required=False,
+        label="Dispositivo",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

@@ -104,6 +104,10 @@ STATIC_ROOT = '/vol/static'
 MEDIA_ROOT = '/vol/media'
 MEDIA_URL = '/media/'
 
+# Directorio para archivos .feature (Gherkin) como fuente de verdad de tests
+FEATURES_ROOT = os.path.join(MEDIA_ROOT, "features")
+os.makedirs(FEATURES_ROOT, exist_ok=True)
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
