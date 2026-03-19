@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vista previa Gherkin – {{ matriz.nombre }}{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Archivos Gherkin de la matriz</h2>
+        <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-secondary">← Volver a la matriz</a>
+    </div>
+    <p class="text-muted small">Matriz: {{ matriz.nombre }}</p>
+
+    <div class="accordion" id="accordionGherkin">
+        {% for item in archivos_con_contenido %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="head-{{ item.feature_file.id }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#body-{{ item.feature_file.id }}"
+                        aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                        aria-controls="body-{{ item.feature_file.id }}">
+                    {{ item.feature_file.nombre_archivo }}
+                </button>
+            </h2>
+            <div id="body-{{ item.feature_file.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 aria-labelledby="head-{{ item.feature_file.id }}" data-bs-parent="#accordionGherkin">
+                <div class="accordion-body p-0">
+                    <pre class="mb-0 p-4 bg-light border-0" style="white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; max-height: 60vh; overflow-y: auto;">{{ item.contenido }}</pre>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock content %}

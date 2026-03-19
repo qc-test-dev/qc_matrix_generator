@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Subir archivo .feature{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container py-5">
+    <h2 class="mb-4">Subir archivo Gherkin (.feature)</h2>
+
+    {% if matriz_existente %}
+    <div class="alert alert-info mb-3">
+        Añadiendo un nuevo archivo .feature a la matriz <strong>{{ matriz_existente.nombre }}</strong>.
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% if matriz_existente %}
+                <input type="hidden" name="matriz_id" value="{{ matriz_existente.id }}">
+                <input type="hidden" name="super_matriz" value="{{ matriz_existente.super_matriz_id }}">
+                {% endif %}
+
+                {% if not matriz_existente %}
+                <div class="mb-3">
+                    <label for="id_super_matriz" class="form-label">Super Matriz</label>
+                    <select name="super_matriz" id="id_super_matriz" class="form-select" required>
+                        {% for sm in super_matrices %}
+                            <option value="{{ sm.id }}"
+                                    {% if sm.id == super_matriz_id_default %}selected{% endif %}>
+                                {{ sm.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="id_dispositivo" class="form-label">Dispositivo (opcional)</label>
+                    <select name="dispositivo" id="id_dispositivo" class="form-select">
+                        <option value="">-- Sin dispositivo --</option>
+                        {% for disp in dispositivos %}
+                            <option value="{{ disp.id }}">{{ disp.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_feature_files" class="form-label">Archivo(s) .feature</label>
+                    <input type="file"
+                           name="feature_files"
+                           id="id_feature_files"
+                           class="form-control"
+                           accept=".feature"
+                           multiple
+                           required>
+                    <div class="form-text">
+                        Puede seleccionar uno o varios archivos con extensión <strong>.feature</strong>.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Subir archivo
+                </button>
+                {% if matriz_existente %}
+                    <a href="{% url 'matrix_app:detalle_matriz' matriz_existente.id %}"
+                       class="btn btn-secondary ms-2">
+                        Cancelar
+                    </a>
+                {% elif super_matriz_id_default %}
+                    <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id_default %}"
+                       class="btn btn-secondary ms-2">
+                        Cancelar
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+

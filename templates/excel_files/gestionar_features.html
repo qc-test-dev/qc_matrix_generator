@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestionar archivos .feature{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container-fluid p-4">
+  <h2 class="mb-3">Archivos .feature (Gherkin)</h2>
+
+  <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+    {% if super_matrices %}
+    <a href="{% url 'matrix_app:subir_feature' super_matrices.0.id %}" class="btn btn-primary">
+      Subir archivo(s) .feature
+    </a>
+    {% endif %}
+    <a href="{% url 'matrix_app:dashboard' %}" class="btn btn-outline-secondary">← Dashboard</a>
+    <form method="get" class="d-inline-flex gap-2 align-items-center ms-auto">
+      <label class="form-label mb-0 small">Filtrar por Super Matriz:</label>
+      <select name="super_matriz_id" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+        <option value="">— Todas —</option>
+        {% for sm in super_matrices %}
+        <option value="{{ sm.id }}" {% if super_matriz_id_filtro == sm.id %}selected{% endif %}>{{ sm.nombre }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm">
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>Super Matriz</th>
+          <th>Matriz</th>
+          <th>Dispositivo</th>
+          <th>CSV</th>
+          <th>Subido</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ff in feature_files %}
+        <tr>
+          <td>
+            <strong>{{ ff.nombre_archivo }}</strong>
+          </td>
+          <td>
+            <a href="{% url 'matrix_app:detalle_super_matriz' ff.super_matriz_id %}">{{ ff.super_matriz.nombre }}</a>
+          </td>
+          <td>
+            {% if ff.matriz %}
+            <a href="{% url 'matrix_app:detalle_matriz' ff.matriz_id %}">{{ ff.matriz.nombre }}</a>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ ff.dispositivo.nombre|default:"—" }}</td>
+          <td>
+            {% if ff.has_csv %}
+            <span class="badge bg-success">Vinculado</span>
+            <a href="{% url 'matrix_app:vincular_csv_feature' ff.id %}" class="btn btn-outline-secondary btn-sm ms-1">Cambiar</a>
+            {% else %}
+            <a href="{% url 'matrix_app:vincular_csv_feature' ff.id %}" class="btn btn-outline-info btn-sm">Vincular CSV</a>
+            {% endif %}
+          </td>
+          <td>{{ ff.creado_en|date:"d/m/Y H:i" }}</td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              <a href="{% url 'matrix_app:vista_previa_gherkin' ff.id %}" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener">Ver</a>
+              <a href="{% url 'matrix_app:editor_feature' ff.id %}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener">Editar</a>
+              <form method="post" action="{% url 'matrix_app:eliminar_feature_file' ff.id %}" class="d-inline" onsubmit="return confirm('¿Eliminar el archivo {{ ff.nombre_archivo }}? Se borrarán también los escenarios y casos asociados.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-muted text-center py-4">No hay archivos .feature subidos.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock content %}

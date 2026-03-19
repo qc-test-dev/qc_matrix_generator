@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vista previa: {{ nombre_archivo }}{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h2 class="mb-0">Archivo Gherkin: {{ nombre_archivo }}</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'matrix_app:editor_feature' feature_file.id %}" class="btn btn-primary">Editar</a>
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-secondary">← Volver a la matriz</a>
+        </div>
+    </div>
+    <p class="text-muted small">Matriz: {{ matriz.nombre }}</p>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <pre id="gherkin-content" class="mb-0 p-4 bg-light border-0 rounded" style="white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; max-height: 75vh; overflow-y: auto;">{{ contenido }}</pre>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

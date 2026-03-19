@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar: {{ nombre_archivo }}{% endblock title %}
+
+{% block content %}
+{% include 'includes/header.html' %}
+
+{{ contenido|json_script:"feature-content" }}
+<script id="feature-editor-config" type="application/json">
+{
+  "saveUrl": "{% url 'matrix_app:guardar_feature_file' feature_file_id %}",
+  "csrfToken": "{{ csrf_token }}"
+}
+</script>
+
+<div class="container-fluid p-4">
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <h2 class="mb-0">Editar Gherkin: {{ nombre_archivo }}</h2>
+    <div class="d-flex gap-2 align-items-center">
+      <span id="editor-status" class="badge bg-secondary">Listo</span>
+      <a href="{% url 'matrix_app:detalle_matriz' feature_file.matriz_id %}" class="btn btn-outline-secondary btn-sm">← Volver</a>
+      <button type="button" id="btn-guardar" class="btn btn-primary btn-sm">Guardar</button>
+    </div>
+  </div>
+  <div id="editor-message" class="alert alert-dismissible fade show mb-2" role="alert" style="display: none;">
+    <span id="editor-message-text"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+  </div>
+  <div id="monaco-container" style="height: 75vh; min-height: 400px; border: 1px solid #dee2e6; border-radius: 4px;"></div>
+</div>
+
+<!-- Monaco desde CDN (sin build tools) -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+<script>
+(function() {
+  var config = JSON.parse(document.getElementById('feature-editor-config').textContent);
+  var initialContent = JSON.parse(document.getElementById('feature-content').textContent);
+  var editor = null;
+
+  function setStatus(text, badgeClass) {
+    var el = document.getElementById('editor-status');
+    el.textContent = text;
+    el.className = 'badge ' + (badgeClass || 'bg-secondary');
+  }
+  function showMessage(text, isSuccess) {
+    var box = document.getElementById('editor-message');
+    var textEl = document.getElementById('editor-message-text');
+    textEl.textContent = text;
+    box.className = 'alert alert-dismissible fade show mb-2 ' + (isSuccess ? 'alert-success' : 'alert-danger');
+    box.style.display = 'block';
+  }
+  function hideMessage() {
+    document.getElementById('editor-message').style.display = 'none';
+  }
+
+  require.config({
+    paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' },
+    'vs/bootstrap': { noCredentials: true }
+  });
+  require(['vs/editor/editor.main'], function() {
+    monaco.languages.register({ id: 'gherkin' });
+    monaco.languages.setMonarchTokensProvider('gherkin', {
+      tokenizer: {
+        root: [
+          [/^\s*(Feature|Scenario|Scenario Outline|Examples|Background)\s*:?/, 'keyword'],
+          [/^\s*(Given|When|Then|And|But)\s+/, 'keyword'],
+          [/#.*$/, 'comment'],
+          [/"""[\s\S]*?"""/, 'string'],
+          [/@[^\s]+/, 'tag'],
+        ]
+      }
+    });
+
+    editor = monaco.editor.create(document.getElementById('monaco-container'), {
+      value: initialContent,
+      language: 'gherkin',
+      theme: 'vs',
+      automaticLayout: true,
+      minimap: { enabled: false },
+      fontSize: 14,
+      wordWrap: 'on',
+      scrollBeyondLastLine: false
+    });
+
+    document.getElementById('btn-guardar').addEventListener('click', function() {
+      if (!editor) return;
+      var btn = this;
+      btn.disabled = true;
+      hideMessage();
+      setStatus('Guardando…', 'bg-info');
+      btn.innerHTML = 'Guardando…';
+      var content = editor.getValue();
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', config.saveUrl);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-CSRFToken', config.csrfToken);
+      xhr.onload = function() {
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar';
+        var res = JSON.parse(xhr.responseText || '{}');
+        if (res.success) {
+          setStatus('Guardado', 'bg-success');
+          showMessage(res.message || 'Archivo guardado correctamente. Los escenarios se han sincronizado; los nuevos Scenario o Scenario Outline se han añadido como casos de prueba en la matriz.', true);
+          setTimeout(function() { setStatus('Listo', 'bg-secondary'); }, 3000);
+        } else {
+          setStatus('Error', 'bg-danger');
+          showMessage(res.error || 'Error al guardar el archivo.', false);
+        }
+      };
+      xhr.onerror = function() {
+        btn.disabled = false;
+        btn.innerHTML = 'Guardar';
+        setStatus('Error', 'bg-danger');
+        showMessage('Error de conexión al guardar.', false);
+      };
+      xhr.send(JSON.stringify({ content: content }));
+    });
+  });
+})();
+</script>
+{% endblock content %}
