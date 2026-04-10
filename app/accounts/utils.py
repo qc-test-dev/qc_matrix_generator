@@ -14,33 +14,41 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # print(f"\n LEYENDO EXCEL CRUDO...")
         
-        # # Leer el Excel COMPLETO sin headers
+        # Leer el Excel COMPLETO sin headers
         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
         # print(f" Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
         
-        # # ============================================
-        # # 2. BUSCAR LA FILA CON LOS HEADERS REALES
-        # # ============================================
+        # ============================================
+        # 2. BUSCAR LA FILA CON LOS HEADERS REALES
+        # ============================================
         # print(f"\n BUSCANDO HEADERS REALES...")
         
-        # Los headers que realmente buscamos
+        # NUEVOS HEADERS REQUERIDOS
         target_headers = [
+            'id-prueba',
             'alcance de evaluacion',
             'funcionalidad',
+            'tipo de usuario',
             'descripcion',
+            'pasos a seguir',
             'criticidad',
             'estado',
-            'otros'
+            'otros',
+            'criterio aceptacion'
         ]
         
-        # También aceptar variantes
+        # NUEVAS VARIANTES DE HEADERS
         header_variants = {
+            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador'],
             'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
-            'funcionalidad': ['fase', 'funcionalidad o fase'],
-            'descripcion': ['descripción', 'caso de prueba', 'caso prueba'],
-            'criticidad': ['prioridad'],
-            'estado': ['status'],
-            'otros': ['comentarios', 'comentarios y datos de prueba']
+            'funcionalidad': ['fase', 'funcionalidad', 'funcionalidad o fase'],
+            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol'],
+            'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion'],
+            'pasos a seguir': ['step by step', 'pasos', 'pasos a seguir', 'procedimiento'],
+            'criticidad': ['prioridad', 'criticidad', 'severidad'],
+            'estado': ['status', 'estado', 'situación'],
+            'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones', 'notas'],
+            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación']
         }
         
         header_row_idx = None
@@ -68,20 +76,24 @@ def procesar_excel_matriz(archivo_excel):
                     # Coincidencia con variantes
                     elif target in header_variants:
                         for variant in header_variants[target]:
-                            if variant.lower() in cell_str:
+                            if variant.lower() in cell_str or cell_str in variant.lower():
                                 found_headers[target] = col_idx
                                 break
             
-            # Si encontramos varios headers en la misma fila, esta es la fila de headers
-            if len(found_headers) >= 3:
+            # Ahora requerimos al menos 8 de los 10 headers (80%)
+            if len(found_headers) >= 8:
                 header_row_idx = row_idx
                 header_positions = found_headers
                 # print(f" HEADERS REALES ENCONTRADOS en fila {row_idx}")
+                # print(f"   Headers encontrados: {len(found_headers)} de {len(target_headers)}")
                 # print(f"   Headers y sus columnas: {found_headers}")
                 break
         
         if header_row_idx is None:
-            raise ValidationError("No se encontraron los headers requeridos en el Excel")
+            raise ValidationError(
+                f"No se encontraron los headers requeridos en el Excel. "
+                f"Se requieren al menos 8 de los {len(target_headers)} headers."
+            )
         
         # ============================================
         # 3. EXTRAER DATOS MANUALMENTE
@@ -133,12 +145,16 @@ def procesar_excel_matriz(archivo_excel):
         
         # Asegurar que tengamos todas las columnas requeridas
         required_columns = [
+            'id-prueba',
             'alcance de evaluacion',
             'funcionalidad',
+            'tipo de usuario',
             'descripcion',
+            'pasos a seguir',
             'criticidad',
             'estado',
-            'otros'
+            'otros',
+            'criterio aceptacion'
         ]
         
         # Agregar columnas faltantes (vacías)
@@ -146,7 +162,7 @@ def procesar_excel_matriz(archivo_excel):
             if col not in nuevo_df.columns:
                 nuevo_df[col] = ""
         
-        # Ordenar columnas
+        # Ordenar columnas según el orden deseado
         nuevo_df = nuevo_df[required_columns]
         
         # ============================================
@@ -168,7 +184,7 @@ def procesar_excel_matriz(archivo_excel):
         if 'estado' in nuevo_df.columns and len(nuevo_df) > 0:
             nuevo_df['estado'] = 'por ejecutar'
         
-        # C. Limpiar espacios en blanco
+        # C. Limpiar espacios en blanco en todas las columnas
         for col in nuevo_df.columns:
             nuevo_df[col] = nuevo_df[col].apply(
                 lambda x: str(x).strip() if pd.notna(x) and str(x).strip().lower() != 'nan' else ""
@@ -185,6 +201,7 @@ def procesar_excel_matriz(archivo_excel):
         
         # print(f"\n PROCESAMIENTO COMPLETADO:")
         # print(f"   - Headers encontrados en fila: {header_row_idx}")
+        # print(f"   - Headers encontrados: {len(header_positions)} de {len(target_headers)}")
         # print(f"   - Datos extraídos desde fila: {data_start_row}")
         # print(f"   - Filas originales extraídas: {original_count}")
         # print(f"   - Filas después de limpieza: {len(nuevo_df)}")

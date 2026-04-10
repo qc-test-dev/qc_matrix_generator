@@ -232,7 +232,7 @@ Matrices - {{ equipo.nombre }}
                         </div>
                     </div>
                     
-                    <!-- Información de validación -->
+                   <!-- En el modal, dentro de la sección de requisitos, actualizar la tabla -->
                     <div class="mt-3 p-3 border rounded bg-light">
                         <h6 class="fw-bold mb-3">
                             <i class="fas fa-clipboard-check me-1"></i>Requisitos del archivo Excel
@@ -242,7 +242,7 @@ Matrices - {{ equipo.nombre }}
                             <div class="d-flex">
                                 <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
                                 <div>
-                                    <strong>Importante:</strong> El archivo Excel debe contener <strong>todas</strong> las siguientes columnas.
+                                    <strong>Importante:</strong> El archivo Excel debe contener al menos <strong>8 de las 10 columnas requeridas</strong>.
                                     <br><small>Los nombres no son sensibles a mayúsculas/minúsculas.</small>
                                 </div>
                             </div>
@@ -253,41 +253,61 @@ Matrices - {{ equipo.nombre }}
                             <table class="table table-sm table-bordered">
                                 <thead class="table-light">
                                     <tr>
+                                        <th>#</th>
                                         <th>Columna Requerida</th>
                                         <th>Variantes Aceptadas</th>
-                                        <th>Ejemplo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><span class="badge bg-primary">Alcance</span></td>
-                                        <td>"alcance de evaluación"</td>
-                                        <td><code>alcance de evaluacion</code></td>
-                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                        <td>1</td>
+                                        <td><span class="badge bg-primary">ID-Prueba</span></td>
+                                        <td><code>id-prueba</code>, <code>id</code>, <code>id caso</code></td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge bg-primary">Fase/Funcionalidad</span></td>
-                                        <td>"fase"<br>"funcionalidad"</td>
-                                        <td><code>fase</code><br><code>funcionalidad</code></td>
-                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                        <td>2</td>
+                                        <td><span class="badge bg-primary">Alcance de Evaluación</span></td>
+                                        <td><code>alcance de evaluación</code>, <code>alcance</code></td>
                                     </tr>
                                     <tr>
+                                        <td>3</td>
+                                        <td><span class="badge bg-primary">Funcionalidad</span></td>
+                                        <td><code>fase</code>, <code>funcionalidad</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>4</td>
+                                        <td><span class="badge bg-primary">Tipo de Usuario</span></td>
+                                        <td><code>tipo de usuario</code>, <code>tipo usuario</code>, <code>perfil usuario</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>5</td>
                                         <td><span class="badge bg-primary">Descripción</span></td>
-                                        <td>"caso de prueba"<br>"descripcion"</td>
-                                        <td><code>caso de prueba</code><br><code>descripcion</code></td>
-                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                        <td><code>descripción</code>, <code>caso de prueba</code>, <code>caso prueba</code></td>
                                     </tr>
                                     <tr>
+                                        <td>6</td>
+                                        <td><span class="badge bg-primary">Pasos a Seguir</span></td>
+                                        <td><code>step by step</code>, <code>pasos</code>, <code>pasos a seguir</code>, <code>procedimiento</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>7</td>
                                         <td><span class="badge bg-primary">Criticidad</span></td>
-                                        <td>"criticidad"</td>
-                                        <td><code>criticidad</code></td>
-                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                        <td><code>prioridad</code>, <code>criticidad</code>, <code>severidad</code></td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge bg-primary">Comentarios y datos de prueba</span></td>
-                                        <td>"comentarios y datos de prueba"<br>"otros"</td>
-                                        <td><code>comentarios y datos de prueba</code><br><code>otros</code></td>
-                                        <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                                        <td>8</td>
+                                        <td><span class="badge bg-primary">Estado</span></td>
+                                        <td><code>status</code>, <code>estado</code>, <code>situación</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>9</td>
+                                        <td><span class="badge bg-primary">Otros/Comentarios</span></td>
+                                        <td><code>comentarios</code>, <code>comentarios y datos de prueba</code>, <code>observaciones</code>, <code>notas</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>10</td>
+                                        <td><span class="badge bg-primary">Criterio de Aceptación</span></td>
+                                        <td><code>criterio aceptacion</code>, <code>criterio de aceptacion</code>, <code>criterio aceptación</code></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -295,7 +315,8 @@ Matrices - {{ equipo.nombre }}
                         
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-lightbulb me-2"></i>
-                            <strong>Recomendación:</strong> Revise su archivo Excel antes de cargarlo para asegurarse de que contiene todas las columnas requeridas.
+                            <strong>Recomendación:</strong> Asegúrese de que su archivo Excel contenga todas estas columnas para una correcta validación.
+                            <br><small>El sistema aceptará variantes en los nombres de las columnas (no distingue mayúsculas/minúsculas).</small>
                         </div>
                     </div>
                     

@@ -79,8 +79,8 @@ class DispositivoForm(forms.ModelForm):
         if not archivo.name.lower().endswith('.xlsx'):
             raise ValidationError("El archivo debe ser un Excel (.xlsx)")
         
-        # Validar tamaño del archivo (opcional, 10MB máximo)
-        if archivo.size > 10 * 1024 * 1024:  # 10MB
+        # Validar tamaño del archivo (opcional, 50MB máximo)
+        if archivo.size > 50 * 1024 * 1024:  # 50MB
             raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 10MB")
         
         return archivo
@@ -105,32 +105,42 @@ class DispositivoForm(forms.ModelForm):
                 if len(df_raw) == 0:
                     raise ValidationError("El archivo Excel está vacío")
                 
-                # Definir headers que buscamos
+                # NUEVOS HEADERS REQUERIDOS
                 headers_buscados = [
+                    'id-prueba',
                     'alcance de evaluacion',
                     'funcionalidad',
+                    'tipo de usuario',
                     'descripcion', 
+                    'pasos a seguir',
                     'criticidad',
                     'estado',
-                    'otros'
+                    'otros',
+                    'criterio aceptacion'
                 ]
                 
-                # También aceptar variantes
+                # NUEVAS VARIANTES DE HEADERS
                 variantes_headers = {
+                    'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador'],
                     'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
-                    'funcionalidad': ['fase'],
-                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba'],
-                    'criticidad': ['prioridad'],
-                    'estado': ['status'],
-                    'otros': ['comentarios', 'comentarios y datos de prueba']
+                    'funcionalidad': ['fase', 'funcionalidad'],
+                    'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol'],
+                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion'],
+                    'pasos a seguir': ['STEP BY STEP', 'pasos', 'pasos a seguir','"STEP BY STEP"' ],
+                    'criticidad': ['prioridad', 'criticidad'],
+                    'estado': ['status', 'estado', 'situación'],
+                    'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones'],
+                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación']
                 }
                 
                 # Buscar en cada fila (igual que en procesar_excel_matriz)
                 headers_encontrados = False
+                fila_headers = None
                 
                 for idx_fila in range(min(50, len(df_raw))):
                     fila = df_raw.iloc[idx_fila]
                     coincidencias = 0
+                    headers_encontrados_fila = []
                     
                     for celda in fila:
                         if pd.isna(celda):
@@ -144,25 +154,31 @@ class DispositivoForm(forms.ModelForm):
                             
                             if celda_str == header_lower:
                                 coincidencias += 1
+                                headers_encontrados_fila.append(header)
                                 break
-                            
                             elif header in variantes_headers:
                                 for variante in variantes_headers[header]:
-                                    if variante.lower() in celda_str or celda_str in variante.lower():
+                                    variante_lower = variante.lower()
+                                    if variante_lower in celda_str or celda_str in variante_lower:
                                         coincidencias += 1
+                                        headers_encontrados_fila.append(header)
                                         break
                     
-                    # Si encontramos al menos 4 de los 6 headers
-                    if coincidencias >= 4:
+                    # Necesitamos encontrar al menos 8 de los 10 headers (80% para ser flexible)
+                    if coincidencias >= 8:
                         headers_encontrados = True
-                        #print(f"✅ Validación: Headers encontrados en fila {idx_fila + 1}")
+                        fila_headers = idx_fila + 1
+                        #print(f"✅ Validación: {coincidencias} de {len(headers_buscados)} headers encontrados en fila {fila_headers}")
                         break
                 
                 if not headers_encontrados:
+                    # Crear mensaje detallado de los headers requeridos
+                    mensaje_headers = "\n".join([f"  • {h}" for h in headers_buscados])
                     raise ValidationError(
-                        "No se encontraron los headers requeridos en el Excel. "
-                        "El archivo debe contener al menos estas columnas: "
-                        "alcance de evaluacion, funcionalidad, descripcion, criticidad, estado, otros"
+                        f"No se encontraron los headers requeridos en el Excel.\n\n"
+                        f"El archivo debe contener al menos 8 de los siguientes 10 headers:\n"
+                        f"{mensaje_headers}\n\n"
+                        f"Headers encontrados: Revise que los nombres de las columnas sean correctos."
                     )
                 
                 # Restaurar posición del archivo
@@ -236,8 +252,6 @@ class DispositivoForm(forms.ModelForm):
             # 4. Construir la ruta final
             ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
             
-            #print(f"📁 Ruta final para guardar: {ruta_final}")
-            
             # 5. Obtener la instancia del dispositivo
             dispositivo = super().save(commit=False)
             
@@ -260,9 +274,6 @@ class DispositivoForm(forms.ModelForm):
             # 9. Guardar el dispositivo si commit=True
             if commit:
                 dispositivo.save()
-                # print(f"✅ Dispositivo guardado: {dispositivo.nombre}")
-                # print(f"✅ Archivo guardado en: {dispositivo.archivo_excel.name}")
-                # print(f"✅ Ruta física: {dispositivo.archivo_excel.path}")
             
             # Guardar número de filas para usar en la vista
             self.num_filas_procesadas = num_filas
@@ -270,5 +281,4 @@ class DispositivoForm(forms.ModelForm):
             return dispositivo
             
         except Exception as e:
-            #print(f"❌ Error en save() del formulario: {str(e)}")
             raise ValidationError(f"Error al procesar y guardar el archivo Excel: {str(e)}")
