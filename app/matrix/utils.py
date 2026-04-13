@@ -38,8 +38,6 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         encabezados = [str(c).strip().lower() for c in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
         columnas = {nombre: i for i, nombre in enumerate(encabezados)}
         
-        print(f"📋 Encabezados encontrados: {list(columnas.keys())}")
-        
         # Función para obtener columna
         def col(nombre):
             return columnas.get(nombre.strip().lower())
@@ -75,27 +73,12 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         idx_pasos = col("step by step")
         idx_criterio = col("criterio aceptación")
         
-        print(f"📍 Mapeo de columnas:")
-        print(f"  - alcance: {idx_alcance}")
-        print(f"  - funcionalidad: {idx_funcionalidad}")
-        print(f"  - descripcion: {idx_descripcion}")
-        print(f"  - criticidad: {idx_criticidad}")
-        print(f"  - estado: {idx_estado}")
-        print(f"  - otros: {idx_otros}")
-        print(f"  - id-prueba (etiqueta): {idx_id_prueba}")
-        print(f"  - tipo usuario: {idx_tipo_usuario}")
-        print(f"  - step by step (pasos): {idx_pasos}")
-        print(f"  - criterio aceptacion: {idx_criterio}")
-        
         # Contadores
-        total_filas = 0
         filas_procesadas = 0
         filas_omitidas = 0
         
         # Procesar filas
         for fila in sheet.iter_rows(min_row=2, values_only=True):
-            total_filas += 1
-            
             # Verificar si la fila está vacía
             if all(cell is None for cell in fila):
                 continue
@@ -150,7 +133,7 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                     alcance=alcance,
                     fase=funcionalidad,
                     caso_de_prueba=descripcion,
-                    estado=estado_normalizado,
+                    estado="por_ejecutar",
                     criticidad=criticidad_normalizada,
                     nota=otros if otros else None,
                     etiqueta=id_prueba if id_prueba else "",
@@ -161,10 +144,8 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                 filas_procesadas += 1
                 
             except Exception as e:
-                print(f"Error al crear caso {total_filas}: {e}")
+                print(f"Error al crear caso: {e}")
                 filas_omitidas += 1
-        
-        print(f"\n📊 Resultado: {filas_procesadas} filas procesadas, {filas_omitidas} omitidas")
         
         if filas_procesadas == 0:
             return False, "No se importó ningún caso de prueba. Verifica que todas las columnas obligatorias tengan datos."
@@ -175,13 +156,8 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         traceback.print_exc()
         return False, f"Error al importar matriz: {str(e)}"
 
-
 def normalizar_criticidad(valor):
-    """
-    Normaliza el valor de criticidad según las reglas:
-    - blocker/bloqueante → Bloqueante
-    - critical/crítico → Crítico
-    """
+
     if not valor or valor == '':
         return ''
     
