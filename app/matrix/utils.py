@@ -25,7 +25,7 @@ def limpiar(valor):
 
 def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
     """
-    Importa casos de prueba desde un archivo Excel.
+    Importa casos de prueba desde un archivo Excel procesado.
     
     Returns:
         tuple: (success, error_message) donde success es booleano y error_message es el mensaje de error si hubo
@@ -34,38 +34,15 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         wb = openpyxl.load_workbook(ruta_excel)
         sheet = wb.active
 
-        # Leer encabezados normalizados
+        # Leer encabezados normalizados (convertir a minúsculas)
         encabezados = [str(c).strip().lower() for c in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
         columnas = {nombre: i for i, nombre in enumerate(encabezados)}
         
-        #print(f"🔍 Columnas detectadas en Excel: {list(columnas.keys())}")
-        
-        # # DEBUG: Mostrar PRIMERAS 3 FILAS completas
-        # print("\n🔍 Primeras 3 filas de datos:")
-        # for i, fila in enumerate(sheet.iter_rows(min_row=1, max_row=4, values_only=True), 1):
-        #     print(f"Fila {i}: {fila}")
+        print(f"📋 Encabezados encontrados: {list(columnas.keys())}")
         
         # Función para obtener columna
         def col(nombre):
             return columnas.get(nombre.strip().lower())
-        
-        # DEBUG: Verificar que se encuentra cada columna
-        #print("\n🔍 Buscando columnas específicas:")
-        columnas_a_buscar = [
-            "alcance de evaluacion",
-            "funcionalidad", 
-            "descripcion",
-            "criticidad",
-            "estado",
-            "otros"
-        ]
-        
-        # for col_name in columnas_a_buscar:
-        #     idx = col(col_name)
-        #     if idx is not None:
-        #         print(f"  ✅ '{col_name}' encontrada en índice {idx}")
-        #     else:
-        #         print(f"  ❌ '{col_name}' NO encontrada")
         
         # VERIFICAR COLUMNAS MÍNIMAS REQUERIDAS
         columnas_requeridas = [
@@ -86,6 +63,30 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
                 nombres_formateados = " o ".join([f'"{n}"' for n in grupo])
                 return False, f"No se encontró la columna {nombres_formateados}"
         
+        # Obtener índices de todas las columnas que nos interesan
+        idx_alcance = col("alcance de evaluacion")
+        idx_funcionalidad = col("funcionalidad")
+        idx_descripcion = col("descripcion")
+        idx_criticidad = col("criticidad")
+        idx_estado = col("estado")
+        idx_otros = col("otros")
+        idx_id_prueba = col("id-prueba")
+        idx_tipo_usuario = col("tipo de usuario")
+        idx_pasos = col("step by step")
+        idx_criterio = col("criterio aceptación")
+        
+        print(f"📍 Mapeo de columnas:")
+        print(f"  - alcance: {idx_alcance}")
+        print(f"  - funcionalidad: {idx_funcionalidad}")
+        print(f"  - descripcion: {idx_descripcion}")
+        print(f"  - criticidad: {idx_criticidad}")
+        print(f"  - estado: {idx_estado}")
+        print(f"  - otros: {idx_otros}")
+        print(f"  - id-prueba (etiqueta): {idx_id_prueba}")
+        print(f"  - tipo usuario: {idx_tipo_usuario}")
+        print(f"  - step by step (pasos): {idx_pasos}")
+        print(f"  - criterio aceptacion: {idx_criterio}")
+        
         # Contadores
         total_filas = 0
         filas_procesadas = 0
@@ -95,78 +96,75 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         for fila in sheet.iter_rows(min_row=2, values_only=True):
             total_filas += 1
             
-            # Obtener datos - método DIRECTO para debug
-            idx_alcance = col("alcance de evaluacion")
-            alcance_raw = fila[idx_alcance] if idx_alcance is not None else None
+            # Verificar si la fila está vacía
+            if all(cell is None for cell in fila):
+                continue
             
-            idx_funcionalidad = col("funcionalidad")
-            funcionalidad_raw = fila[idx_funcionalidad] if idx_funcionalidad is not None else None
+            # Obtener valores de las columnas
+            alcance_raw = fila[idx_alcance] if idx_alcance is not None and idx_alcance < len(fila) else None
+            funcionalidad_raw = fila[idx_funcionalidad] if idx_funcionalidad is not None and idx_funcionalidad < len(fila) else None
+            descripcion_raw = fila[idx_descripcion] if idx_descripcion is not None and idx_descripcion < len(fila) else None
+            criticidad_raw = fila[idx_criticidad] if idx_criticidad is not None and idx_criticidad < len(fila) else None
+            estado_raw = fila[idx_estado] if idx_estado is not None and idx_estado < len(fila) else None
+            otros_raw = fila[idx_otros] if idx_otros is not None and idx_otros < len(fila) else None
+            id_prueba_raw = fila[idx_id_prueba] if idx_id_prueba is not None and idx_id_prueba < len(fila) else None
+            tipo_usuario_raw = fila[idx_tipo_usuario] if idx_tipo_usuario is not None and idx_tipo_usuario < len(fila) else None
+            pasos_raw = fila[idx_pasos] if idx_pasos is not None and idx_pasos < len(fila) else None
+            criterio_raw = fila[idx_criterio] if idx_criterio is not None and idx_criterio < len(fila) else None
             
-            idx_descripcion = col("descripcion")
-            descripcion_raw = fila[idx_descripcion] if idx_descripcion is not None else None
-            
-            idx_criticidad = col("criticidad")
-            criticidad_raw = fila[idx_criticidad] if idx_criticidad is not None else None
-            
-            idx_estado = col("estado")
-            estado_raw = fila[idx_estado] if idx_estado is not None else None
-            
-            idx_otros = col("otros")
-            otros_raw = fila[idx_otros] if idx_otros is not None else None
-            
-            # Convertir a string (manejar valores None)
+            # Convertir a string
             alcance = str(alcance_raw).strip() if alcance_raw is not None else ""
             funcionalidad = str(funcionalidad_raw).strip() if funcionalidad_raw is not None else ""
             descripcion = str(descripcion_raw).strip() if descripcion_raw is not None else ""
             criticidad = str(criticidad_raw).strip() if criticidad_raw is not None else ""
-            estado = str(estado_raw).strip() if estado_raw is not None and str(estado_raw).strip() else "por_ejecutar"
+            estado = str(estado_raw).strip() if estado_raw is not None and str(estado_raw).strip() else "por ejecutar"
             otros = str(otros_raw).strip() if otros_raw is not None else ""
+            id_prueba = str(id_prueba_raw).strip() if id_prueba_raw is not None else ""
+            tipo_usuario = str(tipo_usuario_raw).strip() if tipo_usuario_raw is not None else ""
+            pasos = str(pasos_raw).strip() if pasos_raw is not None else ""
+            criterio_aceptacion = str(criterio_raw).strip() if criterio_raw is not None else ""
             
-            # # DEBUG DETALLADO para las primeras 5 filas
-            # if total_filas <= 5:
-            #     print(f"\n🔍 DEBUG Fila {total_filas}:")
-            #     print(f"  RAW - Alcance: {repr(alcance_raw)} -> '{alcance}'")
-            #     print(f"  RAW - Funcionalidad: {repr(funcionalidad_raw)} -> '{funcionalidad}'")
-            #     print(f"  RAW - Descripción: {repr(descripcion_raw)} -> '{descripcion}'")
-            #     print(f"  RAW - Criticidad: {repr(criticidad_raw)} -> '{criticidad}'")
-            #     print(f"  RAW - Estado: {repr(estado_raw)} -> '{estado}'")
-            #     print(f"  RAW - Otros: {repr(otros_raw)} -> '{otros}'")
+            # Normalizar criticidad
+            criticidad_normalizada = normalizar_criticidad(criticidad)
             
-            # Validar campos OBLIGATORIOS
-            campos_obligatorios = [alcance, funcionalidad, descripcion, criticidad]
-            todos_presentes = all(campo != "" for campo in campos_obligatorios)
+            # Normalizar estado
+            if estado.lower() in ['por_ejecutar', 'por ejecutar', 'pendiente', '']:
+                estado_normalizado = "por ejecutar"
+            else:
+                estado_normalizado = estado
             
-            if todos_presentes:
-                try:
-                    CasoDePrueba.objects.create(
-                        matriz=matriz,
-                        alcance=alcance,
-                        fase=funcionalidad,
-                        caso_de_prueba=descripcion,
-                        estado="por_ejecutar",
-                        criticidad=criticidad,
-                        nota=otros,
-                        etiqueta="",
-                        tipo_usuario="",
-                        pasos="",
-                    )
-                    filas_procesadas += 1
-                    # if total_filas <= 5:
-                    #     print(f"  ✅ Creado caso de prueba")
-                    
-                except Exception as e:
-                    print(f"  ❌ Error al crear caso {total_filas}: {e}")
-                    filas_omitidas += 1
-            # else:
-            #     if total_filas <= 5:
-            #         print(f"  ⚠️  Campos faltantes: alcance='{alcance}', funcionalidad='{funcionalidad}', descripcion='{descripcion}', criticidad='{criticidad}'")
-            #     filas_omitidas += 1
+            # Validar campos obligatorios
+            campos_obligatorios = [alcance, funcionalidad, descripcion, criticidad_normalizada]
+            if not all(campos_obligatorios):
+                filas_omitidas += 1
+                continue
+            
+            # Filtrar por alcances permitidos
+            if alcances_permitidos and alcance not in alcances_permitidos:
+                filas_omitidas += 1
+                continue
+            
+            try:
+                CasoDePrueba.objects.create(
+                    matriz=matriz,
+                    alcance=alcance,
+                    fase=funcionalidad,
+                    caso_de_prueba=descripcion,
+                    estado=estado_normalizado,
+                    criticidad=criticidad_normalizada,
+                    nota=otros if otros else None,
+                    etiqueta=id_prueba if id_prueba else "",
+                    tipo_usuario=tipo_usuario if tipo_usuario else "",
+                    pasos=pasos if pasos else "",
+                    criterio_aceptacion=criterio_aceptacion if criterio_aceptacion else "",
+                )
+                filas_procesadas += 1
+                
+            except Exception as e:
+                print(f"Error al crear caso {total_filas}: {e}")
+                filas_omitidas += 1
         
-        # Resultado final
-        # print(f"\n📊 Resultado de importación:")
-        # print(f"  Total filas en Excel: {total_filas}")
-        # print(f"  Filas procesadas: {filas_procesadas}")
-        # print(f"  Filas omitidas: {filas_omitidas}")
+        print(f"\n📊 Resultado: {filas_procesadas} filas procesadas, {filas_omitidas} omitidas")
         
         if filas_procesadas == 0:
             return False, "No se importó ningún caso de prueba. Verifica que todas las columnas obligatorias tengan datos."
@@ -174,11 +172,27 @@ def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
         return True, f"Matriz importada correctamente. Se importaron {filas_procesadas} casos de prueba."
         
     except Exception as e:
-       # print(f"❌ Error crítico: {str(e)}")
-        
         traceback.print_exc()
         return False, f"Error al importar matriz: {str(e)}"
 
+
+def normalizar_criticidad(valor):
+    """
+    Normaliza el valor de criticidad según las reglas:
+    - blocker/bloqueante → Bloqueante
+    - critical/crítico → Crítico
+    """
+    if not valor or valor == '':
+        return ''
+    
+    valor_lower = str(valor).strip().lower()
+    
+    if any(palabra in valor_lower for palabra in ['blocker', 'bloqueante']):
+        return 'Bloqueante'
+    elif any(palabra in valor_lower for palabra in ['critical', 'critico']):
+        return 'Crítico'
+    else:
+        return str(valor).strip()
 # def importar_validates_desde_excel(super_matriz, ruta_excel):
 #     """
 #     Importa registros de 'Validate' desde un archivo Excel y los asigna a una SuperMatriz.
