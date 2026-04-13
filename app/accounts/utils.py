@@ -7,207 +7,258 @@ from io import BytesIO
 def procesar_excel_matriz(archivo_excel):
     """
     Procesa el archivo Excel y retorna BytesIO con el archivo procesado.
+    
+    Requerimientos:
+    - Los 6 headers son OBLIGATORIOS: alcance de evaluacion, funcionalidad, descripcion, 
+      pasos a seguir, criticidad, otros
+    - NO importa el orden de las columnas
+    - El orden FINAL de los headers debe ser:
+      ID-prueba, Alcance de evaluacion, Funcionalidad, Tipo de usuario, Descripcion,
+      STEP BY STEP, Criterio aceptación, Criticidad, Estado, Otros
+    - Normalizar criticidad: blocker/bloqueante → Bloqueante, critical/crítico → Crítico
     """
     try:
         # ============================================
         # 1. LEER EXCEL CRUDO
         # ============================================
-        # print(f"\n LEYENDO EXCEL CRUDO...")
-        
-        # Leer el Excel COMPLETO sin headers
         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
-        # print(f" Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
         
         # ============================================
-        # 2. BUSCAR LA FILA CON LOS HEADERS REALES
+        # 2. DEFINIR ENCABEZADOS OBLIGATORIOS Y OPCIONALES
         # ============================================
-        # print(f"\n BUSCANDO HEADERS REALES...")
-        
-        # NUEVOS HEADERS REQUERIDOS
-        target_headers = [
-            'id-prueba',
+        # Los 6 headers OBLIGATORIOS (deben estar SÍ o SÍ)
+        required_headers = [
             'alcance de evaluacion',
-            'funcionalidad',
-            'tipo de usuario',
+            'funcionalidad', 
             'descripcion',
             'pasos a seguir',
             'criticidad',
+            'otros'
+        ]
+        
+        # Headers opcionales (no son necesarios)
+        optional_headers = [
+            'id-prueba',
+            'tipo de usuario',
             'estado',
-            'otros',
             'criterio aceptacion'
         ]
         
-        # NUEVAS VARIANTES DE HEADERS
+        # Todos los headers que nos interesan
+        all_target_headers = required_headers + optional_headers
+        
+        # Variantes de cada header (para búsqueda flexible)
         header_variants = {
-            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador'],
-            'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
-            'funcionalidad': ['fase', 'funcionalidad', 'funcionalidad o fase'],
-            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol'],
-            'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion'],
-            'pasos a seguir': ['step by step', 'pasos', 'pasos a seguir', 'procedimiento'],
-            'criticidad': ['prioridad', 'criticidad', 'severidad'],
-            'estado': ['status', 'estado', 'situación'],
-            'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones', 'notas'],
-            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación']
+            'alcance de evaluacion': ['alcance de evaluacion', 'alcance de evaluación', 'alcance', 'evaluacion'],
+            'funcionalidad': ['funcionalidad', 'fase', 'funcionalidad o fase'],
+            'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'desc'],
+            'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'step'],
+            'criticidad': ['criticidad', 'prioridad', 'severidad'],
+            'otros': ['otros', 'comentarios', 'observaciones', 'notas'],
+            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'id caso de prueba'],
+            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario'],
+            'estado': ['estado', 'status', 'situación'],
+            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion']
         }
         
+        # ============================================
+        # 3. BUSCAR LA FILA CON LOS HEADERS
+        # ============================================
         header_row_idx = None
-        header_positions = {}  # {header_name: column_index}
+        column_mapping = {}  # {nombre_estandar: col_index}
         
-        for row_idx in range(min(50, len(df_raw))):
+        # Buscar en las primeras 100 filas
+        for row_idx in range(min(100, len(df_raw))):
             row = df_raw.iloc[row_idx]
-            found_headers = {}
+            temp_mapping = {}
             
-            # Buscar cada header en esta fila
+            # Recorrer cada celda de la fila
             for col_idx, cell in enumerate(row):
                 if pd.isna(cell):
                     continue
-                    
-                cell_str = str(cell).strip().lower()
                 
-                # Buscar cada header target
-                for target in target_headers:
-                    target_lower = target.lower()
+                cell_str = str(cell).strip().lower()
+                if len(cell_str) < 2:
+                    continue
+                
+                # Buscar coincidencia con nuestros headers
+                for target in all_target_headers:
+                    variants = header_variants.get(target, [target])
                     
-                    # Coincidencia exacta
-                    if cell_str == target_lower:
-                        found_headers[target] = col_idx
-                    
-                    # Coincidencia con variantes
-                    elif target in header_variants:
-                        for variant in header_variants[target]:
-                            if variant.lower() in cell_str or cell_str in variant.lower():
-                                found_headers[target] = col_idx
+                    # Coincidencia exacta o por variantes
+                    if cell_str == target.lower():
+                        temp_mapping[target] = col_idx
+                    else:
+                        for variant in variants:
+                            if variant.lower() == cell_str or cell_str in variant.lower() or variant.lower() in cell_str:
+                                temp_mapping[target] = col_idx
                                 break
             
-            # Ahora requerimos al menos 8 de los 10 headers (80%)
-            if len(found_headers) >= 8:
+            # Verificar si encontramos TODOS los 6 headers obligatorios
+            found_required = [h for h in required_headers if h in temp_mapping]
+            
+            # Si encontramos los 6 obligatorios, esta es nuestra fila de headers
+            if len(found_required) == 6:
                 header_row_idx = row_idx
-                header_positions = found_headers
-                # print(f" HEADERS REALES ENCONTRADOS en fila {row_idx}")
-                # print(f"   Headers encontrados: {len(found_headers)} de {len(target_headers)}")
-                # print(f"   Headers y sus columnas: {found_headers}")
+                column_mapping = temp_mapping
                 break
         
+        # VALIDACIÓN ESTRICTA: Deben estar los 6 headers obligatorios
         if header_row_idx is None:
+            # Identificar cuáles headers faltan
+            all_found = set()
+            for row_idx in range(min(100, len(df_raw))):
+                row = df_raw.iloc[row_idx]
+                for col_idx, cell in enumerate(row):
+                    if pd.isna(cell):
+                        continue
+                    cell_str = str(cell).strip().lower()
+                    for target in required_headers:
+                        variants = header_variants.get(target, [target])
+                        if cell_str == target.lower() or any(variant.lower() in cell_str for variant in variants):
+                            all_found.add(target)
+            
+            missing_headers = [h for h in required_headers if h not in all_found]
             raise ValidationError(
-                f"No se encontraron los headers requeridos en el Excel. "
-                f"Se requieren al menos 8 de los {len(target_headers)} headers."
+                f"No se encontraron todos los encabezados obligatorios. "
+                f"Faltan: {', '.join(missing_headers)}. "
+                f"Los encabezados requeridos son: {', '.join(required_headers)}"
             )
         
         # ============================================
-        # 3. EXTRAER DATOS MANUALMENTE
+        # 4. EXTRAER DATOS (NO importa el orden de columnas)
         # ============================================
-        #print(f"\n📥 EXTRAYENDO DATOS DESDE FILA {header_row_idx + 1}...")
+        data_rows = []
         
-        # Los datos empiezan en la fila DESPUÉS de los headers
-        data_start_row = header_row_idx + 1
-        
-        # Preparar lista para almacenar datos
-        extracted_data = []
-        
-        for row_idx in range(data_start_row, len(df_raw)):
+        # Empezar desde la fila siguiente a los headers
+        for row_idx in range(header_row_idx + 1, len(df_raw)):
             row = df_raw.iloc[row_idx]
+            
+            # Verificar si la fila está completamente vacía
+            if row.isna().all():
+                continue
+            
             row_data = {}
-            has_valid_data = False
+            has_data = False
             
-            # Extraer cada campo según la posición de su header
-            for header_name, col_idx in header_positions.items():
+            # Extraer datos según el mapeo de columnas
+            for std_header, col_idx in column_mapping.items():
                 if col_idx < len(row):
-                    cell_value = row[col_idx]
+                    value = row[col_idx]
                     
-                    # Limpiar el valor
-                    if pd.isna(cell_value):
-                        row_data[header_name] = ""
+                    if pd.isna(value):
+                        row_data[std_header] = ""
                     else:
-                        value = str(cell_value).strip()
-                        row_data[header_name] = value
-                        
-                        if value and value.lower() not in ['nan', 'none', '']:
-                            has_valid_data = True
+                        value_str = str(value).strip()
+                        if value_str.lower() in ['nan', 'none', 'null']:
+                            row_data[std_header] = ""
+                        else:
+                            row_data[std_header] = value_str
+                            if std_header in required_headers and value_str:
+                                has_data = True
                 else:
-                    row_data[header_name] = ""
+                    row_data[std_header] = ""
             
-            # Solo agregar filas con datos válidos
-            if has_valid_data:
-                extracted_data.append(row_data)
+            # Agregar headers opcionales que no se encontraron
+            for header in optional_headers:
+                if header not in row_data:
+                    row_data[header] = ""
+            
+            # Solo agregar si tiene al menos un dato en algún campo obligatorio
+            if has_data:
+                data_rows.append(row_data)
         
-        if not extracted_data:
-            raise ValidationError("No se encontraron datos válidos después de los headers")
+        if not data_rows:
+            raise ValidationError("No se encontraron datos válidos después de los encabezados")
         
         # ============================================
-        # 4. CREAR DATAFRAME CON DATOS EXTRAÍDOS
+        # 5. CREAR DATAFRAME CON LOS DATOS
         # ============================================
-        #print(f"\n CREANDO DATAFRAME CON {len(extracted_data)} FILAS...")
+        nuevo_df = pd.DataFrame(data_rows)
         
-        # Crear DataFrame
-        nuevo_df = pd.DataFrame(extracted_data)
+        # Asegurar que existan TODAS las columnas
+        for col in all_target_headers:
+            if col not in nuevo_df.columns:
+                nuevo_df[col] = ""
         
-        # Asegurar que tengamos todas las columnas requeridas
-        required_columns = [
+        # ============================================
+        # 6. NORMALIZAR CRITICIDAD
+        # ============================================
+        def normalizar_criticidad(valor):
+            if not valor or valor == '':
+                return ''
+            
+            valor_lower = str(valor).strip().lower()
+            
+            # Bloqueante: blocker o bloqueante
+            if any(palabra in valor_lower for palabra in ['blocker', 'bloqueante']):
+                return 'Bloqueante'
+            # Crítico: critical o crítico
+            elif any(palabra in valor_lower for palabra in ['critical', 'critico']):
+                return 'Crítico'
+            else:
+                # Si no coincide, devolver el valor original
+                return str(valor).strip()
+        
+        if 'criticidad' in nuevo_df.columns:
+            nuevo_df['criticidad'] = nuevo_df['criticidad'].apply(normalizar_criticidad)
+        
+        # ============================================
+        # 7. REORDENAR COLUMNAS EN EL ORDEN ESPECÍFICO
+        # ============================================
+        column_order = [
             'id-prueba',
             'alcance de evaluacion',
             'funcionalidad',
             'tipo de usuario',
             'descripcion',
             'pasos a seguir',
+            'criterio aceptacion',
             'criticidad',
             'estado',
-            'otros',
-            'criterio aceptacion'
+            'otros'
         ]
         
-        # Agregar columnas faltantes (vacías)
-        for col in required_columns:
+        # Verificar que todas las columnas existan
+        for col in column_order:
             if col not in nuevo_df.columns:
                 nuevo_df[col] = ""
         
-        # Ordenar columnas según el orden deseado
-        nuevo_df = nuevo_df[required_columns]
+        # Reordenar
+        nuevo_df = nuevo_df[column_order]
+        
+        # Renombrar columnas para la salida final
+        nuevo_df = nuevo_df.rename(columns={
+            'pasos a seguir': 'STEP BY STEP',
+            'id-prueba': 'ID-prueba',
+            'alcance de evaluacion': 'Alcance de evaluacion',
+            'funcionalidad': 'Funcionalidad',
+            'tipo de usuario': 'Tipo de usuario',
+            'descripcion': 'Descripcion',
+            'criterio aceptacion': 'Criterio aceptación',
+            'criticidad': 'Criticidad',
+            'estado': 'Estado',
+            'otros': 'Otros'
+        })
         
         # ============================================
-        # 5. LIMPIEZA DE DATOS
+        # 8. LIMPIEZA DE DATOS
         # ============================================
-        #print("\n🧹 LIMPIANDO DATOS...")
-        
-        original_count = len(nuevo_df)
-        
-        # A. Eliminar filas donde 'descripcion' y 'criticidad' estén vacías
-        if len(nuevo_df) > 0:
-            mask_valid = (
-                (nuevo_df['descripcion'].astype(str).str.strip() != "") &
-                (nuevo_df['criticidad'].astype(str).str.strip() != "")
-            )
-            nuevo_df = nuevo_df[mask_valid].copy()
-        
-        # B. Asignar 'por_ejecutar' a estado
-        if 'estado' in nuevo_df.columns and len(nuevo_df) > 0:
-            nuevo_df['estado'] = 'por ejecutar'
-        
-        # C. Limpiar espacios en blanco en todas las columnas
         for col in nuevo_df.columns:
-            nuevo_df[col] = nuevo_df[col].apply(
-                lambda x: str(x).strip() if pd.notna(x) and str(x).strip().lower() != 'nan' else ""
+            nuevo_df[col] = nuevo_df[col].astype(str).str.strip()
+            nuevo_df[col] = nuevo_df[col].replace(['nan', 'None', 'NaN', 'none', 'null'], '')
+        
+        # Asignar 'por ejecutar' a Estado si está vacío
+        if 'Estado' in nuevo_df.columns:
+            nuevo_df['Estado'] = nuevo_df['Estado'].apply(
+                lambda x: 'por ejecutar' if x == '' else x
             )
         
-        # D. Resetear índice
+        # Resetear índice
         nuevo_df = nuevo_df.reset_index(drop=True)
         
         # ============================================
-        # 6. VERIFICAR RESULTADO
-        # ============================================
-        if len(nuevo_df) == 0:
-            raise ValidationError("No hay datos válidos después del procesamiento")
-        
-        # print(f"\n PROCESAMIENTO COMPLETADO:")
-        # print(f"   - Headers encontrados en fila: {header_row_idx}")
-        # print(f"   - Headers encontrados: {len(header_positions)} de {len(target_headers)}")
-        # print(f"   - Datos extraídos desde fila: {data_start_row}")
-        # print(f"   - Filas originales extraídas: {original_count}")
-        # print(f"   - Filas después de limpieza: {len(nuevo_df)}")
-        
-        # ============================================
-        # 7. GUARDAR EN BUFFER
+        # 9. GUARDAR RESULTADO
         # ============================================
         output = BytesIO()
         
@@ -221,7 +272,6 @@ def procesar_excel_matriz(archivo_excel):
     except ValidationError:
         raise
     except Exception as e:
-        #print(f"❌ Error inesperado: {str(e)}")
         import traceback
         traceback.print_exc()
         raise ValidationError(f"Error al procesar el archivo Excel: {str(e)}")
