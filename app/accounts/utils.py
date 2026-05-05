@@ -7,6 +7,7 @@ from io import BytesIO
 def procesar_excel_matriz(archivo_excel):
     """
     Procesa el archivo Excel y retorna BytesIO con el archivo procesado.
+    Acepta headers en español o inglés.
     """
     try:
         # ============================================
@@ -15,8 +16,23 @@ def procesar_excel_matriz(archivo_excel):
         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
         
         # ============================================
-        # 2. DEFINIR ENCABEZADOS (TODOS EN MINÚSCULAS)
+        # 2. DEFINIR ENCABEZADOS (español e inglés)
         # ============================================
+        # Mapeo de headers estándar (español) a sus variantes (español e inglés)
+        header_variants = {
+            'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'evaluacion', 'priority'],
+            'funcionalidad': ['funcionalidad', 'fase', 'section'],
+            'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'desc', 'test case name'],
+            'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'test step', 'step'],
+            'criticidad': ['criticidad', 'prioridad', 'severidad', 'severity level'],
+            'otros': ['otros', 'comentarios', 'observaciones', 'notas', 'nota'],
+            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'id caso de prueba', 'test case id'],
+            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario'],
+            'estado': ['estado', 'status', 'situación'],
+            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion', 'expected result']
+        }
+        
+        # Headers requeridos (6 obligatorios)
         required_headers = [
             'alcance de evaluacion',
             'funcionalidad', 
@@ -26,6 +42,7 @@ def procesar_excel_matriz(archivo_excel):
             'otros'
         ]
         
+        # Headers opcionales
         optional_headers = [
             'id-prueba',
             'tipo de usuario',
@@ -33,24 +50,8 @@ def procesar_excel_matriz(archivo_excel):
             'criterio aceptacion'
         ]
         
-        all_target_headers = required_headers + optional_headers
-        
-        # Variantes de cada header (TODAS EN MINÚSCULAS)
-        header_variants = {
-            'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'evaluacion'],
-            'funcionalidad': ['funcionalidad', 'fase'],
-            'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'desc'],
-            'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'step'],
-            'criticidad': ['criticidad', 'prioridad', 'severidad'],
-            'otros': ['otros', 'comentarios', 'observaciones', 'notas'],
-            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'id caso de prueba', 'id caso', 'caso id'],
-            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario'],
-            'estado': ['estado', 'status', 'situación'],
-            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion']
-        }
-        
         # ============================================
-        # 3. BUSCAR LA FILA CON LOS HEADERS (TODO EN MINÚSCULAS)
+        # 3. BUSCAR LA FILA CON LOS HEADERS
         # ============================================
         header_row_idx = None
         column_mapping = {}
@@ -63,23 +64,22 @@ def procesar_excel_matriz(archivo_excel):
                 if pd.isna(cell):
                     continue
                 
-                # Convertir a minúsculas directamente
+                # Convertir a minúsculas y limpiar
                 cell_str = str(cell).strip().lower()
                 if len(cell_str) < 2:
                     continue
                 
-                for target in all_target_headers:
-                    variants = header_variants.get(target, [target])
-                    
-                    # Coincidencia exacta (todo en minúsculas)
-                    if cell_str == target:
-                        temp_mapping[target] = col_idx
+                # Buscar coincidencia con cualquier header o variante
+                for target_header, variants in header_variants.items():
+                    # Coincidencia exacta (en minúsculas)
+                    if cell_str == target_header.lower():
+                        temp_mapping[target_header] = col_idx
                         break
                     
                     # Coincidencia con variantes
                     for variant in variants:
-                        if cell_str == variant or variant in cell_str or cell_str in variant:
-                            temp_mapping[target] = col_idx
+                        if cell_str == variant.lower():
+                            temp_mapping[target_header] = col_idx
                             break
             
             # Verificar si encontramos los 6 headers obligatorios
@@ -88,11 +88,24 @@ def procesar_excel_matriz(archivo_excel):
             if len(found_required) == 6:
                 header_row_idx = row_idx
                 column_mapping = temp_mapping
+                print(f"✅ Headers encontrados en fila {row_idx}: {found_required}")
                 break
         
         if header_row_idx is None:
+            # Mostrar qué headers se encontraron en las primeras filas para debug
+            print("🔍 Buscando headers...")
+            for row_idx in range(min(5, len(df_raw))):
+                print(f"Fila {row_idx}: {[str(c).strip() for c in df_raw.iloc[row_idx] if not pd.isna(c)][:10]}")
+            
             raise ValidationError(
-                f"No se encontraron los encabezados obligatorios: {', '.join(required_headers)}"
+                f"No se encontraron los encabezados obligatorios: {', '.join(required_headers)}\n\n"
+                f"Headers aceptados:\n"
+                f"  • alcance de evaluacion / Priority\n"
+                f"  • funcionalidad / Section\n"
+                f"  • descripcion / Test Case Name\n"
+                f"  • pasos a seguir / Test Step\n"
+                f"  • criticidad / Severity Level\n"
+                f"  • otros / Nota"
             )
         
         # ============================================
@@ -139,14 +152,15 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 5. CREAR DATAFRAME
         # ============================================
+        all_headers = required_headers + optional_headers
         nuevo_df = pd.DataFrame(data_rows)
         
-        for col in all_target_headers:
+        for col in all_headers:
             if col not in nuevo_df.columns:
                 nuevo_df[col] = ""
         
         # ============================================
-        # 6. LIMPIAR ID-PRUEBA (valores que no son IDs)
+        # 6. LIMPIAR ID-PRUEBA
         # ============================================
         valores_no_id = ['blocker', 'bloqueante', 'critical', 'critico', 'alta', 'media', 'baja']
         

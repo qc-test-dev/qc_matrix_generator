@@ -81,7 +81,7 @@ class DispositivoForm(forms.ModelForm):
         
         # Validar tamaño del archivo (opcional, 50MB máximo)
         if archivo.size > 50 * 1024 * 1024:  # 50MB
-            raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 10MB")
+            raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 50MB")
         
         return archivo
     
@@ -105,7 +105,7 @@ class DispositivoForm(forms.ModelForm):
                 if len(df_raw) == 0:
                     raise ValidationError("El archivo Excel está vacío")
                 
-                # NUEVOS HEADERS REQUERIDOS
+                # HEADERS REQUERIDOS (en español)
                 headers_buscados = [
                     'id-prueba',
                     'alcance de evaluacion',
@@ -119,66 +119,76 @@ class DispositivoForm(forms.ModelForm):
                     'criterio aceptacion'
                 ]
                 
-                # NUEVAS VARIANTES DE HEADERS
+                # VARIANTES DE HEADERS (español e inglés)
                 variantes_headers = {
-                    'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador'],
-                    'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
-                    'funcionalidad': ['fase', 'funcionalidad'],
+                    'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'test case id'],
+                    'alcance de evaluacion': ['alcance de evaluación', 'alcance', 'priority'],
+                    'funcionalidad': ['fase', 'funcionalidad', 'section'],
                     'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol'],
-                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion'],
-                    'pasos a seguir': ['STEP BY STEP', 'pasos', 'pasos a seguir','"STEP BY STEP"' ],
-                    'criticidad': ['prioridad', 'criticidad'],
+                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion', 'test case name'],
+                    'pasos a seguir': ['step by step', 'pasos', 'pasos a seguir', 'test step'],
+                    'criticidad': ['prioridad', 'criticidad', 'severity level'],
                     'estado': ['status', 'estado', 'situación'],
-                    'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones'],
-                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación']
+                    'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones', 'nota'],
+                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación', 'expected result']
                 }
                 
-                # Buscar en cada fila (igual que en procesar_excel_matriz)
+                # Buscar en cada fila
                 headers_encontrados = False
                 fila_headers = None
+                headers_que_faltan = []
                 
                 for idx_fila in range(min(50, len(df_raw))):
                     fila = df_raw.iloc[idx_fila]
-                    coincidencias = 0
-                    headers_encontrados_fila = []
+                    headers_actuales = []
                     
                     for celda in fila:
                         if pd.isna(celda):
                             continue
                             
-                        celda_str = str(celda).strip().lower()
+                        celda_str = str(celda).strip()
+                        celda_str_lower = celda_str.lower()
                         
                         # Buscar cada header en esta celda
                         for header in headers_buscados:
-                            header_lower = header.lower()
-                            
-                            if celda_str == header_lower:
-                                coincidencias += 1
-                                headers_encontrados_fila.append(header)
+                            # Verificar coincidencia exacta o por variantes
+                            if celda_str_lower == header.lower():
+                                if header not in headers_actuales:
+                                    headers_actuales.append(header)
                                 break
                             elif header in variantes_headers:
                                 for variante in variantes_headers[header]:
                                     variante_lower = variante.lower()
-                                    if variante_lower in celda_str or celda_str in variante_lower:
-                                        coincidencias += 1
-                                        headers_encontrados_fila.append(header)
+                                    # Comparación exacta sin importar mayúsculas/minúsculas
+                                    if celda_str_lower == variante_lower:
+                                        if header not in headers_actuales:
+                                            headers_actuales.append(header)
                                         break
                     
-                    # Necesitamos encontrar al menos 8 de los 10 headers (80% para ser flexible)
-                    if coincidencias >= 8:
+                    # Necesitamos encontrar al menos 8 de los 10 headers
+                    if len(headers_actuales) >= 8:
                         headers_encontrados = True
                         fila_headers = idx_fila + 1
-                        #print(f"✅ Validación: {coincidencias} de {len(headers_buscados)} headers encontrados en fila {fila_headers}")
                         break
                 
                 if not headers_encontrados:
                     # Crear mensaje detallado de los headers requeridos
-                    mensaje_headers = "\n".join([f"  • {h}" for h in headers_buscados])
+                    mensaje_headers = "\n".join([f"  • {h} (ej: {variantes_headers[h][0]})" for h in headers_buscados])
                     raise ValidationError(
                         f"No se encontraron los headers requeridos en el Excel.\n\n"
                         f"El archivo debe contener al menos 8 de los siguientes 10 headers:\n"
                         f"{mensaje_headers}\n\n"
-                        f"Headers encontrados: Revise que los nombres de las columnas sean correctos."
+                        f"Headers aceptados (español o inglés):\n"
+                        f"  • id-prueba / Test Case ID\n"
+                        f"  • alcance de evaluacion / Priority\n"
+                        f"  • funcionalidad / Section\n"
+                        f"  • tipo de usuario / Type\n"
+                        f"  • descripcion / Test Case Name\n"
+                        f"  • pasos a seguir / Test Step\n"
+                        f"  • criticidad / Severity Level\n"
+                        f"  • estado / Status\n"
+                        f"  • otros / Nota\n"
+                        f"  • criterio aceptacion / Expected Result"
                     )
                 
                 # Restaurar posición del archivo
@@ -256,13 +266,10 @@ class DispositivoForm(forms.ModelForm):
             dispositivo = super().save(commit=False)
             
             # 6. Guardar el archivo procesado usando el storage
-            # Crear ContentFile desde el buffer
             content_file = ContentFile(excel_procesado.getvalue())
-            
-            # Asignar nombre al content file
             content_file.name = nombre_unico
             
-            # Guardar usando el storage (esto manejará la ruta completa)
+            # Guardar usando el storage
             dispositivo.archivo_excel.save(ruta_final, content_file, save=False)
             
             # 7. Actualizar campos
