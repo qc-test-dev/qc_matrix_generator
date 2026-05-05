@@ -254,10 +254,11 @@
                             <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
                         {% endif %}
 
-                        <!-- COLUMNA MODIFICADA-->
+                        <!-- COLUMNA MODIFICADA con data-pasos y data-criterio -->
                         <td class="caso-prueba-cell">
                             <div class="caso-prueba-content"
                                  data-pasos="{{ caso.pasos|default:''|escapejs }}"
+                                 data-criterio="{{ caso.criterio_aceptacion|default:''|escapejs }}"
                                  data-caso="{{ caso.caso_de_prueba|escapejs }}"
                                  onmouseenter="mostrarPasos(this)"
                                  onmouseleave="ocultarPasos()"
@@ -293,29 +294,52 @@
 <!-- TOOLTIP GLOBAL -->
 <div id="global-tooltip" class="global-tooltip" style="display: none;"></div>
 
-<!-- MODAL PARA PASOS -->
+<!-- MODAL PARA PASOS Y CRITERIOS DE ACEPTACIÓN -->
 <div class="modal fade" id="modalPasos" tabindex="-1" aria-labelledby="modalPasosLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-success">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="modalPasosLabel">Pasos del Caso de Prueba</h5>
+                <h5 class="modal-title" id="modalPasosLabel">
+                    <i class="fas fa-info-circle me-2"></i>Detalles del Caso de Prueba
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <h6 id="modal-caso-titulo" class="text-muted mb-3"></h6>
-                <div id="modal-pasos-contenido" class="pasos-modal-content">
+                <div class="mb-4">
+                    <h6 id="modal-caso-titulo" class="text-muted mb-3"></h6>
+                </div>
+                
+                <!-- Sección de Pasos a Seguir -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-primary">
+                        <i class="fas fa-list-ol me-2"></i>Pasos a Seguir:
+                    </h6>
+                    <div id="modal-pasos-contenido" class="pasos-modal-content">
+                        <em class="text-muted">Cargando...</em>
+                    </div>
+                </div>
+                
+                <!-- Sección de Criterios de Aceptación -->
+                <div>
+                    <h6 class="fw-bold text-success">
+                        <i class="fas fa-check-circle me-2"></i>Criterios de Aceptación:
+                    </h6>
+                    <div id="modal-criterio-contenido" class="criterio-modal-content">
+                        <em class="text-muted">Cargando...</em>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i>Cerrar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- El resto de tu JavaScript permanece igual -->
 <script>
-// El resto del código JavaScript permanece igual...
+// Tooltip y modal
 let tooltipTimeout;
 let currentTooltipElement = null;
 const globalTooltip = document.getElementById('global-tooltip');
@@ -341,7 +365,7 @@ function mostrarPasos(element) {
     // Configurar contenido
     globalTooltip.innerHTML = `
         <h6>Pasos del Caso de Prueba:</h6>
-        <div class="pasos-text">${pasos}</div>
+        <div class="pasos-text">${pasos.replace(/\n/g, '<br>')}</div>
     `;
 
     // Obtener la posición de la celda actual
@@ -370,7 +394,7 @@ function mostrarPasos(element) {
         top = 10;
     }
 
-    // Aplicar posición (usando posición fija relativa a la ventana)
+    // Aplicar posición
     globalTooltip.style.position = 'fixed';
     globalTooltip.style.left = left + 'px';
     globalTooltip.style.top = top + 'px';
@@ -382,7 +406,6 @@ function mostrarPasos(element) {
 }
 
 function ocultarPasos() {
-    // Pequeño delay para evitar parpadeo al mover entre celdas
     tooltipTimeout = setTimeout(() => {
         globalTooltip.classList.remove('visible');
         setTimeout(() => {
@@ -392,21 +415,65 @@ function ocultarPasos() {
     }, 150);
 }
 
-// Función para abrir el modal con los pasos
+// Función para abrir el modal con los pasos y criterios de aceptación
 function abrirModalPasos(element) {
     let pasos = element.getAttribute('data-pasos');
+    let criterio = element.getAttribute('data-criterio');
     const caso = element.getAttribute('data-caso');
 
-    // Verificar si no hay pasos disponibles
+    // Configurar el título del modal
+    document.getElementById('modal-caso-titulo').innerHTML = `
+        <i class="fas fa-file-alt me-2"></i>${caso}
+    `;
+
+    // Verificar y formatear pasos
     if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
-        pasos = 'No hay pasos disponibles';
+        document.getElementById('modal-pasos-contenido').innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>No hay pasos definidos para este caso de prueba.
+            </div>
+        `;
+    } else {
+        // Formatear pasos: convertir saltos de línea a <br> y mejorar numeración
+        let pasosFormateado = pasos.replace(/\n/g, '<br>');
+        // Mejorar formato de números (1- texto -> 1. texto)
+        pasosFormateado = pasosFormateado.replace(/(\d+)-/g, '$1. ');
+        pasosFormateado = pasosFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
+        if (!pasosFormateado.startsWith('<br>')) {
+            pasosFormateado = '<br>' + pasosFormateado;
+        }
+        
+        document.getElementById('modal-pasos-contenido').innerHTML = `
+            <div class="pasos-text-modal">
+                ${pasosFormateado}
+            </div>
+        `;
     }
 
-    // Configurar el contenido del modal
-    document.getElementById('modal-caso-titulo').textContent = caso;
-    document.getElementById('modal-pasos-contenido').innerHTML = `
-        <div class="pasos-text-modal">${pasos}</div>
-    `;
+    // Verificar y formatear criterios de aceptación
+    if (!criterio || criterio === 'None' || criterio === 'null' || criterio.trim() === '') {
+        document.getElementById('modal-criterio-contenido').innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>No hay criterios de aceptación definidos para este caso de prueba.
+            </div>
+        `;
+    } else {
+        // Formatear criterios: convertir saltos de línea a <br> y mejorar formato
+        let criterioFormateado = criterio.replace(/\n/g, '<br>');
+        // Mejorar formato de viñetas
+        criterioFormateado = criterioFormateado.replace(/(\d+)-/g, '$1. ');
+        criterioFormateado = criterioFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
+        criterioFormateado = criterioFormateado.replace(/^[•\-*]\s*/gm, '<br>• ');
+        if (!criterioFormateado.startsWith('<br>') && !criterioFormateado.startsWith('•')) {
+            criterioFormateado = '<br>' + criterioFormateado;
+        }
+        
+        document.getElementById('modal-criterio-contenido').innerHTML = `
+            <div class="criterio-text-modal">
+                ${criterioFormateado}
+            </div>
+        `;
+    }
 
     // Mostrar el modal
     const modal = new bootstrap.Modal(document.getElementById('modalPasos'));
@@ -426,7 +493,7 @@ globalTooltip.addEventListener('mouseleave', () => {
     }, 200);
 });
 
-// El resto del código JavaScript existente permanece igual
+// WebSocket y actualizaciones
 const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
@@ -531,7 +598,6 @@ function updateCaseNote(caseId, newNote) {
 function applyStateColor(select) {
     const state = select.value.toLowerCase().trim();
 
-    // Reset clases
     select.className = "estado-input form-control";
     select.style.backgroundColor = "";
     select.style.color = "";
@@ -629,7 +695,6 @@ function handleNotaBlur(event) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 Inicializando aplicación...");
 
-    // Añadir estilos flash
     const style = document.createElement('style');
     style.textContent = `
         .flash-update {
@@ -650,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("🔄 Verificando conexión...");
             createWebSocketConnection();
         }
-    }, 6*1000);
+    }, 6000);
 });
 
 window.addEventListener('beforeunload', function() {
@@ -677,7 +742,6 @@ function actualizarTablaCasos() {
                     const filaActual = tablaActual.querySelector(`tr[data-id="${id}"]`);
                     if (!filaActual) return;
 
-                    // Estado
                     const nuevoSelect = nuevaFila.querySelector('.estado-input');
                     const actualSelect = filaActual.querySelector('.estado-input');
                     if (document.activeElement !== actualSelect) {
@@ -685,7 +749,6 @@ function actualizarTablaCasos() {
                         applyStateColor(actualSelect);
                     }
 
-                    // Nota
                     const nuevaNota = nuevaFila.querySelector('.nota-input');
                     const actualNota = filaActual.querySelector('.nota-input');
                     if (document.activeElement !== actualNota) {
@@ -702,10 +765,9 @@ function actualizarTablaCasos() {
         });
 }
 
-// Auto‐reload cada 60 s
 setInterval(() => {
     actualizarTablaCasos();
-}, 6 * 1000);
+}, 6000);
 
 function actualizarFallos() {
     fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
@@ -716,7 +778,6 @@ function actualizarFallos() {
         .catch(error => console.error("Error al actualizar fallos:", error));
 }
 
-// Actualizar cada 6 segundos
 setInterval(actualizarFallos, 6000);
 </script>
 
@@ -727,19 +788,10 @@ setInterval(actualizarFallos, 6000);
 
 .caso-prueba-content {
     position: relative;
-    cursor: help;
+    cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
     transition: background-color 0.2s;
-}
-
-.caso-prueba-content:hover {
-    background-color: #f8f9fa;
-}
-
-/* Estilo para hacer que el texto sea clickeable */
-.caso-prueba-content {
-    cursor: pointer;
 }
 
 .caso-prueba-content:hover {
@@ -785,24 +837,39 @@ setInterval(actualizarFallos, 6000);
 
 /* Estilos para el modal */
 .pasos-modal-content {
-    max-height: 60vh;
+    max-height: 300px;
     overflow-y: auto;
     padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.criterio-modal-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
 }
 
 .pasos-text-modal {
     white-space: pre-wrap;
     word-wrap: break-word;
     line-height: 1.6;
-    font-size: 1em;
+    font-size: 0.95em;
     color: #333;
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    border-left: 4px solid #007bff;
 }
 
-/* Asegurar que el tooltip no se salga de la pantalla */
+.criterio-text-modal {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    font-size: 0.95em;
+    color: #333;
+}
+
 @media (max-width: 768px) {
     .global-tooltip {
         width: 300px;
@@ -813,19 +880,16 @@ setInterval(actualizarFallos, 6000);
     }
 }
 
-/* Estilos existentes se mantienen */
 .flash-update {
     background-color: #fff3cd !important;
     transition: background-color 1s ease;
 }
 
-/* Estilos para los dropdowns de filtro */
 .dropdown-menu {
     max-height: 300px;
     overflow-y: auto;
 }
 
-/* ESTILOS MEJORADOS PARA BOTONES DE DROPDOWN - NEGROS */
 .dropdown-btn-enhanced {
     font-weight: 600 !important;
     border-width: 2px !important;
@@ -833,7 +897,6 @@ setInterval(actualizarFallos, 6000);
     transition: all 0.2s ease-in-out !important;
 }
 
-/* Cambiar todos los dropdowns a negro */
 .btn-secondary.dropdown-btn-enhanced {
     background-color: #212529 !important;
     border-color: #212529 !important;
@@ -855,13 +918,6 @@ setInterval(actualizarFallos, 6000);
     box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
 }
 
-.btn-secondary.dropdown-btn-enhanced:active {
-    background-color: #000000 !important;
-    border-color: #000000 !important;
-    color: white !important;
-}
-
-/* Estilos para dropdowns más compactos */
 .dropdown-menu-sm .dropdown-item {
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
@@ -871,25 +927,7 @@ setInterval(actualizarFallos, 6000);
     margin: 0.25rem 0;
 }
 
-/* Mejorar la apariencia de los botones pequeños */
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
-    line-height: 1.2;
-}
-
-/* Ajustar badges para que sean más compactos */
-.badge.small {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.4rem;
-}
-
-/* Mejorar el enfoque de los botones para accesibilidad */
-.dropdown-btn-enhanced:focus-visible {
-    outline: none;
-}
-
-/* ESTILOS MINIMALISTAS PARA FILTROS APLICADOS */
+/* Filtros aplicados */
 .filtros-aplicados-container {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -916,81 +954,42 @@ setInterval(actualizarFallos, 6000);
     border: 1px solid;
 }
 
-.filtro-badge:hover {
-    opacity: 0.9;
-}
-
-.filtro-icono {
-    display: none;
-}
-
-/* Estado - Azul suave */
 .filtro-estado {
     background-color: #e7f3ff;
     color: #0d6efd;
     border-color: #b6d4fe;
 }
 
-.filtro-estado:hover {
-    background-color: #d0e7ff;
-}
-
-/* Fase - Amarillo suave */
 .filtro-fase {
     background-color: #fff3cd;
     color: #856404;
     border-color: #ffeaa7;
 }
 
-.filtro-fase:hover {
-    background-color: #ffe69c;
-}
-
-/* Tester - Gris suave */
 .filtro-tester {
     background-color: #e9ecef;
     color: #495057;
     border-color: #ced4da;
 }
 
-.filtro-tester:hover {
-    background-color: #dee2e6;
-}
-
-/* Tester Asignado - Púrpura suave */
 .filtro-tester-asignado {
     background-color: #e2d9f3;
     color: #6f42c1;
     border-color: #c5b3e6;
 }
 
-.filtro-tester-asignado:hover {
-    background-color: #d4c4e8;
-}
-
-/* País - Verde suave */
 .filtro-pais {
     background-color: #d1e7dd;
     color: #0f5132;
     border-color: #a3cfbb;
 }
 
-.filtro-pais:hover {
-    background-color: #b8dfc7;
-}
-
-/* Fallo - Rojo suave */
 .filtro-fallo {
     background-color: #f8d7da;
     color: #842029;
     border-color: #f1aeb5;
 }
 
-.filtro-fallo:hover {
-    background-color: #f5c2c7;
-}
-
-/* Botón limpiar filtros */
 .btn-limpiar-filtros {
     background-color: #6c757d;
     color: white;
@@ -999,7 +998,7 @@ setInterval(actualizarFallos, 6000);
     padding: 0.35rem 0.75rem;
     font-weight: 500;
     font-size: 0.8rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    transition: background-color 0.2s ease;
 }
 
 .btn-limpiar-filtros:hover {
@@ -1008,12 +1007,6 @@ setInterval(actualizarFallos, 6000);
     color: white;
 }
 
-.btn-limpiar-filtros:active {
-    background-color: #565e64;
-    border-color: #565e64;
-}
-
-/* Responsive para filtros */
 @media (max-width: 768px) {
     .filtros-aplicados-container {
         padding: 0.75rem !important;
@@ -1022,10 +1015,6 @@ setInterval(actualizarFallos, 6000);
     .filtro-badge {
         font-size: 0.75rem;
         padding: 0.3rem 0.6rem;
-    }
-    
-    .filtros-titulo {
-        font-size: 0.85rem;
     }
     
     .btn-limpiar-filtros {
