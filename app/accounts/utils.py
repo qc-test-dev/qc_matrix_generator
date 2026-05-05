@@ -7,7 +7,6 @@ from io import BytesIO
 def procesar_excel_matriz(archivo_excel):
     """
     Procesa el archivo Excel y retorna BytesIO con el archivo procesado.
-    Acepta headers en español o inglés.
     """
     try:
         # ============================================
@@ -16,42 +15,60 @@ def procesar_excel_matriz(archivo_excel):
         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
         
         # ============================================
-        # 2. DEFINIR ENCABEZADOS (español e inglés)
+        # 2. DEFINIR ENCABEZADOS
         # ============================================
-        # Mapeo de headers estándar (español) a sus variantes (español e inglés)
-        header_variants = {
-            'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'evaluacion', 'priority'],
-            'funcionalidad': ['funcionalidad', 'fase', 'section'],
-            'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'desc', 'test case name'],
-            'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'test step', 'step'],
-            'criticidad': ['criticidad', 'prioridad', 'severidad', 'severity level'],
-            'otros': ['otros', 'comentarios', 'observaciones', 'notas', 'nota'],
-            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'id caso de prueba', 'test case id'],
-            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario'],
-            'estado': ['estado', 'status', 'situación'],
-            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion', 'expected result']
-        }
-        
-        # Headers requeridos (6 obligatorios)
+        # HEADERS OBLIGATORIOS (6)
         required_headers = [
             'alcance de evaluacion',
             'funcionalidad', 
             'descripcion',
-            'pasos a seguir',
             'criticidad',
+            'estado',
             'otros'
         ]
         
-        # Headers opcionales
         optional_headers = [
             'id-prueba',
             'tipo de usuario',
-            'estado',
+            'pasos a seguir',
             'criterio aceptacion'
         ]
         
+        all_target_headers = required_headers + optional_headers
+        
+        # Variantes de cada header (incluyendo todas las posibles variantes de STEP BY STEP)
+        header_variants = {
+            'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'evaluacion', 'priority'],
+            'funcionalidad': ['funcionalidad', 'fase', 'section'],
+            'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'desc', 'test case name', 'description'],
+            'criticidad': ['criticidad', 'prioridad', 'severidad', 'severity level', 'severity'],
+            'estado': ['estado', 'status', 'situación', 'state'],
+            'otros': ['otros', 'comentarios', 'observaciones', 'notas', 'nota', 'others', 'notes'],
+            'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'test case id'],
+            'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario', 'type', 'user type'],
+            # VARIANTES COMPLETAS PARA STEP BY STEP
+            'pasos a seguir': [
+                'pasos a seguir', 
+                'pasos', 
+                'procedimiento', 
+                'step by step', 
+                'test step', 
+                'step',
+                '"step by step"',           # Con comillas dobles
+                "'step by step'",           # Con comillas simples
+                'STEP BY STEP',             # Mayúsculas
+                '"STEP BY STEP"',           # Con comillas y mayúsculas
+                'step-by-step',             # Con guiones
+                'step_by_step',             # Con guiones bajos
+                'teststep',                 # Sin espacio
+                'test-step',                # Con guión
+                'paso a paso'               # En español
+            ],
+            'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion', 'expected result']
+        }
+        
         # ============================================
-        # 3. BUSCAR LA FILA CON LOS HEADERS
+        # 3. LIMPIAR Y BUSCAR LA FILA CON LOS HEADERS
         # ============================================
         header_row_idx = None
         column_mapping = {}
@@ -64,22 +81,39 @@ def procesar_excel_matriz(archivo_excel):
                 if pd.isna(cell):
                     continue
                 
-                # Convertir a minúsculas y limpiar
-                cell_str = str(cell).strip().lower()
-                if len(cell_str) < 2:
+                # Limpiar el header: eliminar comillas, espacios extras, convertir a minúsculas
+                cell_str = str(cell).strip()
+                # Eliminar comillas dobles y simples
+                cell_str_clean = cell_str.replace('"', '').replace("'", '')
+                # Eliminar espacios múltiples
+                import re
+                cell_str_clean = re.sub(r'\s+', ' ', cell_str_clean)
+                cell_str_lower = cell_str_clean.strip().lower()
+                
+                # También conservar la versión original para comparaciones exactas
+                cell_str_original = cell_str.strip()
+                
+                if len(cell_str_lower) < 2:
                     continue
                 
-                # Buscar coincidencia con cualquier header o variante
-                for target_header, variants in header_variants.items():
-                    # Coincidencia exacta (en minúsculas)
-                    if cell_str == target_header.lower():
-                        temp_mapping[target_header] = col_idx
+                for target in all_target_headers:
+                    variants = header_variants.get(target, [target])
+                    
+                    # Coincidencia exacta con target limpio
+                    if cell_str_lower == target:
+                        temp_mapping[target] = col_idx
                         break
                     
-                    # Coincidencia con variantes
+                    # Coincidencia con variantes (comparando versión limpia)
                     for variant in variants:
-                        if cell_str == variant.lower():
-                            temp_mapping[target_header] = col_idx
+                        variant_clean = variant.replace('"', '').replace("'", '').strip().lower()
+                        if cell_str_lower == variant_clean:
+                            temp_mapping[target] = col_idx
+                            break
+                        
+                        # También comparar con la versión original por si acaso
+                        if cell_str_original == variant:
+                            temp_mapping[target] = col_idx
                             break
             
             # Verificar si encontramos los 6 headers obligatorios
@@ -88,23 +122,18 @@ def procesar_excel_matriz(archivo_excel):
             if len(found_required) == 6:
                 header_row_idx = row_idx
                 column_mapping = temp_mapping
-                print(f"✅ Headers encontrados en fila {row_idx}: {found_required}")
+                print(f"✅ Headers encontrados: {list(column_mapping.keys())}")
                 break
         
         if header_row_idx is None:
-            # Mostrar qué headers se encontraron en las primeras filas para debug
-            print("🔍 Buscando headers...")
-            for row_idx in range(min(5, len(df_raw))):
-                print(f"Fila {row_idx}: {[str(c).strip() for c in df_raw.iloc[row_idx] if not pd.isna(c)][:10]}")
-            
             raise ValidationError(
                 f"No se encontraron los encabezados obligatorios: {', '.join(required_headers)}\n\n"
-                f"Headers aceptados:\n"
+                f"Encabezados requeridos (español/inglés):\n"
                 f"  • alcance de evaluacion / Priority\n"
                 f"  • funcionalidad / Section\n"
                 f"  • descripcion / Test Case Name\n"
-                f"  • pasos a seguir / Test Step\n"
                 f"  • criticidad / Severity Level\n"
+                f"  • estado / Status\n"
                 f"  • otros / Nota"
             )
         
@@ -152,10 +181,9 @@ def procesar_excel_matriz(archivo_excel):
         # ============================================
         # 5. CREAR DATAFRAME
         # ============================================
-        all_headers = required_headers + optional_headers
         nuevo_df = pd.DataFrame(data_rows)
         
-        for col in all_headers:
+        for col in all_target_headers:
             if col not in nuevo_df.columns:
                 nuevo_df[col] = ""
         
@@ -180,6 +208,12 @@ def procesar_excel_matriz(archivo_excel):
                 return 'Bloqueante'
             if 'critical' in v or 'critico' in v:
                 return 'Crítico'
+            if 'alta' in v:
+                return 'Alta'
+            if 'media' in v:
+                return 'Media'
+            if 'baja' in v:
+                return 'Baja'
             return str(valor).strip()
         
         if 'criticidad' in nuevo_df.columns:
@@ -222,6 +256,14 @@ def procesar_excel_matriz(archivo_excel):
         
         if 'Estado' in nuevo_df.columns:
             nuevo_df['Estado'] = nuevo_df['Estado'].apply(lambda x: 'por ejecutar' if x == '' else x)
+        
+        # Eliminar columnas extras (headers de más se ignoran)
+        columnas_finales = ['ID-prueba', 'Alcance de evaluacion', 'Funcionalidad', 'Tipo de usuario', 
+                           'Descripcion', 'STEP BY STEP', 'Criterio aceptación', 'Criticidad', 'Estado', 'Otros']
+        
+        for col in nuevo_df.columns:
+            if col not in columnas_finales:
+                nuevo_df = nuevo_df.drop(columns=[col])
         
         nuevo_df = nuevo_df.reset_index(drop=True)
         

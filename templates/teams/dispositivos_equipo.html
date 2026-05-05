@@ -17,7 +17,7 @@ Matrices - {{ equipo.nombre }}
                 <div class="d-flex align-items-center">
                     <i class="fas fa-check-circle fa-2x me-3"></i>
                     <div class="flex-grow-1">
-                        <h5 class="alert-heading mb-1">¡Éxito!</h5>
+                        <h5 class="alert-heading mb-1"></h5>
                         <p class="mb-0">{{ message }}</p>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -116,7 +116,7 @@ Matrices - {{ equipo.nombre }}
                             <tr>
                                 <td class="ps-4">
                                     <h6 class="mb-0">{{ dispositivo.nombre }}</h6>
-                                </td>
+                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-file-excel text-success me-2"></i>
@@ -132,14 +132,6 @@ Matrices - {{ equipo.nombre }}
                                 <td class="text-end pe-4">
                                     <div class="btn-group" role="group">
                                         {% if dispositivo.excel_exists %}
-                                        <!-- Botón Ver -->
-                                        <!-- <a href="{{ dispositivo.get_excel_url }}" 
-                                        target="_blank"
-                                        class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-eye me-1"></i> Ver
-                                        </a>
-                                         -->
-                                        <!-- Botón Descargar (NUEVO) -->
                                         <a href="{% url 'accounts_app:descargar_excel' equipo.id dispositivo.id %}" 
                                         class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-download me-1"></i> Descargar y ver
@@ -151,7 +143,6 @@ Matrices - {{ equipo.nombre }}
                                         </span>
                                         {% endif %}
                                         
-                                        <!-- Botón Eliminar -->
                                         <button class="btn btn-sm btn-outline-danger" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#eliminarDispositivoModal{{ dispositivo.id }}">
@@ -182,9 +173,9 @@ Matrices - {{ equipo.nombre }}
     {% endif %}
 </div>
 
-<!-- Modal Crear Matriz - Más grande -->
+<!-- Modal Crear Matriz -->
 <div class="modal fade" id="crearDispositivoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
@@ -195,8 +186,6 @@ Matrices - {{ equipo.nombre }}
             <form method="post" action="{% url 'accounts_app:crear_dispositivo' equipo.id %}" enctype="multipart/form-data" id="crearMatrizForm">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <!-- Nota: Los errores ahora se muestran fuera del modal -->
-                    
                     <div class="row">
                         <div class="col-md-12">
                             <div class="mb-3">
@@ -226,13 +215,13 @@ Matrices - {{ equipo.nombre }}
                                        id="excelFileInput">
                                 <div class="form-text">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Solo archivos .xlsx, tamaño máximo 10MB
+                                    Solo archivos .xlsx, tamaño máximo 50MB
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                   <!-- En el modal, dentro de la sección de requisitos, actualizar la tabla -->
+                    <!-- Requisitos del archivo Excel -->
                     <div class="mt-3 p-3 border rounded bg-light">
                         <h6 class="fw-bold mb-3">
                             <i class="fas fa-clipboard-check me-1"></i>Requisitos del archivo Excel
@@ -244,70 +233,129 @@ Matrices - {{ equipo.nombre }}
                                 <div>
                                     <strong>Importante:</strong> El archivo Excel debe contener al menos <strong>8 de las 10 columnas requeridas</strong>.
                                     <br><small>Los nombres no son sensibles a mayúsculas/minúsculas.</small>
+                                    <br><small><strong>Acepta tanto español como inglés.</strong></small>
                                 </div>
                             </div>
                         </div>
                         
-                        <p class="mb-3"><strong>Columnas requeridas:</strong></p>
+                        <p class="mb-3"><strong>Columnas requeridas (Español / Inglés):</strong></p>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered">
                                 <thead class="table-light">
                                     <tr>
                                         <th>#</th>
-                                        <th>Columna Requerida</th>
+                                        <th>Columna Requerida (Español)</th>
+                                        <th>Columna Requerida (Inglés)</th>
                                         <th>Variantes Aceptadas</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <!-- ID-Prueba / Test Case ID -->
                                     <tr>
-                                        <td>1</td>
-                                        <td><span class="badge bg-primary">ID-Prueba</span></td>
-                                        <td><code>id-prueba</code>, <code>id</code>, <code>id caso</code></td>
+                                        <td class="text-center">1</td>
+                                        <td><span class="badge bg-primary">id-prueba</span></td>
+                                        <td><span class="badge bg-info">Test Case ID</span></td>
+                                        <td>
+                                            <code>id</code>, <code>id caso</code>, <code>id prueba</code>, 
+                                            <code>identificador</code>, <code>test case id</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Alcance de Evaluacion / Priority -->
                                     <tr>
-                                        <td>2</td>
-                                        <td><span class="badge bg-primary">Alcance de Evaluación</span></td>
-                                        <td><code>alcance de evaluación</code>, <code>alcance</code></td>
+                                        <td class="text-center">2</td>
+                                        <td><span class="badge bg-primary">alcance de evaluacion</span></td>
+                                        <td><span class="badge bg-info">Priority</span></td>
+                                        <td>
+                                            <code>alcance de evaluación</code>, <code>alcance</code>, 
+                                            <code>evaluacion</code>, <code>priority</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Funcionalidad / Section -->
                                     <tr>
-                                        <td>3</td>
-                                        <td><span class="badge bg-primary">Funcionalidad</span></td>
-                                        <td><code>fase</code>, <code>funcionalidad</code></td>
+                                        <td class="text-center">3</td>
+                                        <td><span class="badge bg-primary">funcionalidad</span></td>
+                                        <td><span class="badge bg-info">Section</span></td>
+                                        <td>
+                                            <code>fase</code>, <code>section</code>, <code>modulo</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Tipo de Usuario / Type -->
                                     <tr>
-                                        <td>4</td>
-                                        <td><span class="badge bg-primary">Tipo de Usuario</span></td>
-                                        <td><code>tipo de usuario</code>, <code>tipo usuario</code>, <code>perfil usuario</code></td>
+                                        <td class="text-center">4</td>
+                                        <td><span class="badge bg-primary">tipo de usuario</span></td>
+                                        <td><span class="badge bg-info">Type</span></td>
+                                        <td>
+                                            <code>tipo usuario</code>, <code>perfil usuario</code>, 
+                                            <code>rol</code>, <code>usuario</code>, <code>type</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Descripcion / Test Case Name -->
                                     <tr>
-                                        <td>5</td>
-                                        <td><span class="badge bg-primary">Descripción</span></td>
-                                        <td><code>descripción</code>, <code>caso de prueba</code>, <code>caso prueba</code></td>
+                                        <td class="text-center">5</td>
+                                        <td><span class="badge bg-primary">descripcion</span></td>
+                                        <td><span class="badge bg-info">Test Case Name</span></td>
+                                        <td>
+                                            <code>descripción</code>, <code>caso de prueba</code>, 
+                                            <code>caso prueba</code>, <code>desc</code>, <code>test case name</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Pasos a Seguir / Test Step -->
                                     <tr>
-                                        <td>6</td>
-                                        <td><span class="badge bg-primary">Pasos a Seguir</span></td>
-                                        <td><code>step by step</code>, <code>pasos</code>, <code>pasos a seguir</code>, <code>procedimiento</code></td>
+                                        <td class="text-center">6</td>
+                                        <td><span class="badge bg-primary">pasos a seguir</span></td>
+                                        <td><span class="badge bg-info">Test Step</span></td>
+                                        <td>
+                                            <code>pasos</code>, <code>procedimiento</code>, 
+                                            <code>step by step</code>, <code>step</code>, <code>test step</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Criticidad / Severity Level -->
                                     <tr>
-                                        <td>7</td>
-                                        <td><span class="badge bg-primary">Criticidad</span></td>
-                                        <td><code>prioridad</code>, <code>criticidad</code>, <code>severidad</code></td>
+                                        <td class="text-center">7</td>
+                                        <td><span class="badge bg-primary">criticidad</span></td>
+                                        <td><span class="badge bg-info">Severity Level</span></td>
+                                        <td>
+                                            <code>prioridad</code>, <code>severidad</code>, 
+                                            <code>severity level</code>, <code>severity</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Estado / Status -->
                                     <tr>
-                                        <td>8</td>
-                                        <td><span class="badge bg-primary">Estado</span></td>
-                                        <td><code>status</code>, <code>estado</code>, <code>situación</code></td>
+                                        <td class="text-center">8</td>
+                                        <td><span class="badge bg-primary">estado</span></td>
+                                        <td><span class="badge bg-info">Status</span></td>
+                                        <td>
+                                            <code>status</code>, <code>situación</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Otros / Nota -->
                                     <tr>
-                                        <td>9</td>
-                                        <td><span class="badge bg-primary">Otros/Comentarios</span></td>
-                                        <td><code>comentarios</code>, <code>comentarios y datos de prueba</code>, <code>observaciones</code>, <code>notas</code></td>
+                                        <td class="text-center">9</td>
+                                        <td><span class="badge bg-primary">otros</span></td>
+                                        <td><span class="badge bg-info">Nota</span></td>
+                                        <td>
+                                            <code>comentarios</code>, <code>comentarios y datos de prueba</code>, 
+                                            <code>observaciones</code>, <code>notas</code>, <code>nota</code>
+                                        </td>
                                     </tr>
+                                    
+                                    <!-- Criterio Aceptacion / Expected Result -->
                                     <tr>
-                                        <td>10</td>
-                                        <td><span class="badge bg-primary">Criterio de Aceptación</span></td>
-                                        <td><code>criterio aceptacion</code>, <code>criterio de aceptacion</code>, <code>criterio aceptación</code></td>
+                                        <td class="text-center">10</td>
+                                        <td><span class="badge bg-primary">criterio aceptacion</span></td>
+                                        <td><span class="badge bg-info">Expected Result</span></td>
+                                        <td>
+                                            <code>criterio de aceptacion</code>, <code>criterio aceptación</code>, 
+                                            <code>aceptacion</code>, <code>expected result</code>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -315,25 +363,63 @@ Matrices - {{ equipo.nombre }}
                         
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-lightbulb me-2"></i>
-                            <strong>Recomendación:</strong> Asegúrese de que su archivo Excel contenga todas estas columnas para una correcta validación.
-                            <br><small>El sistema aceptará variantes en los nombres de las columnas (no distingue mayúsculas/minúsculas).</small>
+                            <strong>¡Importante!</strong> El sistema acepta nombres en español o inglés, no distingue mayúsculas/minúsculas.
+                            <br><small>Ejemplos válidos: "Test Case ID", "test case id", "TEST CASE ID", "id-prueba", "ID-Prueba"</small>
+                        </div>
+                        
+                        <!-- Ejemplos de Excel -->
+                        <div class="card mt-3">
+                            <div class="card-header bg-white">
+                                <i class="fas fa-table me-1"></i>
+                                <strong>Ejemplo de estructura válida</strong>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Test Case ID</th>
+                                                <th>Priority</th>
+                                                <th>Type</th>
+                                                <th>Severity Level</th>
+                                                <th>Section</th>
+                                                <th>Test Case Name</th>
+                                                <th>Test Step</th>
+                                                <th>Expected Result</th>
+                                                <th>Status</th>
+                                                <th>Nota</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>TC001</td>
+                                                <td>Alta</td>
+                                                <td>Funcional</td>
+                                                <td>Crítico</td>
+                                                <td>Login</td>
+                                                <td>Verificar login</td>
+                                                <td>1. Ingresar usuario<br>2. Ingresar password</td>
+                                                <td>Usuario logueado</td>
+                                                <td>Pendiente</td>
+                                                <td>Prueba crítica</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Vista previa de columnas -->
                     <div class="mt-3" id="columnPreview" style="display: none;">
-                        <h6 class="fw-bold mb-2">
-                            <i class="fas fa-list-alt me-1"></i>Vista previa del archivo
-                        </h6>
-                        <div class="alert alert-info p-3" id="columnList">
-                            <div class="text-center">
+                        <div class="alert alert-info p-3">
+                            <div class="text-center" id="columnList">
                                 <i class="fas fa-spinner fa-spin me-1"></i>
                                 Analizando archivo...
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Campo oculto para operativo -->
                     <input type="hidden" name="operativo" value="false">
                 </div>
                 <div class="modal-footer">
@@ -404,13 +490,12 @@ document.getElementById('excelFileInput').addEventListener('change', function(e)
     if (file && file.name.endsWith('.xlsx')) {
         columnPreview.style.display = 'block';
         
-        // Mostrar información básica del archivo
         columnList.innerHTML = `
             <div class="d-flex align-items-center">
                 <div class="me-3">
                     <i class="fas fa-file-excel fa-2x text-success"></i>
                 </div>
-                <div class="flex-grow-1">
+                <div class="flex-grow-1 text-start">
                     <h6 class="mb-1">${file.name}</h6>
                     <p class="mb-0 text-muted">
                         <small>
@@ -420,31 +505,11 @@ document.getElementById('excelFileInput').addEventListener('change', function(e)
                 </div>
             </div>
             <hr class="my-2">
-            <div class="alert alert-light mt-2 p-2">
-                <i class="fas fa-info-circle me-1"></i>
-                Las columnas serán validadas automáticamente al enviar el formulario.
+            <div class="alert alert-success mt-2 mb-0">
+                <i class="fas fa-check-circle me-1"></i>
+                Archivo válido. Las columnas serán validadas automáticamente al enviar el formulario.
             </div>
         `;
-        
-        // Intentar leer el archivo para mostrar columnas (si el navegador lo permite)
-        if (window.FileReader) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    // Solo mostramos que se puede leer el archivo
-                    columnList.innerHTML += `
-                        <div class="alert alert-success mt-2 p-2">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Archivo válido detectado. Listo para cargar.
-                        </div>
-                    `;
-                } catch (err) {
-                    // No mostramos error, solo que no podemos previsualizar
-                    console.log("No se puede previsualizar el archivo Excel en el navegador");
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
     } else {
         columnPreview.style.display = 'none';
     }
@@ -485,7 +550,6 @@ document.getElementById('crearMatrizForm').addEventListener('submit', function(e
 // Si hay errores del formulario, abrir automáticamente el modal
 {% if form.errors %}
 document.addEventListener('DOMContentLoaded', function() {
-    // Esperar un momento para que el DOM se cargue completamente
     setTimeout(function() {
         const modal = new bootstrap.Modal(document.getElementById('crearDispositivoModal'));
         modal.show();

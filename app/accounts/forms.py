@@ -70,7 +70,7 @@ class DispositivoForm(forms.ModelForm):
         }
     
     def clean_archivo_excel(self):
-        archivo = self.cleaned_data.get('archivo_excel')
+        archivo = self.cleaned_data.get('archivo_excel', None)  # Usar None por defecto
         
         if not archivo:
             raise ValidationError("Debe seleccionar un archivo Excel")
@@ -79,8 +79,8 @@ class DispositivoForm(forms.ModelForm):
         if not archivo.name.lower().endswith('.xlsx'):
             raise ValidationError("El archivo debe ser un Excel (.xlsx)")
         
-        # Validar tamaño del archivo (opcional, 50MB máximo)
-        if archivo.size > 50 * 1024 * 1024:  # 50MB
+        # Validar tamaño del archivo (50MB máximo)
+        if archivo.size > 50 * 1024 * 1024:
             raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 50MB")
         
         return archivo
@@ -98,96 +98,86 @@ class DispositivoForm(forms.ModelForm):
                 # Validar que el Excel tenga los headers correctos
                 archivo_excel.seek(0)
                 
-                # Leer el Excel COMPLETO para buscar headers
+                # Leer el Excel para buscar headers
                 df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
                 
-                # Verificar que el Excel tenga datos
                 if len(df_raw) == 0:
                     raise ValidationError("El archivo Excel está vacío")
                 
-                # HEADERS REQUERIDOS (en español)
-                headers_buscados = [
-                    'id-prueba',
+                # HEADERS OBLIGATORIOS (6)
+                required_headers = [
                     'alcance de evaluacion',
                     'funcionalidad',
-                    'tipo de usuario',
-                    'descripcion', 
-                    'pasos a seguir',
+                    'descripcion',
                     'criticidad',
                     'estado',
-                    'otros',
-                    'criterio aceptacion'
+                    'otros'
                 ]
                 
                 # VARIANTES DE HEADERS (español e inglés)
                 variantes_headers = {
+                    'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'alcance de evaluación', 'evaluacion', 'priority'],
+                    'funcionalidad': ['funcionalidad', 'fase', 'section'],
+                    'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'caso prueba', 'test case name', 'description'],
+                    'criticidad': ['criticidad', 'prioridad', 'severity level', 'severidad', 'severity'],
+                    'estado': ['estado', 'status', 'situación', 'state'],
+                    'otros': ['otros', 'comentarios', 'comentarios y datos de prueba', 'observaciones', 'nota', 'notas', 'others', 'notes'],
                     'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'test case id'],
-                    'alcance de evaluacion': ['alcance de evaluación', 'alcance', 'priority'],
-                    'funcionalidad': ['fase', 'funcionalidad', 'section'],
-                    'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol'],
-                    'descripcion': ['descripción', 'caso de prueba', 'caso prueba', 'descripcion', 'test case name'],
-                    'pasos a seguir': ['step by step', 'pasos', 'pasos a seguir', 'test step'],
-                    'criticidad': ['prioridad', 'criticidad', 'severity level'],
-                    'estado': ['status', 'estado', 'situación'],
-                    'otros': ['comentarios', 'comentarios y datos de prueba', 'observaciones', 'nota'],
-                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'condiciones aceptación', 'expected result']
+                    'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario', 'type', 'user type'],
+                    'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'test step', 'step'],
+                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion', 'expected result']
                 }
                 
-                # Buscar en cada fila
+                # Buscar la fila de headers
                 headers_encontrados = False
                 fila_headers = None
-                headers_que_faltan = []
                 
                 for idx_fila in range(min(50, len(df_raw))):
                     fila = df_raw.iloc[idx_fila]
-                    headers_actuales = []
+                    temp_headers = []
                     
                     for celda in fila:
                         if pd.isna(celda):
                             continue
-                            
+                        
                         celda_str = str(celda).strip()
                         celda_str_lower = celda_str.lower()
                         
-                        # Buscar cada header en esta celda
-                        for header in headers_buscados:
-                            # Verificar coincidencia exacta o por variantes
+                        # Buscar coincidencia con headers obligatorios
+                        for header in required_headers:
+                            # Coincidencia exacta
                             if celda_str_lower == header.lower():
-                                if header not in headers_actuales:
-                                    headers_actuales.append(header)
+                                if header not in temp_headers:
+                                    temp_headers.append(header)
                                 break
+                            # Coincidencia con variantes
                             elif header in variantes_headers:
                                 for variante in variantes_headers[header]:
-                                    variante_lower = variante.lower()
-                                    # Comparación exacta sin importar mayúsculas/minúsculas
-                                    if celda_str_lower == variante_lower:
-                                        if header not in headers_actuales:
-                                            headers_actuales.append(header)
+                                    if celda_str_lower == variante.lower():
+                                        if header not in temp_headers:
+                                            temp_headers.append(header)
                                         break
                     
-                    # Necesitamos encontrar al menos 8 de los 10 headers
-                    if len(headers_actuales) >= 8:
+                    # Verificar si encontramos los 6 headers obligatorios
+                    if len(temp_headers) == 6:
                         headers_encontrados = True
                         fila_headers = idx_fila + 1
                         break
                 
                 if not headers_encontrados:
-                    # Crear mensaje detallado de los headers requeridos
-                    mensaje_headers = "\n".join([f"  • {h} (ej: {variantes_headers[h][0]})" for h in headers_buscados])
                     raise ValidationError(
-                        f"No se encontraron los headers requeridos en el Excel.\n\n"
-                        f"El archivo debe contener al menos 8 de los siguientes 10 headers:\n"
-                        f"{mensaje_headers}\n\n"
-                        f"Headers aceptados (español o inglés):\n"
-                        f"  • id-prueba / Test Case ID\n"
+                        f"No se encontraron los 6 encabezados obligatorios.\n\n"
+                        f"Encabezados requeridos (español/inglés):\n"
                         f"  • alcance de evaluacion / Priority\n"
                         f"  • funcionalidad / Section\n"
-                        f"  • tipo de usuario / Type\n"
                         f"  • descripcion / Test Case Name\n"
-                        f"  • pasos a seguir / Test Step\n"
                         f"  • criticidad / Severity Level\n"
                         f"  • estado / Status\n"
-                        f"  • otros / Nota\n"
+                        f"  • otros / Nota\n\n"
+                        f"Los encabezados opcionales son:\n"
+                        f"  • id-prueba / Test Case ID\n"
+                        f"  • tipo de usuario / Type\n"
+                        f"  • pasos a seguir / Test Step\n"
                         f"  • criterio aceptacion / Expected Result"
                     )
                 
@@ -196,8 +186,9 @@ class DispositivoForm(forms.ModelForm):
                 
             except pd.errors.EmptyDataError:
                 raise ValidationError("El archivo Excel está vacío o no se puede leer")
+            except ValidationError:
+                raise
             except Exception as e:
-                # Mensaje de error más amigable
                 if 'Workbook' in str(e) or 'openpyxl' in str(e):
                     raise ValidationError("El archivo no es un Excel válido o está corrupto")
                 else:
@@ -206,7 +197,6 @@ class DispositivoForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        # Primero, procesar el Excel
         archivo_excel = self.cleaned_data.get('archivo_excel')
         equipo = self.cleaned_data.get('equipo')
         
@@ -214,15 +204,12 @@ class DispositivoForm(forms.ModelForm):
             raise ValidationError("Faltan datos para procesar el archivo")
         
         try:
-            # 1. Procesar el Excel
             archivo_excel.seek(0)
             excel_procesado, num_filas = procesar_excel_matriz(archivo_excel)
             
-            # 2. Generar nombre único
             nombre_original = archivo_excel.name
             nombre_base = os.path.basename(nombre_original)
             
-            # Separar nombre y extensión
             if '.' in nombre_base:
                 nombre, extension = nombre_base.rsplit('.', 1)
                 extension = '.' + extension
@@ -230,59 +217,42 @@ class DispositivoForm(forms.ModelForm):
                 nombre = nombre_base
                 extension = ''
             
-            # Verificar nombres existentes en el MISMO equipo
             nombres_existentes = list(Dispositivo.objects.filter(
                 equipo=equipo
             ).values_list('matriz_base', flat=True))
             
-            # Si el nombre original no existe, usarlo
             if nombre_base not in nombres_existentes:
                 nombre_unico = nombre_base
             else:
-                # Si existe, buscar el siguiente número disponible
                 contador = 1
                 while True:
                     nombre_propuesto = f"{nombre}_{contador}{extension}"
-                    
                     if nombre_propuesto not in nombres_existentes:
                         nombre_unico = nombre_propuesto
                         break
-                    
                     contador += 1
-                    
                     if contador > 100:
                         import time
                         timestamp = int(time.time())
                         nombre_unico = f"{nombre}_{timestamp}{extension}"
                         break
             
-            # 3. Crear nombre seguro para la carpeta del equipo
             nombre_equipo_carpeta = equipo.nombre.replace(' ', '_').replace(',', '').replace('(', '').replace(')', '')
-            
-            # 4. Construir la ruta final
             ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
             
-            # 5. Obtener la instancia del dispositivo
             dispositivo = super().save(commit=False)
             
-            # 6. Guardar el archivo procesado usando el storage
             content_file = ContentFile(excel_procesado.getvalue())
             content_file.name = nombre_unico
             
-            # Guardar usando el storage
             dispositivo.archivo_excel.save(ruta_final, content_file, save=False)
-            
-            # 7. Actualizar campos
             dispositivo.matriz_base = nombre_unico
             
-            # 8. Cerrar buffers
             excel_procesado.close()
             
-            # 9. Guardar el dispositivo si commit=True
             if commit:
                 dispositivo.save()
             
-            # Guardar número de filas para usar en la vista
             self.num_filas_procesadas = num_filas
             
             return dispositivo
