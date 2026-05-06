@@ -3,55 +3,134 @@ from django.db import models
 from ..accounts.models import Equipo
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+from django.utils import timezone
+from app.accounts.utils import procesar_excel_matriz
+import os
+import pandas as pd
+#from io import BytesIO
+# Storage personalizado ara archivos Excel
+excel_storage = FileSystemStorage(
+    location=os.path.join(settings.MEDIA_ROOT, 'excel'),
+    base_url=f'{settings.MEDIA_URL}excel/'
+)
+
 class Dispositivo(models.Model):
     nombre = models.CharField(max_length=75)
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='dispositivos')
-    matriz_base = models.CharField(max_length=75)  # Nombre del archivo .xlsx
+    matriz_base = models.CharField(max_length=75, blank=True, null=True)
+    
     operativo = models.BooleanField(
         default=False,
         blank=True,
         null=True,
         verbose_name="Operativo"
     )
+    
+    archivo_excel = models.FileField(
+        upload_to='',  # Vacío, lo manejaremos manualmente
+        storage=excel_storage,
+        verbose_name="Archivo Excel",
+        blank=True,
+        null=True
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=False, default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=False, default=timezone.now)
+    
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.nombre}"
     
+    def generar_nombre_unico(self, nombre_original):
+        """
+        Genera un nombre único para el archivo.
+        Si ya existe en el mismo equipo, añade _1, _2, etc.
+        """
+        # Obtener solo el nombre del archivo (sin ruta)
+        nombre_base = os.path.basename(nombre_original)
+        
+        # Separar nombre y extensión
+        if '.' in nombre_base:
+            nombre, extension = nombre_base.rsplit('.', 1)
+            extension = '.' + extension
+        else:
+            nombre = nombre_base
+            extension = ''
+        
+        # Verificar nombres existentes en el MISMO equipo
+        nombres_existentes = list(Dispositivo.objects.filter(
+            equipo=self.equipo
+        ).exclude(pk=self.pk).values_list('matriz_base', flat=True))
+        
+        # Si el nombre original no existe, usarlo
+        if nombre_base not in nombres_existentes:
+            return nombre_base
+        
+        # Si existe, buscar el siguiente número disponible
+        contador = 1
+        while True:
+            nombre_propuesto = f"{nombre}_{contador}{extension}"
+            
+            if nombre_propuesto not in nombres_existentes:
+                return nombre_propuesto
+            
+            contador += 1
+            
+            # Prevención de bucle infinito
+            if contador > 100:
+                # Usar timestamp como fallback
+                import time
+                timestamp = int(time.time())
+                return f"{nombre}_{timestamp}{extension}"
+    
+    def save(self, *args, **kwargs):
+        """
+        IMPORTANTE: Este método NO procesa el Excel.
+        El procesamiento se hace en el formulario.
+        """
+        # Actualizar timestamps
+        if not self.pk:  # Si es nuevo
+            self.created_at = timezone.now()
+        self.updated_at = timezone.now()
+        
+        super().save(*args, **kwargs)
+    
     def get_excel_url(self):
-        """Retorna la URL estática del archivo Excel"""
-        if self.matriz_base:
-            filename = self.matriz_base
-            if not filename.lower().endswith('.xlsx'):
-                filename += '.xlsx'
-            return f"{settings.STATIC_URL}excel_files/{filename}"
+        """Retorna la URL para descargar el archivo Excel"""
+        if self.archivo_excel and self.archivo_excel.name:
+            return self.archivo_excel.url
         return None
     
     def get_excel_path(self):
         """Retorna la ruta física del archivo Excel"""
-        if self.matriz_base:
-            filename = self.matriz_base
-            if not filename.lower().endswith('.xlsx'):
-                filename += '.xlsx'
-            
-            # Buscar específicamente en static/excel_files/
-            static_path = os.path.join(settings.BASE_DIR, 'static', 'excel_files', filename)
-            if os.path.exists(static_path):
-                return static_path
-            
-            # Fallback: usar staticfiles finder
-            found_path = find(f'excel_files/{filename}')
-            return found_path
-        
+        if self.archivo_excel and self.archivo_excel.name:
+            return self.archivo_excel.path
         return None
     
     def excel_exists(self):
-        """Verifica si el archivo Excel existe en static/excel_files/"""
+        """Verifica si el archivo Excel existe"""
         path = self.get_excel_path()
-        exists = path is not None and os.path.exists(path)
-        print(f"Buscando archivo: {self.matriz_base}")
-        print(f"Ruta: {path}")
-        print(f"¿Existe?: {exists}")
-        return exists
+        return path and os.path.exists(path)
+    
+    def get_filename(self):
+        """Retorna solo el nombre del archivo"""
+        if self.matriz_base:
+            return self.matriz_base
+        elif self.archivo_excel and self.archivo_excel.name:
+            return os.path.basename(self.archivo_excel.name)
+        return ""
+    
+    def delete(self, *args, **kwargs):
+        """Eliminar el archivo físico al eliminar el dispositivo"""
+        if self.archivo_excel:
+            # Eliminar el archivo físico
+            self.archivo_excel.delete(save=False)
+        
+        # Eliminar el objeto de la base de datos
+        super().delete(*args, **kwargs)
 class SuperMatriz(models.Model):
     nombre = models.CharField(max_length=75)
     descripcion = models.TextField(blank=True, null=True, max_length=200)
@@ -128,6 +207,10 @@ class CasoDePrueba(models.Model):
         related_name='casos_asignados'
     )
     pais = models.CharField(max_length=50, blank=True, null=True)
+    etiqueta=models.CharField(max_length=50, blank=True, null=True)
+    tipo_usuario=models.CharField(max_length=70, blank=True, null=True)
+    pasos=models.CharField(max_length=700,blank=True, null=True)
+    criterio_aceptacion = models.TextField(blank=True, null=True, verbose_name="Criterio de aceptación")
     def __str__(self):
         return f"{self.fase} - {self.caso_de_prueba[:30]}..."
 class Validate(models.Model):
@@ -171,3 +254,238 @@ class DetallesValidate(models.Model):
     comentario_RN = models.TextField(blank=True, null=True)
     def __str__(self):
         return f"Detalles de {self.super_matriz.nombre}"
+# def procesar_excel_matriz(archivo_excel):
+#     """
+#     Procesa el archivo Excel según los requisitos:
+#     - Busca los headers en CUALQUIER FILA del Excel
+#     - EXTRAE DATOS MANUALMENTE usando la estructura correcta
+#     - Descarta filas anteriores a los headers encontrados
+#     - Procesa solo los datos después de los headers
+    
+#     Retorna el archivo procesado (BytesIO)
+#     """
+#     try:
+#         # ============================================
+#         # 1. LEER EXCEL CRUDO
+#         # ============================================
+#         print(f"\n🔄 LEYENDO EXCEL CRUDO...")
+        
+#         # Leer el Excel COMPLETO sin headers
+#         df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
+#         print(f"📄 Excel crudo: {df_raw.shape[0]} filas, {df_raw.shape[1]} columnas")
+        
+#         # Mostrar estructura real del Excel
+#         print(f"\n🔍 ESTRUCTURA DEL EXCEL (primeras 10 filas):")
+#         for i in range(min(10, len(df_raw))):
+#             row_values = []
+#             for cell in df_raw.iloc[i]:
+#                 if pd.isna(cell):
+#                     row_values.append("")
+#                 else:
+#                     row_values.append(str(cell).strip())
+#             print(f"Fila {i}: {row_values}")
+        
+#         # ============================================
+#         # 2. BUSCAR LA FILA CON LOS HEADERS REALES
+#         # ============================================
+#         print(f"\n🔍 BUSCANDO HEADERS REALES...")
+        
+#         # Los headers que realmente buscamos
+#         target_headers = [
+#             'alcance de evaluacion',
+#             'funcionalidad',
+#             'descripcion',
+#             'criticidad',
+#             'estado',
+#             'otros'
+#         ]
+        
+#         # También aceptar variantes
+#         header_variants = {
+#             'alcance de evaluacion': ['alcance de evaluación', 'alcance'],
+#             'funcionalidad': ['fase', 'funcionalidad o fase'],
+#             'descripcion': ['descripción', 'caso de prueba', 'caso prueba'],
+#             'criticidad': ['prioridad'],
+#             'estado': ['status'],
+#             'otros': ['comentarios', 'comentarios y datos de prueba']
+#         }
+        
+#         header_row_idx = None
+#         header_positions = {}  # {header_name: column_index}
+        
+#         for row_idx in range(min(50, len(df_raw))):
+#             row = df_raw.iloc[row_idx]
+#             found_headers = {}
+            
+#             # Buscar cada header en esta fila
+#             for col_idx, cell in enumerate(row):
+#                 if pd.isna(cell):
+#                     continue
+                    
+#                 cell_str = str(cell).strip().lower()
+                
+#                 # Buscar cada header target
+#                 for target in target_headers:
+#                     target_lower = target.lower()
+                    
+#                     # Coincidencia exacta
+#                     if cell_str == target_lower:
+#                         found_headers[target] = col_idx
+                    
+#                     # Coincidencia con variantes
+#                     elif target in header_variants:
+#                         for variant in header_variants[target]:
+#                             if variant.lower() in cell_str:
+#                                 found_headers[target] = col_idx
+#                                 break
+            
+#             # Si encontramos varios headers en la misma fila, esta es la fila de headers
+#             if len(found_headers) >= 3:
+#                 header_row_idx = row_idx
+#                 header_positions = found_headers
+#                 print(f"✅ HEADERS REALES ENCONTRADOS en fila {row_idx}")
+#                 print(f"   Headers y sus columnas: {found_headers}")
+#                 break
+        
+#         if header_row_idx is None:
+#             raise ValidationError("No se encontraron los headers requeridos en el Excel")
+        
+#         # ============================================
+#         # 3. EXTRAER DATOS MANUALMENTE
+#         # ============================================
+#         print(f"\n📥 EXTRAYENDO DATOS DESDE FILA {header_row_idx + 1}...")
+        
+#         # Los datos empiezan en la fila DESPUÉS de los headers
+#         data_start_row = header_row_idx + 1
+        
+#         # Preparar lista para almacenar datos
+#         extracted_data = []
+        
+#         for row_idx in range(data_start_row, len(df_raw)):
+#             row = df_raw.iloc[row_idx]
+#             row_data = {}
+#             has_valid_data = False
+            
+#             # Extraer cada campo según la posición de su header
+#             for header_name, col_idx in header_positions.items():
+#                 if col_idx < len(row):
+#                     cell_value = row[col_idx]
+                    
+#                     # Limpiar el valor
+#                     if pd.isna(cell_value):
+#                         row_data[header_name] = ""
+#                     else:
+#                         value = str(cell_value).strip()
+#                         row_data[header_name] = value
+                        
+#                         if value and value.lower() not in ['nan', 'none', '']:
+#                             has_valid_data = True
+#                 else:
+#                     row_data[header_name] = ""
+            
+#             # Solo agregar filas con datos válidos
+#             if has_valid_data:
+#                 extracted_data.append(row_data)
+        
+#         if not extracted_data:
+#             raise ValidationError("No se encontraron datos válidos después de los headers")
+        
+#         # ============================================
+#         # 4. CREAR DATAFRAME CON DATOS EXTRAÍDOS
+#         # ============================================
+#         print(f"\n📊 CREANDO DATAFRAME CON {len(extracted_data)} FILAS...")
+        
+#         # Crear DataFrame
+#         nuevo_df = pd.DataFrame(extracted_data)
+        
+#         # Asegurar que tengamos todas las columnas requeridas
+#         required_columns = [
+#             'alcance de evaluacion',
+#             'funcionalidad',
+#             'descripcion',
+#             'criticidad',
+#             'estado',
+#             'otros'
+#         ]
+        
+#         # Agregar columnas faltantes (vacías)
+#         for col in required_columns:
+#             if col not in nuevo_df.columns:
+#                 nuevo_df[col] = ""
+        
+#         # Ordenar columnas
+#         nuevo_df = nuevo_df[required_columns]
+        
+#         # ============================================
+#         # 5. LIMPIEZA DE DATOS (CORREGIDO)
+#         # ============================================
+#         print("\n🧹 LIMPIANDO DATOS...")
+        
+#         original_count = len(nuevo_df)
+        
+#         # A. Eliminar filas donde 'descripcion' y 'criticidad' estén vacías
+#         # ¡CORRECCIÓN IMPORTANTE: Usar paréntesis en operaciones lógicas con &
+#         if len(nuevo_df) > 0:
+#             # FORMA CORRECTA: Cada condición entre paréntesis
+#             mask_valid = (
+#                 (nuevo_df['descripcion'].astype(str).str.strip() != "") &
+#                 (nuevo_df['criticidad'].astype(str).str.strip() != "")
+#             )
+#             nuevo_df = nuevo_df[mask_valid].copy()
+        
+#         # B. Asignar 'por_ejecutar' a estado
+#         if 'estado' in nuevo_df.columns and len(nuevo_df) > 0:
+#             nuevo_df['estado'] = 'por_ejecutar'
+        
+#         # C. Limpiar espacios en blanco
+#         for col in nuevo_df.columns:
+#             nuevo_df[col] = nuevo_df[col].apply(
+#                 lambda x: str(x).strip() if pd.notna(x) and str(x).strip().lower() != 'nan' else ""
+#             )
+        
+#         # D. Resetear índice
+#         nuevo_df = nuevo_df.reset_index(drop=True)
+        
+#         # ============================================
+#         # 6. VERIFICAR RESULTADO
+#         # ============================================
+#         if len(nuevo_df) == 0:
+#             raise ValidationError("No hay datos válidos después del procesamiento")
+        
+#         print(f"\n✅ PROCESAMIENTO COMPLETADO:")
+#         print(f"   - Headers encontrados en fila: {header_row_idx}")
+#         print(f"   - Datos extraídos desde fila: {data_start_row}")
+#         print(f"   - Filas originales extraídas: {original_count}")
+#         print(f"   - Filas después de limpieza: {len(nuevo_df)}")
+#         print(f"   - Filas eliminadas: {original_count - len(nuevo_df)}")
+        
+#         # Mostrar ejemplo REAL de datos
+#         print(f"\n📋 EJEMPLO REAL DE DATOS PROCESADOS:")
+#         if len(nuevo_df) > 0:
+#             print(nuevo_df.head(3).to_string(index=False))
+#             print("\n🔍 VALORES REALES (primeras filas):")
+#             for i in range(min(3, len(nuevo_df))):
+#                 print(f"Fila {i}:")
+#                 for col in nuevo_df.columns:
+#                     print(f"  {col}: '{nuevo_df.iloc[i][col]}'")
+        
+#         # ============================================
+#         # 7. GUARDAR EN BUFFER
+#         # ============================================
+        
+#         output = BytesIO()
+        
+#         with pd.ExcelWriter(output, engine='openpyxl') as writer:
+#             nuevo_df.to_excel(writer, index=False, sheet_name='Matriz_Procesada')
+        
+#         output.seek(0)
+        
+#         return output, len(nuevo_df)
+        
+#     except ValidationError:
+#         raise
+#     except Exception as e:
+#         print(f"❌ Error inesperado: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         raise ValidationError(f"Error al procesar el archivo Excel: {str(e)}")

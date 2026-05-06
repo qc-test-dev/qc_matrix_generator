@@ -11,7 +11,7 @@ from .forms import (
     TicketPorLevantarForm,ValidateForm,SuperMatrizFechaFinForm,SuperMatrizDescripcionForm
 )
 from .models import SuperMatriz, Matriz, Validate,TicketPorLevantar,DetallesValidate,Dispositivo,Equipo
-from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo,obtener_informacion_matriz
+from .utils import importar_matriz_desde_excel,importar_validates,matriz_info,matriz_fails,obtener_matrices_por_supermatriz,obtener_supermatrices_por_equipo_con_filtros,obtener_todos_los_equipos_completo,obtener_informacion_matriz,distribuir_casos_equitativamente
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth import get_user_model
@@ -54,6 +54,7 @@ from .forms import MatrizForm, ValidateForm
 from django.utils import timezone
 import os
 import random
+
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -130,7 +131,7 @@ def detalle_super_matriz(request, super_matriz_id):
     for matriz_data in supermatriz_info['matrices']:
         # Obtener el objeto matriz original
         matriz_obj = Matriz.objects.get(id=matriz_data['id'])
-        
+        casos_externos = matriz_obj.casos.all().filter(estado__in=['pendiente_por_externo']).count()
         # Obtener información de fallas
         fallas_info = matriz_fails(matriz_obj)
         if fallas_info:
@@ -147,7 +148,8 @@ def detalle_super_matriz(request, super_matriz_id):
             'casos_filtrados': matriz_data.get('casos_ejecutados', 0),
             'porcentaje': matriz_data.get('porcentaje', 0),
             'testers_mostrar': obtener_testers(matriz_obj),
-            'fallas': fallas_data
+            'fallas': fallas_data,
+            'externos': casos_externos
         }
         matrices_info.append(matriz_info_item)
 
@@ -175,25 +177,45 @@ def detalle_super_matriz(request, super_matriz_id):
                     messages.error(request, f"El dispositivo no tiene archivo base asociado.")
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
-                ruta_excel_matriz = os.path.join(settings.BASE_DIR, 'static', 'excel_files', dispositivo.matriz_base)
+                # ====== CAMBIO AQUÍ ======
+                # Buscar el archivo en media/excel/{nombre_equipo}/{matriz_base}
+                nombre_equipo = dispositivo.equipo.nombre.replace(' ', '_')
+                nombre_archivo = dispositivo.matriz_base
+                
+                # Ruta nueva: media/excel/{nombre_equipo}/{nombre_archivo}
+                ruta_excel_matriz = os.path.join(
+                    settings.MEDIA_ROOT, 
+                    'excel', 
+                    nombre_equipo, 
+                    nombre_archivo
+                )
+                
+                # Verificar si el archivo existe
                 if not os.path.exists(ruta_excel_matriz):
-                    messages.error(request, f"El archivo '{dispositivo.matriz_base}' no existe en el servidor.")
+                    # También podríamos intentar con el campo archivo_excel.url si existe
+                    if hasattr(dispositivo, 'archivo_excel') and dispositivo.archivo_excel:
+                        ruta_excel_matriz = dispositivo.archivo_excel.path
+                        
+                        if not os.path.exists(ruta_excel_matriz):
+                            messages.error(request, f"El archivo '{nombre_archivo}' no existe en la ruta: {ruta_excel_matriz}")
+                            return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+                    else:
+                        messages.error(request, f"El archivo '{nombre_archivo}' no existe en el servidor.")
+                        return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
+                # ====== FIN DEL CAMBIO ======
+
+                # LLAMAR A LA FUNCIÓN MODIFICADA QUE RETORNA (success, error_message)
+                success, mensaje = importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
+                
+                if not success:
+                    # Si hay error, eliminar la matriz creada y mostrar mensaje
+                    nueva_matriz.delete()
+                    messages.error(request, mensaje)
                     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
 
-                importar_matriz_desde_excel(nueva_matriz, ruta_excel_matriz, valores_a_incluir)
-
                 regiones_seleccionadas = form.cleaned_data.get('regiones', [])
-                casos = list(nueva_matriz.casos.all())
-                random.shuffle(regiones_seleccionadas)
-                random.shuffle(testers_seleccionados)
-                random.shuffle(casos)
-
-                for idx, caso in enumerate(casos):
-                    if testers_seleccionados:
-                        caso.tester_asignado = testers_seleccionados[idx % len(testers_seleccionados)]
-                    if regiones_seleccionadas:
-                        caso.pais = regiones_seleccionadas[idx % len(regiones_seleccionadas)]
-                    caso.save()
+                # MEJORA: Distribución equitativa de casos
+                distribuir_casos_equitativamente(nueva_matriz, testers_seleccionados, regiones_seleccionadas)
 
                 messages.success(request, "Matriz creada correctamente.")
                 return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz.id)
@@ -221,6 +243,24 @@ def detalle_super_matriz(request, super_matriz_id):
         'casos_ejecutados': casos_ejecutados,
         'casos_bloqueantes': casos_bloqueantes,
     })
+
+def limpiar_texto_vista(texto):
+    """Limpia caracteres Unicode problemáticos como \u002D para mostrar en vista"""
+    if not texto:
+        return ""
+    
+    texto = str(texto)
+    
+    # Reemplazar la cadena literal '\u002D' con '-'
+    texto = texto.replace('\\u002D', '-')
+    
+    # Reemplazar múltiples guiones seguidos
+    import re
+    texto = re.sub(r'-{2,}', '-', texto)
+    
+    return texto.strip()
+
+
 @login_required
 def detalle_matriz(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
@@ -231,45 +271,111 @@ def detalle_matriz(request, matriz_id):
     tester_asignado_filtrado = request.GET.get('tester_asignado')
     pais_filtrado = request.GET.get('pais')
     fallo_filtrado = request.GET.get('fallo')
+    estado_filtrado = request.GET.get('estado')
+    fase_filtrada = request.GET.get('fase')
     num_fallos = matriz_fails(matriz)[0]['indice']
-    
+
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
-    # Aplicar filtro por tester (viejo) si existe
+    # Aplicar filtros
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
-    
-    # Aplicar filtro por tester_asignado (nuevo) si existe - CORREGIDO
+
     if tester_asignado_filtrado and pais_filtrado:
-        # Filtrar por nombre completo Y país
-        casos_de_prueba = casos_de_prueba.filter(
-            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],  # Primer nombre
-            pais=pais_filtrado
-        )
+        try:
+            tester_id = int(tester_asignado_filtrado)
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__id=tester_id,
+                pais=pais_filtrado
+            )
+        except (ValueError, TypeError):
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],
+                pais=pais_filtrado
+            )
     elif tester_asignado_filtrado:
-        # Solo filtrar por nombre
-        casos_de_prueba = casos_de_prueba.filter(
-            tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
-        )
+        try:
+            tester_id = int(tester_asignado_filtrado)
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__id=tester_id
+            )
+        except (ValueError, TypeError):
+            casos_de_prueba = casos_de_prueba.filter(
+                tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
+            )
     elif pais_filtrado:
-        # Solo filtrar por país
         casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
 
-    # Ordenar los casos
+    if fase_filtrada:
+        casos_de_prueba = casos_de_prueba.filter(fase=fase_filtrada)
+
+    if estado_filtrado == 'bloqueante':
+        casos_de_prueba = casos_de_prueba.filter(
+            criticidad__iexact='Bloqueante',
+            estado__in=['falla_nueva', 'falla_persistente']
+        )
+    elif estado_filtrado:
+        casos_de_prueba = casos_de_prueba.filter(estado=estado_filtrado)
+
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
-    # Aplicar filtro de fallo usando la función matriz_fails
-    if fallo_filtrado == 'bloqueante':
+    fallos = []
+    
+    if fallo_filtrado == 'bloqueante' and estado_filtrado != 'bloqueante':
         fallos = matriz_fails(matriz)
         casos_filtrados = fallos[0]['casos_filtrados']
+        if fase_filtrada:
+            casos_filtrados = casos_filtrados.filter(fase=fase_filtrada)
+        if tester_filtrado:
+            casos_filtrados = casos_filtrados.filter(tester=tester_filtrado)
+        if tester_asignado_filtrado and pais_filtrado:
+            try:
+                tester_id = int(tester_asignado_filtrado)
+                casos_filtrados = casos_filtrados.filter(
+                    tester_asignado__id=tester_id,
+                    pais=pais_filtrado
+                )
+            except (ValueError, TypeError):
+                casos_filtrados = casos_filtrados.filter(
+                    tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0],
+                    pais=pais_filtrado
+                )
+        elif tester_asignado_filtrado:
+            try:
+                tester_id = int(tester_asignado_filtrado)
+                casos_filtrados = casos_filtrados.filter(tester_asignado__id=tester_id)
+            except (ValueError, TypeError):
+                casos_filtrados = casos_filtrados.filter(
+                    tester_asignado__nombre__icontains=tester_asignado_filtrado.split()[0]
+                )
+        elif pais_filtrado:
+            casos_filtrados = casos_filtrados.filter(pais=pais_filtrado)
     else:
         casos_filtrados = casos_de_prueba
 
+    # ============================================
+    # LIMPIAR TEXTOS PARA LA VISTA
+    # ============================================
+    casos_para_template = []
+    for caso in casos_filtrados:
+        casos_para_template.append({
+            'id': caso.id,
+            'etiqueta': limpiar_texto_vista(caso.etiqueta),
+            'fase': limpiar_texto_vista(caso.fase),
+            'tipo_usuario': limpiar_texto_vista(caso.tipo_usuario),
+            'caso_de_prueba': limpiar_texto_vista(caso.caso_de_prueba),
+            'pasos': limpiar_texto_vista(caso.pasos),
+            'criterio_aceptacion': limpiar_texto_vista(caso.criterio_aceptacion),
+            'nota': limpiar_texto_vista(caso.nota),
+            'estado': caso.estado,
+            'criticidad': caso.criticidad,
+        })
+
     # Formularios por caso
     formularios_casos_de_prueba = [
-        (caso, CasoDePruebaForm(instance=caso, prefix=f"caso_{caso.id}"))
-        for caso in casos_filtrados
+        (caso, CasoDePruebaForm(instance=matriz.casos.get(id=caso['id']), prefix=f"caso_{caso['id']}"))
+        for caso in casos_para_template
     ]
 
     # Alcances
@@ -284,10 +390,20 @@ def detalle_matriz(request, matriz_id):
 
     alcances_lista = matriz.alcances_utilizados.split(',') if matriz.alcances_utilizados else []
 
-    # Testers disponibles (viejo - campo tester)
-    testers_disponibles = list(matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
-    
-    # NUEVO: Obtener los IDs de los testers asignados para filtrado preciso
+    testers_disponibles = list(
+        matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
+
+    ESTADOS_POSIBLES = [
+        'funciona', 'falla_nueva', 'falla_persistente',
+        'na', 'pendiente_por_qc', 'por_ejecutar', 'pendiente_por_externo'
+    ]
+    estados_disponibles = ESTADOS_POSIBLES + ['bloqueante']
+    fases_disponibles = list(matriz.casos.exclude(
+        fase__isnull=True
+    ).exclude(
+        fase=''
+    ).values_list('fase', flat=True).distinct().order_by('fase'))
+
     combinaciones_tester_pais = matriz.casos.exclude(
         tester_asignado__isnull=True
     ).exclude(
@@ -295,21 +411,141 @@ def detalle_matriz(request, matriz_id):
     ).exclude(
         pais=''
     ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido', 'pais').distinct()
-    
+
     botones_nuevos = []
     for tester_id, nombre, apellido, pais in combinaciones_tester_pais:
         nombre_completo = f"{nombre} {apellido}"
         texto_boton = f"{nombre_completo} - {pais}"
         botones_nuevos.append({
             'texto': texto_boton,
-            'tester_id': tester_id, 
-            'tester_nombre': nombre,  
+            'tester_id': tester_id,
+            'tester_nombre': nombre_completo,
             'pais': pais
         })
+
+    testers_asignados_unicos = matriz.casos.exclude(
+        tester_asignado__isnull=True
+    ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido').distinct()
     
-    # Determinar qué botones mostrar
+    testers_asignados_lista = []
+    for tester_id, nombre, apellido in testers_asignados_unicos:
+        nombre_completo = f"{nombre} {apellido}"
+        testers_asignados_lista.append({
+            'tester_id': tester_id,
+            'tester_nombre': nombre_completo,
+            'nombre_completo': nombre_completo
+        })
+    
+    paises_disponibles = list(matriz.casos.exclude(
+        pais__isnull=True
+    ).exclude(
+        pais=''
+    ).values_list('pais', flat=True).distinct().order_by('pais'))
+
     mostrar_botones_viejos = len(testers_disponibles) > 0
-    mostrar_botones_nuevos = not mostrar_botones_viejos and len(botones_nuevos) > 0
+    mostrar_botones_nuevos = len(botones_nuevos) > 0
+    mostrar_tester_asignado = len(testers_asignados_lista) > 0
+    mostrar_paises = len(paises_disponibles) > 0
+
+    campos = {
+        "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
+        "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
+        "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
+    }
+
+    estados_combinados = []
+    for estado in estados_disponibles:
+        if estado == 'bloqueante':
+            estado_formateado = '🛑 Bloqueante (Falla Nueva + Persistente)'
+        else:
+            estado_formateado = estado.replace('_', ' ').title()
+        estados_combinados.append((estado, estado_formateado))
+
+    if estado_filtrado == 'bloqueante':
+        estado_filtrado_formateado = '🛑 Bloqueante (Falla Nueva + Persistente)'
+    elif estado_filtrado:
+        estado_filtrado_formateado = estado_filtrado.replace('_', ' ').title()
+    else:
+        estado_filtrado_formateado = None
+
+    # Query strings para filtros
+    query_params = []
+    if tester_filtrado:
+        query_params.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params.append(f"pais={pais_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params.append(f"fallo={fallo_filtrado}")
+
+    current_query_string = "&".join(query_params)
+    has_other_filters = bool(current_query_string)
+    
+    query_params_sin_estado = []
+    if tester_filtrado:
+        query_params_sin_estado.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_estado.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_estado.append(f"pais={pais_filtrado}")
+    if fase_filtrada:
+        query_params_sin_estado.append(f"fase={fase_filtrada}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_estado.append(f"fallo={fallo_filtrado}")
+    query_string_sin_estado = "&".join(query_params_sin_estado)
+    
+    query_params_sin_fase = []
+    if tester_filtrado:
+        query_params_sin_fase.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_fase.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_fase.append(f"pais={pais_filtrado}")
+    if estado_filtrado:
+        query_params_sin_fase.append(f"estado={estado_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_fase.append(f"fallo={fallo_filtrado}")
+    query_string_sin_fase = "&".join(query_params_sin_fase)
+    
+    query_params_sin_tester = []
+    if estado_filtrado:
+        query_params_sin_tester.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_tester.append(f"fase={fase_filtrada}")
+    if tester_asignado_filtrado:
+        query_params_sin_tester.append(f"tester_asignado={tester_asignado_filtrado}")
+    if pais_filtrado:
+        query_params_sin_tester.append(f"pais={pais_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_tester.append(f"fallo={fallo_filtrado}")
+    query_string_sin_tester = "&".join(query_params_sin_tester)
+    
+    query_params_sin_tester_asignado = []
+    if estado_filtrado:
+        query_params_sin_tester_asignado.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_tester_asignado.append(f"fase={fase_filtrada}")
+    if tester_filtrado:
+        query_params_sin_tester_asignado.append(f"tester={tester_filtrado}")
+    if pais_filtrado:
+        query_params_sin_tester_asignado.append(f"pais={pais_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_tester_asignado.append(f"fallo={fallo_filtrado}")
+    query_string_sin_tester_asignado = "&".join(query_params_sin_tester_asignado)
+    
+    query_params_sin_pais = []
+    if estado_filtrado:
+        query_params_sin_pais.append(f"estado={estado_filtrado}")
+    if fase_filtrada:
+        query_params_sin_pais.append(f"fase={fase_filtrada}")
+    if tester_filtrado:
+        query_params_sin_pais.append(f"tester={tester_filtrado}")
+    if tester_asignado_filtrado:
+        query_params_sin_pais.append(f"tester_asignado={tester_asignado_filtrado}")
+    if fallo_filtrado and estado_filtrado != 'bloqueante':
+        query_params_sin_pais.append(f"fallo={fallo_filtrado}")
+    query_string_sin_pais = "&".join(query_params_sin_pais)
 
     return render(request, 'excel_files/detalle_matriz.html', {
         'matriz': matriz,
@@ -323,11 +559,29 @@ def detalle_matriz(request, matriz_id):
         'pais_filtrado': pais_filtrado,
         'fallo_filtrado': fallo_filtrado,
         'alcance': alcance,
-        'fallos': fallos if fallo_filtrado == 'bloqueante' else [],
+        'fallos': fallos if (fallo_filtrado == 'bloqueante' and estado_filtrado != 'bloqueante') or estado_filtrado == 'bloqueante' else [],
         'num_fallos': num_fallos,
         'mostrar_botones_viejos': mostrar_botones_viejos,
-        'mostrar_botones_nuevos': mostrar_botones_nuevos
+        'mostrar_botones_nuevos': mostrar_botones_nuevos,
+        'campos': campos,
+        'estados_combinados': estados_combinados,
+        'fases_disponibles': fases_disponibles,
+        'estado_filtrado': estado_filtrado,
+        'estado_filtrado_formateado': estado_filtrado_formateado,
+        'fase_filtrada': fase_filtrada,
+        'current_query_string': current_query_string,
+        'has_other_filters': has_other_filters,
+        'query_string_sin_estado': query_string_sin_estado,
+        'query_string_sin_fase': query_string_sin_fase,
+        'query_string_sin_tester': query_string_sin_tester,
+        'query_string_sin_tester_asignado': query_string_sin_tester_asignado,
+        'query_string_sin_pais': query_string_sin_pais,
+        'testers_asignados_lista': testers_asignados_lista,
+        'paises_disponibles': paises_disponibles,
+        'mostrar_tester_asignado': mostrar_tester_asignado,
+        'mostrar_paises': mostrar_paises,
     })
+
 @login_required
 def actualizar_estado_caso(request):
     if request.method == "POST":
@@ -426,7 +680,29 @@ def editar_validates(request, super_matriz_id):
         'detalles_validate': detalles_validate,
         'testers': testers,
     })
-
+@login_required
+@require_POST
+@csrf_exempt
+def actualizar_estado_validate(request):
+    try:
+        validate_id = request.POST.get('validate_id')
+        nuevo_estado = request.POST.get('nuevo_estado')
+        
+        # Validar parámetros
+        if not validate_id or not nuevo_estado:
+            return JsonResponse({'error': 'Parámetros faltantes'}, status=400)
+        
+        # Obtener y actualizar el validate
+        validate = Validate.objects.get(id=validate_id)
+        validate.estado = nuevo_estado
+        validate.save()
+        
+        return JsonResponse({'success': True})
+        
+    except Validate.DoesNotExist:
+        return JsonResponse({'error': 'Validate no encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 @login_required
 def detalles_validate_modal(request, super_matriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -456,33 +732,6 @@ def detalles_validate_modal(request, super_matriz_id):
         'form': form,
         'super_matriz': super_matriz,
     })
-@login_required
-def actualizar_estado_validate(request):
-    if request.method == 'POST':
-        validate_id = request.POST.get('validate_id')
-        nuevo_estado = request.POST.get('nuevo_estado')
-
-        try:
-            validate = Validate.objects.get(id=validate_id)
-            validate.estado = nuevo_estado
-            validate.save()
-
-            # WebSocket: enviar actualización a todos los clientes del grupo
-            super_matriz = validate.super_matriz  # Asumiendo que tienes esta relación
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"validates_{super_matriz.id}",
-                {
-                    "type": "estado_actualizado",
-                    "validate_id": validate.id,
-                    "nuevo_estado": nuevo_estado,
-                }
-            )
-
-            return JsonResponse({"success": True})
-        except Validate.DoesNotExist:
-            return JsonResponse({"success": False, "error": "Validate no encontrado"})
-    return JsonResponse({"success": False, "error": "Método no permitido"})
 def tickets_por_levantar_view(request, super_matriz_id):
     
     super_matriz = get_object_or_404(SuperMatriz, id=super_matriz_id)
@@ -573,7 +822,7 @@ def generar_pdf_supermatriz(request, supermatriz_id):
             
             # Obtener número de fallos
             num_fallos = matriz_fails(matriz)[0]['indice']
-            
+            #print(f"{matriz_info['num_externos']} {matriz_info['externos']}")
             matrices_info.append({
                 'matriz': matriz,
                 'total_casos': matriz_info['total_casos'],
@@ -583,7 +832,9 @@ def generar_pdf_supermatriz(request, supermatriz_id):
                 'alcance': alcance,
                 'num_fallos': num_fallos,
                 'dispositivo': matriz_info['dispositivo'],
-                'testers': matriz_info['testers']
+                'testers': matriz_info['testers'],
+                'num_externos':matriz_info['num_externos'],
+                'externos':matriz_info['externos']
             })
 
     porcentaje_total = round((total_global_completados / total_global_casos * 100), 2) if total_global_casos > 0 else 0
@@ -619,7 +870,6 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     response['Expires'] = '0'
     
     return response    
-    return response
 User = get_user_model()
 
 @login_required

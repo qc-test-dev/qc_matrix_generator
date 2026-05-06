@@ -185,6 +185,12 @@
                             <p><strong>Alcance:</strong> {{ matriz.alcance|default:"N/A" }}</p>
                             <p><strong>Dispositivo:</strong> {{ matriz.dispositivo|default:"N/A" }}</p>
                             
+                            {% if  matriz.externos %}
+                                <div class="stat-item">
+                                    <p class="casos-bloqueantes"><strong>Casos Pendientes por externo:</strong> {{ matriz.num_externos }}</p>
+                                </div>
+                            {% endif %}
+                                
                             <div class="stats-grid">
                                 <div class="stat-item">
                                     <p class="casos-bloqueantes"><strong>Casos Bloqueantes:</strong> {{ matriz.casos_bloqueantes }}</p>

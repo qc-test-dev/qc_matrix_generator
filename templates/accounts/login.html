@@ -1,634 +1,331 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Plataforma de Seguimiento QC</title>
-  <style>
-    :root {
-      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      --background-color: #f2f2f2;
-      --primary-color: #28a745; /* Verde de éxito */
-      --primary-hover: #218838;
-      --primary-light: rgba(40, 167, 69, 0.1);
-      --dark-color: #000000; /* Negro */
-      --light-color: #ffffff; /* Blanco */
-      --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-      --border-color: #e0e0e0;
-      --input-padding: 14px;
-      --input-radius: 10px;
-      --alert-success-bg: #d4edda;
-      --alert-success-color: #155724;
-      --alert-success-border: #c3e6cb;
-      --alert-error-bg: #f8d7da;
-      --alert-error-color: #721c24;
-      --alert-error-border: #f5c6cb;
-      --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
+{% extends 'base.html' %}
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+{% block title %}
+Plataforma de Control de Calidad
+{% endblock title %}
 
-    body {
-      font-family: var(--font-family);
-      background: linear-gradient(135deg, #f2f2f2 0%, #e6e6e6 100%);
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
+{% block content %}
+<div class="body-login">
+  <!-- Fondo con elementos de éxito -->
+  <div class="success-background" id="successBg"></div>
 
-    /* Fondo animado con partículas */
-    .particles-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      overflow: hidden;
-    }
-
-    .particle {
-      position: absolute;
-      border-radius: 50%;
-      background: var(--primary-color);
-      opacity: 0.1;
-      animation: float-particle 15s infinite linear;
-    }
-
-    /* Logo QC mejorado */
-    .qc-logo {
-      position: absolute;
-      top: 30px;
-      left: 30px;
-      display: flex;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .qc-logo-circle {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary-color), #1e7e34);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 15px;
-      box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
-      animation: pulse 3s infinite alternate;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .qc-logo-circle::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-      transform: rotate(45deg);
-      animation: shine 4s infinite;
-    }
-
-    .qc-logo-text {
-      font-weight: 800;
-      font-size: 28px;
-      color: var(--dark-color);
-      letter-spacing: 1.5px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-    }
-
-    /* Figuras decorativas relacionadas con QC */
-    .qc-shapes {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-
-    .qc-shape {
-      position: absolute;
-      opacity: 0.08;
-      z-index: 0;
-    }
-
-    /* Formas de check (relacionadas con QC) */
-    .qc-shape.check {
-      width: 120px;
-      height: 120px;
-      border-left: 15px solid var(--primary-color);
-      border-bottom: 15px solid var(--primary-color);
-      transform: rotate(-45deg);
-      animation: rotate-check 25s infinite linear;
-    }
-
-    .qc-shape.check1 {
-      top: 10%;
-      right: 15%;
-    }
-
-    .qc-shape.check2 {
-      bottom: 15%;
-      left: 10%;
-      animation-direction: reverse;
-    }
-
-    /* Formas de gráfico de barras (relacionadas con métricas QC) */
-    .qc-shape.bar-chart {
-      display: flex;
-      align-items: flex-end;
-      height: 100px;
-      animation: bounce-bars 8s infinite ease-in-out;
-    }
-
-    .qc-shape.bar-chart .bar {
-      width: 12px;
-      margin: 0 3px;
-      background-color: var(--primary-color);
-    }
-
-    .qc-shape.bar-chart1 {
-      top: 20%;
-      left: 5%;
-    }
-
-    .qc-shape.bar-chart1 .bar:nth-child(1) { height: 30px; }
-    .qc-shape.bar-chart1 .bar:nth-child(2) { height: 60px; }
-    .qc-shape.bar-chart1 .bar:nth-child(3) { height: 45px; }
-    .qc-shape.bar-chart1 .bar:nth-child(4) { height: 80px; }
-    .qc-shape.bar-chart1 .bar:nth-child(5) { height: 25px; }
-
-    .qc-shape.bar-chart2 {
-      bottom: 25%;
-      right: 8%;
-    }
-
-    .qc-shape.bar-chart2 .bar:nth-child(1) { height: 70px; }
-    .qc-shape.bar-chart2 .bar:nth-child(2) { height: 40px; }
-    .qc-shape.bar-chart2 .bar:nth-child(3) { height: 85px; }
-    .qc-shape.bar-chart2 .bar:nth-child(4) { height: 55px; }
-    .qc-shape.bar-chart2 .bar:nth-child(5) { height: 30px; }
-
-    /* Formas de target (relacionadas con objetivos QC) */
-    .qc-shape.target {
-      width: 100px;
-      height: 100px;
-      border: 8px solid var(--primary-color);
-      border-radius: 50%;
-      position: relative;
-      animation: pulse-target 12s infinite alternate;
-    }
-
-    .qc-shape.target::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px;
-      height: 60px;
-      border: 8px solid var(--primary-color);
-      border-radius: 50%;
-    }
-
-    .qc-shape.target::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 20px;
-      height: 20px;
-      background-color: var(--primary-color);
-      border-radius: 50%;
-    }
-
-    .qc-shape.target1 {
-      top: 60%;
-      left: 5%;
-    }
-
-    .qc-shape.target2 {
-      top: 15%;
-      right: 20%;
-    }
-
-    /* Contenedor de login */
-    .login-container {
-      background-color: var(--light-color);
-      padding: 45px 40px;
-      border-radius: 20px;
-      box-shadow: var(--card-shadow);
-      width: 100%;
-      max-width: 450px;
-      position: relative;
-      z-index: 2;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(10px);
-      overflow: hidden;
-    }
-
-    .login-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary-color), #1e7e34);
-    }
-
-    .login-container h1 {
-      margin-bottom: 10px;
-      color: var(--dark-color);
-      font-size: 28px;
-      text-align: center;
-      font-weight: 700;
-      position: relative;
-    }
-
-    .login-container h1::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px;
-      height: 3px;
-      background: linear-gradient(90deg, var(--primary-color), #1e7e34);
-      border-radius: 2px;
-    }
-
-    .login-container .sub {
-      margin-bottom: 35px;
-      font-size: 16px;
-      text-align: center;
-      color: #666;
-      line-height: 1.6;
-    }
-
-    .icon-check {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 25px;
-    }
-
-    .icon-check svg {
-      width: 60px;
-      height: 60px;
-      fill: url(#gradient);
-      filter: drop-shadow(0 6px 12px rgba(40, 167, 69, 0.3));
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Estilos de formulario mejorados */
-    .form-group {
-      margin-bottom: 28px;
-      position: relative;
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: var(--dark-color);
-      font-size: 16px;
-      transition: var(--transition);
-      padding-left: 5px;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: var(--input-padding);
-      border-radius: var(--input-radius);
-      border: 2px solid var(--border-color);
-      font-size: 16px;
-      transition: var(--transition);
-      background-color: #fafafa;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.15);
-      background-color: var(--light-color);
-    }
-
-    button {
-      background: linear-gradient(135deg, var(--primary-color), #1e7e34);
-      color: white;
-      padding: 16px;
-      border: none;
-      border-radius: var(--input-radius);
-      font-size: 17px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--transition);
-      margin-top: 15px;
-      box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
-      position: relative;
-      overflow: hidden;
-      letter-spacing: 0.5px;
-    }
-
-    button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(40, 167, 69, 0.5);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    button::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.5);
-      opacity: 0;
-      border-radius: 100%;
-      transform: scale(1, 1) translate(-50%);
-      transform-origin: 50% 50%;
-    }
-
-    button:focus:not(:active)::after {
-      animation: ripple 1s ease-out;
-    }
-
-    .message {
-      margin-top: 20px;
-      padding: 14px;
-      border-radius: var(--input-radius);
-      font-size: 14px;
-      transition: var(--transition);
-      animation: fadeIn 0.5s ease-out;
-    }
-
-    .alert-success {
-      background-color: var(--alert-success-bg);
-      color: var(--alert-success-color);
-      border: 1px solid var(--alert-success-border);
-    }
-
-    .alert-error {
-      background-color: var(--alert-error-bg);
-      color: var(--alert-error-color);
-      border: 1px solid var(--alert-error-border);
-    }
-
-    .alert-danger, .alert-warning {
-      margin-top: 20px;
-      padding: 12px;
-      border-radius: var(--input-radius);
-      font-size: 14px;
-    }
-
-    .alert-danger {
-      background-color: var(--alert-error-bg);
-      color: var(--alert-error-color);
-      border: 1px solid var(--alert-error-border);
-    }
-
-    .alert-warning {
-      background-color: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-    }
-
-    .text-danger {
-      color: #dc3545;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-
-    /* Animaciones mejoradas */
-    @keyframes float-particle {
-      0% { transform: translateY(0) translateX(0) rotate(0deg); }
-      33% { transform: translateY(-30px) translateX(20px) rotate(120deg); }
-      66% { transform: translateY(20px) translateX(-15px) rotate(240deg); }
-      100% { transform: translateY(0) translateX(0) rotate(360deg); }
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4); }
-      100% { transform: scale(1.08); box-shadow: 0 12px 25px rgba(40, 167, 69, 0.6); }
-    }
-
-    @keyframes shine {
-      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-    }
-
-    @keyframes rotate-check {
-      0% { transform: rotate(-45deg) scale(1); }
-      50% { transform: rotate(315deg) scale(1.2); }
-      100% { transform: rotate(675deg) scale(1); }
-    }
-
-    @keyframes bounce-bars {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
-    }
-
-    @keyframes pulse-target {
-      0% { transform: scale(1); opacity: 0.08; }
-      100% { transform: scale(1.2); opacity: 0.12; }
-    }
-
-    @keyframes ripple {
-      0% { transform: scale(0, 0); opacity: 0.5; }
-      100% { transform: scale(20, 20); opacity: 0; }
-    }
-
-    @keyframes fadeIn {
-      0% { opacity: 0; transform: translateY(10px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsive */
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 30px 25px;
-        margin: 0 15px;
-      }
-      
-      .qc-logo {
-        top: 20px;
-        left: 20px;
-      }
-      
-      .qc-shape {
-        display: none;
-      }
-      
-      .particles-container {
-        display: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- Fondo con partículas animadas -->
-  <div class="particles-container" id="particles"></div>
-
-  <!-- Logo QC -->
-  <div class="qc-logo">
-    <div class="qc-logo-circle">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+  <!-- Logo de éxito -->
+  <div class="success-logo-container">
+    <div class="success-logo">
+      <svg class="success-logo-icon" viewBox="0 0 24 24">
         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
       </svg>
     </div>
-    <div class="qc-logo-text">QUALITY CONTROL</div>
+    <div class="success-title">QUALITY CONTROL</div>
   </div>
 
-  <!-- Figuras decorativas relacionadas con QC -->
-  <div class="qc-shapes">
-    <div class="qc-shape check check1"></div>
-    <div class="qc-shape check check2"></div>
+  <!-- Tarjeta de login -->
+  <div class="success-login-card">
     
-    <div class="qc-shape bar-chart bar-chart1">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
+    <!-- Icono de paloma de revisión -->
+    <div class="dove-icon-container">
+      <div class="dove-icon">
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="dove-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#28a745" />
+              <stop offset="50%" stop-color="#20c997" />
+              <stop offset="100%" stop-color="#28a745" />
+            </linearGradient>
+          </defs>
+          <!-- Cuerpo de la paloma -->
+          <path d="M50,30 Q65,25 70,35 Q75,45 80,50 Q75,55 70,65 Q65,75 50,70 Q35,75 30,65 Q25,55 20,50 Q25,45 30,35 Q35,25 50,30" 
+                fill="url(#dove-gradient)" opacity="0.9"/>
+          
+          <!-- Alas -->
+          <path d="M40,40 Q30,35 25,45 Q20,55 25,65 Q30,75 40,70" 
+                fill="#20c997" opacity="0.7"/>
+          <path d="M60,40 Q70,35 75,45 Q80,55 75,65 Q70,75 60,70" 
+                fill="#20c997" opacity="0.7"/>
+          
+          <!-- Check de revisión -->
+          <path d="M45,55 L55,65 L70,45" 
+                stroke="#ffffff" 
+                stroke-width="4" 
+                fill="none" 
+                stroke-linecap="round"
+                stroke-dasharray="100"
+                stroke-dashoffset="100"
+                style="animation: check-success 1.5s ease-out forwards 0.5s;"/>
+          
+          <!-- Ojo -->
+          <circle cx="60" cy="45" r="3" fill="#ffffff"/>
+          <circle cx="60" cy="45" r="1" fill="#155724"/>
+        </svg>
+      </div>
     </div>
-    
-    <div class="qc-shape bar-chart bar-chart2">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-    </div>
-    
-    <div class="qc-shape target target1"></div>
-    <div class="qc-shape target target2"></div>
-  </div>
 
-  <!-- Gradiente SVG para el icono de check -->
-  <svg width="0" height="0">
-    <defs>
-      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#28a745" />
-        <stop offset="100%" stop-color="#1e7e34" />
-      </linearGradient>
-    </defs>
-  </svg>
-
-  <!-- Login -->
-  <div class="login-container">
-    <div class="icon-check">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path d="M20.29 5.71a1 1 0 0 0-1.42 0L9 15.59l-3.29-3.3a1 1 0 0 0-1.42 1.42l4 4a1 1 0 0 0 1.42 0l11-11a1 1 0 0 0 0-1.42z"/>
-      </svg>
+    <h1 class="title">Plataforma de Seguimiento QC</h1>
+    <div class="success-subtitle">
+      Accede para gestionar matrices de pruebas, validates y tickets
     </div>
-    <h1>Plataforma de Seguimiento QC</h1>
-    <div class="sub">Accede para gestionar matrices de pruebas, validates y tickets</div>
-    
-    <!-- Manejo de errores de Django -->
+
+    <!-- Medidor de éxito -->
+    <div class="success-meter">
+      <div class="success-progress"></div>
+    </div>
+
+    <!-- Alertas en español -->
     {% if form.errors %}
-      <div class="alert alert-danger">
-        {{ form.errors }}
+      <div class="alert-error-custom">
+        <strong>⚠ Error de Autenticación</strong><br>
+        Por favor verifica tu nombre de usuario y contraseña. Ambos campos son requeridos.
       </div>
     {% endif %}
 
     {% if form.non_field_errors %}
-      <div class="alert alert-warning">
+      <div class="alert-warning-custom">
+        <strong>⚠ Atención Requerida</strong><br>
         {{ form.non_field_errors }}
       </div>
     {% endif %}
 
-    <!-- Formulario Django con CSRF token -->
-    <form method="post" novalidate autocomplete="off">
-      {% csrf_token %}
-      
-      <div class="form-group">
-        <label for="{{ form.username.id_for_label }}">Usuario</label>
-        {{ form.username }}
-        {% for error in form.username.errors %}
-          <div class="text-danger">{{ error }}</div>
-        {% endfor %}
-      </div>
-      
-      <div class="form-group">
-        <label for="{{ form.password.id_for_label }}">Contraseña</label>
-        {{ form.password }}
-        {% for error in form.password.errors %}
-          <div class="text-danger">{{ error }}</div>
-        {% endfor %}
-      </div>
-
-      <button type="submit">Ingresar</button>
-    </form>
-
-    <!-- Mensajes de Django -->
+    <!-- Mensajes de Django en español -->
     {% if messages %}
       {% for message in messages %}
-        <div class="message {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+        <div class="alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}-custom">
+          {% if message.tags == 'success' %}
+            <strong>✓ Operación Exitosa</strong><br>
+          {% elif message.tags == 'error' %}
+            <strong>⚠ Error en el Proceso</strong><br>
+          {% elif message.tags == 'warning' %}
+            <strong>⚠ Advertencia del Sistema</strong><br>
+          {% else %}
+            <strong>ℹ Información</strong><br>
+          {% endif %}
           {{ message }}
         </div>
       {% endfor %}
     {% endif %}
-  </div>
 
-  <script>
-    // Crear partículas animadas
-    document.addEventListener('DOMContentLoaded', function() {
-      const particlesContainer = document.getElementById('particles');
-      const particleCount = 30;
+    <!-- Formulario CORREGIDO - USANDO LOS CAMPOS DE DJANGO DIRECTAMENTE -->
+    <form method="post" novalidate id="loginForm">
+      {% csrf_token %}
       
-      for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
+      <div class="form-group-success">
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}
+          <div class="text-error-success">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--button-danger-bg)">
+              <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+            </svg>
+            {{ error }}
+          </div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group-success">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        <div class="password-wrapper">
+          <!-- CAMPO DE CONTRASEÑA ORIGINAL DE DJANGO -->
+          {{ form.password }}
+          <!-- Botón para mostrar/ocultar contraseña - FIJADO -->
+          <button type="button" class="password-toggle" id="togglePassword" 
+                  aria-label="Mostrar contraseña">
+            <svg id="eyeIcon" viewBox="0 0 24 24">
+              <path d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z"/>
+            </svg>
+          </button>
+        </div>
         
-        // Tamaño aleatorio
-        const size = Math.random() * 20 + 5;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
+        {% for error in form.password.errors %}
+          <div class="text-error-success">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--button-danger-bg)">
+              <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+            </svg>
+            {{ error }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="success-login-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+          <path d="M10,17V14H3V10H10V7L15,12L10,17M10,2H19A2,2 0 0,1 21,4V20A2,2 0 0,1 19,22H10A2,2 0 0,1 8,20V18H10V20H19V4H10V6H8V4A2,2 0 0,1 10,2Z"/>
+        </svg>
+        INGRESAR 
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Crear elementos de éxito dinámicamente
+      const bg = document.getElementById('successBg');
+      const elementTypes = ['check', 'circle', 'star'];
+      
+      for (let i = 0; i < 20; i++) {
+        const element = document.createElement('div');
+        const type = elementTypes[Math.floor(Math.random() * elementTypes.length)];
+        element.classList.add('success-element', `success-${type}`);
         
         // Posición aleatoria
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.top = `${Math.random() * 100}%`;
+        element.style.left = `${Math.random() * 100}%`;
+        element.style.top = `${Math.random() * 100}%`;
         
-        // Retraso de animación aleatorio
-        particle.style.animationDelay = `${Math.random() * 15}s`;
+        // Tamaño aleatorio
+        const size = Math.random() * 40 + 40;
+        element.style.width = `${size}px`;
+        element.style.height = `${size}px`;
         
-        // Opacidad aleatoria
-        particle.style.opacity = Math.random() * 0.1 + 0.05;
+        // Retraso y duración de animación aleatoria
+        const delay = Math.random() * 20;
+        const duration = Math.random() * 10 + 15;
+        element.style.animationDelay = `${delay}s`;
+        element.style.animationDuration = `${duration}s`;
         
-        particlesContainer.appendChild(particle);
+        // Opacidad aleatoria (más suave)
+        element.style.opacity = Math.random() * 0.05 + 0.03;
+        
+        // Color verde aleatorio
+        const greenShades = ['#28a745', '#20c997', '#34ce57', '#52c41a'];
+        const color = greenShades[Math.floor(Math.random() * greenShades.length)];
+        
+        if (type === 'check') {
+          element.style.borderLeftColor = color;
+          element.style.borderBottomColor = color;
+        } else if (type === 'circle') {
+          element.style.borderColor = color;
+        } else if (type === 'star') {
+          element.style.background = color;
+        }
+        
+        // Solo mostrar en pantallas grandes
+        if (window.innerWidth > 768) {
+          bg.appendChild(element);
+        }
       }
       
-      // Efecto de enfoque en los campos de entrada
-      const inputs = document.querySelectorAll('input');
+      // **FUNCIONALIDAD DE MOSTRAR/OCULTAR CONTRASEÑA MEJORADA**
+      const togglePassword = document.getElementById('togglePassword');
+      const eyeIcon = document.getElementById('eyeIcon');
+      
+      if (togglePassword && eyeIcon) {
+        // Obtener el campo de contraseña REAL de Django
+        const passwordInput = document.querySelector('input[name="password"]');
+        
+        if (passwordInput) {
+          // Asegurar que el input tenga el atributo type="password" inicialmente
+          if (passwordInput.getAttribute('type') !== 'password') {
+            passwordInput.setAttribute('type', 'password');
+          }
+          
+          // Añadir clase para estilos CSS
+          passwordInput.classList.add('password-input');
+          
+          // **CORRECCIÓN: Posicionamiento fijo del botón**
+          // El botón ya está posicionado con CSS, solo necesitamos la funcionalidad
+          
+          // Efecto hover en el botón
+          togglePassword.addEventListener('mouseenter', function() {
+            this.style.opacity = '1';
+            this.querySelector('svg').style.fill = '#28a745';
+          });
+          
+          togglePassword.addEventListener('mouseleave', function() {
+            this.style.opacity = '0.5';
+            this.querySelector('svg').style.fill = '#666';
+          });
+          
+          // **CORRECCIÓN: Función mejorada para mostrar/ocultar contraseña**
+          togglePassword.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevenir cualquier comportamiento por defecto
+            e.stopPropagation(); // Detener propagación
+            
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Cambiar icono con transición suave
+            if (type === 'text') {
+              eyeIcon.innerHTML = '<path fill="currentColor" d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12C15,10.34 13.66,9 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12C9,13.66 10.34,15 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17C9.24,17 7,14.76 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7C14.76,7 17,9.24 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/>';
+              togglePassword.setAttribute('aria-label', 'Ocultar contraseña');
+              togglePassword.title = 'Ocultar contraseña';
+            } else {
+              eyeIcon.innerHTML = '<path fill="currentColor" d="M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M12,4.5C17,4.5 21.27,7.61 23,12C21.27,16.39 17,19.5 12,19.5C7,19.5 2.73,16.39 1,12C2.73,7.61 7,4.5 12,4.5M3.18,12C4.83,15.36 8.24,17.5 12,17.5C15.76,17.5 19.17,15.36 20.82,12C19.17,8.64 15.76,6.5 12,6.5C8.24,6.5 4.83,8.64 3.18,12Z"/>';
+              togglePassword.setAttribute('aria-label', 'Mostrar contraseña');
+              togglePassword.title = 'Mostrar contraseña';
+            }
+            
+            // Efecto visual sutil (sin cambiar la posición)
+            this.style.transform = 'translateY(-50%) scale(0.95)';
+            setTimeout(() => {
+              this.style.transform = 'translateY(-50%) scale(1)';
+            }, 150);
+          });
+          
+          // **CORRECCIÓN: Prevenir que el formulario se envíe al hacer clic en el botón**
+          togglePassword.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+          });
+        }
+      }
+      
+      // Efectos interactivos en campos de entrada
+      const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
       
       inputs.forEach(input => {
         input.addEventListener('focus', function() {
-          this.parentElement.querySelector('label').style.color = '#28a745';
+          const parent = this.closest('.form-group-success');
+          if (parent) {
+            parent.style.transform = 'translateY(-5px)';
+          }
+          const label = this.parentElement.querySelector('label');
+          if (label) {
+            label.style.color = '#28a745';
+          }
         });
         
         input.addEventListener('blur', function() {
-          this.parentElement.querySelector('label').style.color = '#000000';
+          const parent = this.closest('.form-group-success');
+          if (parent) {
+            parent.style.transform = 'translateY(0)';
+          }
+          if (!this.value) {
+            const label = this.parentElement.querySelector('label');
+            if (label) {
+              label.style.color = 'var(--dark-color)';
+            }
+          }
         });
       });
+      
+      // **CORRECCIÓN: Prevenir que el botón de login se deshabilite**
+      const loginBtn = document.querySelector('.success-login-btn');
+      if (loginBtn) {
+        // Remover cualquier evento previo que pudiera interferir
+        loginBtn.onclick = null;
+        
+        // Solo añadir efecto visual, no prevenir el envío
+        loginBtn.addEventListener('click', function() {
+          // Pequeño efecto visual sin interferir
+          this.style.transform = 'translateY(2px)';
+          setTimeout(() => {
+            this.style.transform = 'translateY(0)';
+          }, 150);
+        });
+      }
     });
-  </script>
-</body>
-</html>
+    
+    // Manejo responsive
+    window.addEventListener('resize', function() {
+      const bg = document.getElementById('successBg');
+      const currentElements = bg.querySelectorAll('.success-element').length;
+      
+      // Si estamos en móvil y hay elementos, eliminarlos
+      if (window.innerWidth <= 768 && currentElements > 0) {
+        bg.innerHTML = '';
+      }
+      // Si estamos en desktop y no hay elementos, crearlos
+      else if (window.innerWidth > 768 && currentElements === 0) {
+        // Disparar el evento DOMContentLoaded para recrear elementos
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+      }
+    });
+</script>
+{% endblock content %}

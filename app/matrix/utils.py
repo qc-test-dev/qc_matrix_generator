@@ -12,7 +12,9 @@ import os,json
 from .models import Matriz,SuperMatriz
 from app.accounts.models import Equipo
 from django.db.models import Q, F
-
+import openpyxl
+import traceback
+from .models import CasoDePrueba
 
 JIRA_EMAIL,JIRA_API_TOKEN = os.getenv('JIRA_EMAIL'),os.getenv('JIRA_API_TOKEN')
 print(JIRA_API_TOKEN,JIRA_EMAIL)
@@ -21,46 +23,152 @@ def limpiar(valor):
         return valor.strip()
     return valor
 
-import openpyxl
-from .models import CasoDePrueba
-
-
 def importar_matriz_desde_excel(matriz, ruta_excel, alcances_permitidos=None):
     """
-    Importa casos de prueba desde un archivo Excel y los asigna a una matriz.
-    Filtra por alcance si se proporciona una lista de alcances_permitidos (['A', 'B', 'C']).
-    Las filas incompletas (sin alcance, fase, caso o criticidad) se ignoran.
+    Importa casos de prueba desde un archivo Excel procesado.
+    
+    Returns:
+        tuple: (success, error_message) donde success es booleano y error_message es el mensaje de error si hubo
     """
-    wb = openpyxl.load_workbook(ruta_excel)
-    sheet = wb.active
+    try:
+        wb = openpyxl.load_workbook(ruta_excel)
+        sheet = wb.active
 
-    for fila in sheet.iter_rows(min_row=2, values_only=True):
-        alcance = fila[0]
-        fase = fila[1]
-        caso_de_prueba = fila[2]
-        criticidad = fila[4]
-        nota = fila[5] if len(fila) > 5 else ""
+        # Leer encabezados normalizados (convertir a minúsculas)
+        encabezados = [str(c).strip().lower() for c in next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))]
+        columnas = {nombre: i for i, nombre in enumerate(encabezados)}
+        
+        # Función para obtener columna
+        def col(nombre):
+            return columnas.get(nombre.strip().lower())
+        
+        # VERIFICAR COLUMNAS MÍNIMAS REQUERIDAS
+        columnas_requeridas = [
+            ("alcance de evaluacion", "alcance de evaluación"),
+            ("funcionalidad", "fase"),
+            ("descripcion", "caso de prueba"),
+            ("criticidad",),
+        ]
+        
+        # Validar columnas
+        for grupo in columnas_requeridas:
+            encontrado = False
+            for nombre in grupo:
+                if col(nombre) is not None:
+                    encontrado = True
+                    break
+            if not encontrado:
+                nombres_formateados = " o ".join([f'"{n}"' for n in grupo])
+                return False, f"No se encontró la columna {nombres_formateados}"
+        
+        # Obtener índices de todas las columnas que nos interesan
+        idx_alcance = col("alcance de evaluacion")
+        idx_funcionalidad = col("funcionalidad")
+        idx_descripcion = col("descripcion")
+        idx_criticidad = col("criticidad")
+        idx_estado = col("estado")
+        idx_otros = col("otros")
+        idx_id_prueba = col("id-prueba")
+        idx_tipo_usuario = col("tipo de usuario")
+        idx_pasos = col("step by step")
+        idx_criterio = col("criterio aceptación")
+        
+        # Contadores
+        filas_procesadas = 0
+        filas_omitidas = 0
+        
+        # Procesar filas
+        for fila in sheet.iter_rows(min_row=2, values_only=True):
+            # Verificar si la fila está vacía
+            if all(cell is None for cell in fila):
+                continue
+            
+            # Obtener valores de las columnas
+            alcance_raw = fila[idx_alcance] if idx_alcance is not None and idx_alcance < len(fila) else None
+            funcionalidad_raw = fila[idx_funcionalidad] if idx_funcionalidad is not None and idx_funcionalidad < len(fila) else None
+            descripcion_raw = fila[idx_descripcion] if idx_descripcion is not None and idx_descripcion < len(fila) else None
+            criticidad_raw = fila[idx_criticidad] if idx_criticidad is not None and idx_criticidad < len(fila) else None
+            estado_raw = fila[idx_estado] if idx_estado is not None and idx_estado < len(fila) else None
+            otros_raw = fila[idx_otros] if idx_otros is not None and idx_otros < len(fila) else None
+            id_prueba_raw = fila[idx_id_prueba] if idx_id_prueba is not None and idx_id_prueba < len(fila) else None
+            tipo_usuario_raw = fila[idx_tipo_usuario] if idx_tipo_usuario is not None and idx_tipo_usuario < len(fila) else None
+            pasos_raw = fila[idx_pasos] if idx_pasos is not None and idx_pasos < len(fila) else None
+            criterio_raw = fila[idx_criterio] if idx_criterio is not None and idx_criterio < len(fila) else None
+            
+            # Convertir a string
+            alcance = str(alcance_raw).strip() if alcance_raw is not None else ""
+            funcionalidad = str(funcionalidad_raw).strip() if funcionalidad_raw is not None else ""
+            descripcion = str(descripcion_raw).strip() if descripcion_raw is not None else ""
+            criticidad = str(criticidad_raw).strip() if criticidad_raw is not None else ""
+            estado = str(estado_raw).strip() if estado_raw is not None and str(estado_raw).strip() else "por ejecutar"
+            otros = str(otros_raw).strip() if otros_raw is not None else ""
+            id_prueba = str(id_prueba_raw).strip() if id_prueba_raw is not None else ""
+            tipo_usuario = str(tipo_usuario_raw).strip() if tipo_usuario_raw is not None else ""
+            pasos = str(pasos_raw).strip() if pasos_raw is not None else ""
+            criterio_aceptacion = str(criterio_raw).strip() if criterio_raw is not None else ""
+            
+            # Normalizar criticidad
+            criticidad_normalizada = normalizar_criticidad(criticidad)
+            
+            # Normalizar estado
+            if estado.lower() in ['por_ejecutar', 'por ejecutar', 'pendiente', '']:
+                estado_normalizado = "por ejecutar"
+            else:
+                estado_normalizado = estado
+            
+            # Validar campos obligatorios
+            campos_obligatorios = [alcance, funcionalidad, descripcion, criticidad_normalizada]
+            if not all(campos_obligatorios):
+                filas_omitidas += 1
+                continue
+            
+            # Filtrar por alcances permitidos
+            if alcances_permitidos and alcance not in alcances_permitidos:
+                filas_omitidas += 1
+                continue
+            
+            try:
+                CasoDePrueba.objects.create(
+                    matriz=matriz,
+                    alcance=alcance,
+                    fase=funcionalidad,
+                    caso_de_prueba=descripcion,
+                    estado="por_ejecutar",
+                    criticidad=criticidad_normalizada,
+                    nota=otros if otros else None,
+                    etiqueta=id_prueba if id_prueba else "",
+                    tipo_usuario=tipo_usuario if tipo_usuario else "",
+                    pasos=pasos if pasos else "",
+                    criterio_aceptacion=criterio_aceptacion if criterio_aceptacion else "",
+                )
+                filas_procesadas += 1
+                
+            except Exception as e:
+                print(f"Error al crear caso: {e}")
+                filas_omitidas += 1
+        
+        if filas_procesadas == 0:
+            return False, "No se importó ningún caso de prueba. Verifica que todas las columnas obligatorias tengan datos."
+        
+        return True, f"Matriz importada correctamente. Se importaron {filas_procesadas} casos de prueba."
+        
+    except Exception as e:
+        traceback.print_exc()
+        return False, f"Error al importar matriz: {str(e)}"
 
-        # Validar que los campos clave no estén vacíos
-        if not (alcance and fase and caso_de_prueba and criticidad):
-            continue  # Ignorar la fila si falta alguno
+def normalizar_criticidad(valor):
 
-        # Filtrar por alcance si se especifica
-        if alcances_permitidos and alcance not in alcances_permitidos:
-            continue
-
-        # Crear el caso de prueba
-        CasoDePrueba.objects.create(
-            matriz=matriz,
-            alcance=alcance,
-            fase=fase,
-            caso_de_prueba=caso_de_prueba,
-            estado="por_ejecutar",
-            criticidad=criticidad,
-            nota=nota or ""
-        )
-
-
+    if not valor or valor == '':
+        return ''
+    
+    valor_lower = str(valor).strip().lower()
+    
+    if any(palabra in valor_lower for palabra in ['blocker', 'bloqueante']):
+        return 'Bloqueante'
+    elif any(palabra in valor_lower for palabra in ['critical', 'critico']):
+        return 'Crítico'
+    else:
+        return str(valor).strip()
 # def importar_validates_desde_excel(super_matriz, ruta_excel):
 #     """
 #     Importa registros de 'Validate' desde un archivo Excel y los asigna a una SuperMatriz.
@@ -207,7 +315,7 @@ def matriz_info(matrices):
     for matriz in matrices:
         casos = matriz.casos.all()
         total_casos = casos.count()
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_qc"]
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_externo"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
 
@@ -342,9 +450,13 @@ def obtener_informacion_matriz(matriz_id):
             criticidad='Bloqueante',
             estado__in=['falla_persistente', 'falla_nueva']
         )
+        # Filtro sobre casos pendientes por externo
+        casos_pendientes_filtrados = casos.filter(
+            estado__in=['pendiente_por_externo']
+        )
         
         # Calcular porcentaje de avance
-        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_qc"]
+        estados_interes = ['funciona', 'falla_nueva', 'falla_persistente', "na","pendiente_por_externo"]
         casos_filtrados = casos.filter(estado__in=estados_interes).count()
         porcentaje = (casos_filtrados / total_casos * 100) if total_casos > 0 else 0
         
@@ -395,7 +507,9 @@ def obtener_informacion_matriz(matriz_id):
             'porcentaje': round(porcentaje, 2),
             'total_casos': total_casos,  # Para referencia
             'casos_ejecutados': casos_filtrados,  # Para referencia
-            'paises': paises_lista  # Lista de países únicos
+            'paises': paises_lista,  # Lista de países únicos
+            'externos':casos_pendientes_filtrados,
+            'num_externos':casos_pendientes_filtrados.count()
         }
         
     except Matriz.DoesNotExist:
@@ -533,3 +647,94 @@ def obtener_todos_los_equipos_completo(solo_activas=True):
     except Exception as e:
         print(f"Error obteniendo todos los equipos completos: {e}")
         return None
+
+
+def distribuir_casos_equitativamente(matriz, testers_seleccionados, regiones_seleccionadas):
+    """
+    Distribuye los casos de manera equitativa entre testers y regiones,
+    evitando duplicaciones y asegurando distribución balanceada.
+    Si hay igual cantidad de testers y regiones, asigna una región por tester.
+    """
+    if not testers_seleccionados or not regiones_seleccionadas:
+        return
+
+    # Obtener todos los casos de la matriz
+    casos = list(matriz.casos.all())
+    total_casos = len(casos)
+    
+    if total_casos == 0:
+        return
+
+    # Calcular distribución óptima
+    total_testers = len(testers_seleccionados)
+    total_regiones = len(regiones_seleccionadas)
+    
+    # CASO ESPECIAL: Misma cantidad de testers y regiones
+    if total_testers == total_regiones:
+        # Asignar una región diferente a cada tester
+        for i, tester in enumerate(testers_seleccionados):
+            region = regiones_seleccionadas[i]
+            
+            # Calcular cuántos casos corresponden a este tester
+            casos_por_tester = total_casos // total_testers
+            casos_extra = total_casos % total_testers
+            
+            # Determinar índices de casos para este tester
+            inicio = i * casos_por_tester + min(i, casos_extra)
+            fin = inicio + casos_por_tester + (1 if i < casos_extra else 0)
+            
+            # Asignar los casos a este tester y su región asignada
+            for j in range(inicio, fin):
+                if j < total_casos:
+                    caso = casos[j]
+                    caso.tester_asignado = tester
+                    caso.pais = region
+                    caso.save()
+    
+    # CASO NORMAL: Funcionalidad original (todas las combinaciones tester-región)
+    else:
+        # Crear combinaciones únicas de tester-región
+        combinaciones = []
+        for tester in testers_seleccionados:
+            for region in regiones_seleccionadas:
+                combinaciones.append((tester, region))
+        
+        # Mezclar las combinaciones para distribución aleatoria pero equitativa
+        random.shuffle(combinaciones)
+        
+        # Calcular casos por combinación
+        casos_por_combinacion = total_casos // len(combinaciones)
+        casos_extra = total_casos % len(combinaciones)
+        
+        # Distribuir casos
+        caso_index = 0
+        
+        for i, (tester, region) in enumerate(combinaciones):
+            # Calcular cuántos casos asignar a esta combinación
+            casos_a_asignar = casos_por_combinacion
+            if i < casos_extra:
+                casos_a_asignar += 1
+            
+            # Asignar casos a esta combinación tester-región
+            for j in range(casos_a_asignar):
+                if caso_index < total_casos:
+                    caso = casos[caso_index]
+                    caso.tester_asignado = tester
+                    caso.pais = region
+                    caso.save()
+                    caso_index += 1
+        
+        # Si aún quedan casos por asignar (por redondeo), distribuirlos equitativamente
+        if caso_index < total_casos:
+            combinaciones_restantes = combinaciones[:]
+            random.shuffle(combinaciones_restantes)
+            
+            for caso in casos[caso_index:]:
+                if not combinaciones_restantes:
+                    combinaciones_restantes = combinaciones.copy()
+                    random.shuffle(combinaciones_restantes)
+                
+                tester, region = combinaciones_restantes.pop()
+                caso.tester_asignado = tester
+                caso.pais = region
+                caso.save()

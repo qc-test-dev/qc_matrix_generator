@@ -13,90 +13,511 @@
     <p><strong>Alcance: {{alcance}}</strong></p>
     <p><strong>Dispositivo: {{matriz.dispositivo.nombre}}</strong></p>
 
-    <h4 class="mt-4">Filtrar por:</h4>
-    <ul class="list-inline">
-        <!-- Botón Todos (limpia todos los filtros) -->
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" 
-               class="btn btn-outline-primary btn-sm {% if not fallo_filtrado and not tester_filtrado and not tester_asignado_filtrado and not pais_filtrado %}active{% endif %}">
-                Todos
-            </a>
-        </li>
-        
-        <!-- Botón Bloqueante (Falla Nueva + Persistente) -->
-        <li class="list-inline-item">
-            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fallo=bloqueante"
-               class="btn btn-outline-danger btn-sm {% if fallo_filtrado == 'bloqueante' %}active{% endif %}">
-                Bloqueante (Falla Nueva + Persistente) <span id="num-fallos">{{ num_fallos }}</span>
-            </a>
-        </li>
-        
-        <!-- Botones viejos (tester) -->
-        {% if mostrar_botones_viejos and testers_disponibles %}
-            {% for tester in testers_disponibles %}
-                {% if tester %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}"
-                       class="btn btn-outline-dark btn-sm {% if tester == tester_filtrado %}active{% endif %}">
-                        {{ tester }}
-                    </a>
-                </li>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-        
-        <!-- Botones nuevos (nombre completo - pais) -->
-        {% if mostrar_botones_nuevos and botones_nuevos %}
-            {% for boton in botones_nuevos %}
-                <li class="list-inline-item">
-                    <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ boton.tester_nombre }}&pais={{ boton.pais }}"
-                       class="btn btn-outline-dark btn-sm {% if boton.tester_nombre == tester_asignado_filtrado and boton.pais == pais_filtrado %}active{% endif %}">
-                        {{ boton.texto }}
-                    </a>
-                </li>
-            {% endfor %}
-        {% endif %}
-    </ul>
+    <!-- FILTROS RÁPIDOS EN DIV SEPARADO -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h4 class="mb-3">Filtros Rápidos:</h4>
+            <div class="d-flex gap-2 align-items-end flex-wrap">
+                <!-- Dropdown para Estado -->
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Estado</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownEstado" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if estado_filtrado %}{{ estado_filtrado_formateado }}{% else %}Todos los estados{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownEstado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_estado %}?{{ query_string_sin_estado }}{% endif %}">
+                                    Todos los estados
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for estado_original, estado_formateado in estados_combinados %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?estado={{ estado_original }}{% if query_string_sin_estado %}&{{ query_string_sin_estado }}{% endif %}">
+                                        {{ estado_formateado }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
 
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th class="col-fase">Fase</th>
-                <th class="col-caso">Caso de Prueba</th>
-                <th class="col-estado">Estado</th>
-                <th class="col-criticidad">Criticidad</th>
-                <th class="col-nota">Comentarios y Datos de Prueba</th>
-            </tr>
-        </thead>
-        <tbody id="tabla-casos">
-            {% for caso, form in formularios_casos_de_prueba %}
-                <tr data-id="{{ caso.id }}">
-                    <td>{{ caso.fase }}</td>
-                    <td>{{ caso.caso_de_prueba }}</td>
-                    <td id="estado-caso-{{ caso.id }}">
-                        {% render_field form.estado class="estado-input form-control" %}
-                    </td>
-                    <td>
-                        {% if caso.criticidad|lower == "bloqueante" %}
-                            <span class="badge bg-danger">🛑 Bloqueante</span>
-                        {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
-                            <span class="badge bg-warning text-dark">⚠️ Critico</span>
+                <!-- Dropdown para Fase -->
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Fase</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownFase" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if fase_filtrada %}{{ fase_filtrada }}{% else %}Todas las fases{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownFase" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_fase %}?{{ query_string_sin_fase }}{% endif %}">
+                                    Todas las fases
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for fase in fases_disponibles %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?fase={{ fase }}{% if query_string_sin_fase %}&{{ query_string_sin_fase }}{% endif %}">
+                                        {{ fase }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Dropdown para Tester (campo viejo) -->
+                {% if mostrar_botones_viejos and testers_disponibles %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Tester</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownTester" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if tester_filtrado %}{{ tester_filtrado }}{% else %}Todos los testers{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownTester" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_tester %}?{{ query_string_sin_tester }}{% endif %}">
+                                    Todos los testers
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for tester in testers_disponibles %}
+                                {% if tester %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester={{ tester }}{% if query_string_sin_tester %}&{{ query_string_sin_tester }}{% endif %}">
+                                        {{ tester }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Dropdown para Tester Asignado -->
+                {% if mostrar_tester_asignado and testers_asignados_lista %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Tester Asignado</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownTesterAsignado" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if tester_asignado_filtrado %}{{ tester_asignado_filtrado }}{% else %}Todos los testers{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownTesterAsignado" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_tester_asignado %}?{{ query_string_sin_tester_asignado }}{% endif %}">
+                                    Todos los testers
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for tester in testers_asignados_lista %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?tester_asignado={{ tester.tester_nombre }}{% if query_string_sin_tester_asignado %}&{{ query_string_sin_tester_asignado }}{% endif %}">
+                                        {{ tester.nombre_completo }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Dropdown para Región/País -->
+                {% if mostrar_paises and paises_disponibles %}
+                <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
+                    <label class="form-label fw-bold small mb-1">Región/País</label>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle w-100 py-1 dropdown-btn-enhanced"
+                                type="button" id="dropdownPais" data-bs-toggle="dropdown"
+                                aria-expanded="false" style="font-size: 0.8rem; font-weight: 600; border-width: 2px;">
+                            {% if pais_filtrado %}{{ pais_filtrado }}{% else %}Todas las regiones{% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownPais" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item py-1"
+                                   href="{% url 'matrix_app:detalle_matriz' matriz.id %}{% if query_string_sin_pais %}?{{ query_string_sin_pais }}{% endif %}">
+                                    Todas las regiones
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            {% for pais in paises_disponibles %}
+                                <li>
+                                    <a class="dropdown-item py-1"
+                                       href="{% url 'matrix_app:detalle_matriz' matriz.id %}?pais={{ pais }}{% if query_string_sin_pais %}&{{ query_string_sin_pais }}{% endif %}">
+                                        {{ pais }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Mostrar filtros activos -->
+    {% if estado_filtrado or fase_filtrada or tester_filtrado or tester_asignado_filtrado or pais_filtrado or fallo_filtrado %}
+    <div class="mt-3 mb-3 p-3 filtros-aplicados-container">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <strong class="filtros-titulo me-2"> Filtros aplicados:</strong>
+            {% if estado_filtrado %}
+                <span class="badge filtro-badge filtro-estado">
+                    <span class="filtro-icono"></span> Estado: {{ estado_filtrado_formateado }}
+                </span>
+            {% endif %}
+            {% if fase_filtrada %}
+                <span class="badge filtro-badge filtro-fase">
+                    <span class="filtro-icono"></span> Fase: {{ fase_filtrada }}
+                </span>
+            {% endif %}
+            {% if tester_filtrado %}
+                <span class="badge filtro-badge filtro-tester">
+                    <span class="filtro-icono"></span> Tester: {{ tester_filtrado }}
+                </span>
+            {% endif %}
+            {% if tester_asignado_filtrado %}
+                <span class="badge filtro-badge filtro-tester-asignado">
+                    <span class="filtro-icono"></span> Tester Asignado: {{ tester_asignado_filtrado }}
+                </span>
+            {% endif %}
+            {% if pais_filtrado %}
+                <span class="badge filtro-badge filtro-pais">
+                    <span class="filtro-icono"></span> País: {{ pais_filtrado }}
+                </span>
+            {% endif %}
+            {% if fallo_filtrado and estado_filtrado != 'bloqueante' %}
+                <span class="badge filtro-badge filtro-fallo">
+                    <span class="filtro-icono"></span> Fallo: {{ fallo_filtrado }}
+                </span>
+            {% endif %}
+            <a href="{% url 'matrix_app:detalle_matriz' matriz.id %}" class="btn btn-limpiar-filtros ms-auto">
+                🗑️ Limpiar todos los filtros
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    {% if campos.etiqueta %}
+                         <th class="w-10">etiqueta</th>
+                    {% endif %}
+                    <th class="w-10">Fase</th>
+
+                    {% if campos.tipo_usuario %}
+                         <th class="w-10">Tipo de usuario</th>
+                    {% endif %}
+
+                    <th class="w-25">Caso de Prueba</th>
+                    <th class="w-10">Estado</th>
+                    <th class="w-10">Criticidad</th>
+                    <th class="
+                        {% if campos.etiqueta and campos.tipo_usuario and campos.pasos %}w-25
+                        {% elif campos.etiqueta and campos.tipo_usuario %}w-25
+                        {% elif campos.etiqueta or campos.tipo_usuario %}w-25
+                        {% else %}w-25
                         {% endif %}
-                    </td>
-                    <td id="nota-caso-{{ caso.id }}">
-                        {% render_field form.nota class="nota-input form-control" %}
-                    </td>
+                    ">Comentarios y Datos de Prueba</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody id="tabla-casos">
+                {% for caso, form in formularios_casos_de_prueba %}
+                    <tr data-id="{{ caso.id }}">
+
+                        {% if campos.etiqueta %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.etiqueta }}</td>
+                        {% endif %}
+
+                        <td>{{ caso.fase }}</td>
+                        {% if campos.tipo_usuario %}
+                            <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
+                        {% endif %}
+
+                        <td class="caso-prueba-cell">
+                            <div class="caso-prueba-content"
+                                 data-pasos="{{ caso.pasos|default:''|escapejs }}"
+                                 data-criterio="{{ caso.criterio_aceptacion|default:''|escapejs }}"
+                                 data-caso="{{ caso.caso_de_prueba|escapejs }}"
+                                 onmouseenter="mostrarPasos(this)"
+                                 onmouseleave="ocultarPasos()"
+                                 onclick="abrirModalPasos(this)">
+                                {{ caso.caso_de_prueba }}
+                            </div>
+                        </td>
+
+                        <td id="estado-caso-{{ caso.id }}">
+                            {% render_field form.estado class="estado-input form-control" %}
+                        </td>
+                        <td>
+                            {% if caso.criticidad|lower == "bloqueante" %}
+                                <span class="badge bg-danger">🛑 Bloqueante</span>
+                            {% elif caso.criticidad|lower == "critico" or caso.criticidad|lower == "crítico" %}
+                                <span class="badge bg-warning text-dark">⚠️ Critico</span>
+                            {% endif %}
+                        </td>
+                        <td id="nota-caso-{{ caso.id }}">
+                            {% render_field form.nota class="nota-input form-control" %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <div class="sticky-action-bar">
         <a href="{% url 'matrix_app:detalle_super_matriz' super_matriz_id %}" class="btn btn-secondary">← Volver</a>
     </div>
 </div>
 
+<!-- TOOLTIP GLOBAL -->
+<div id="global-tooltip" class="global-tooltip" style="display: none;"></div>
+
+<!-- MODAL PARA PASOS Y CRITERIOS DE ACEPTACIÓN -->
+<div class="modal fade" id="modalPasos" tabindex="-1" aria-labelledby="modalPasosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-success">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalPasosLabel">
+                    <i class="fas fa-info-circle me-2"></i>Detalles del Caso de Prueba
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 id="modal-caso-titulo" class="text-muted mb-3"></h6>
+                </div>
+                
+                <div class="mb-4">
+                    <h6 class="fw-bold text-primary">
+                        <i class="fas fa-list-ol me-2"></i>Pasos a Seguir:
+                    </h6>
+                    <div id="modal-pasos-contenido" class="pasos-modal-content">
+                        <em class="text-muted">Cargando...</em>
+                    </div>
+                </div>
+                
+                <div>
+                    <h6 class="fw-bold text-success">
+                        <i class="fas fa-check-circle me-2"></i>Criterios de Aceptación:
+                    </h6>
+                    <div id="modal-criterio-contenido" class="criterio-modal-content">
+                        <em class="text-muted">Cargando...</em>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// ============================================
+// FUNCIÓN PARA LIMPIAR TEXTOS CON \u002D
+// ============================================
+function limpiarTextoUnicode(texto) {
+    if (!texto) return texto;
+    if (typeof texto !== 'string') texto = String(texto);
+    
+    // Reemplazar \u002D por -
+    texto = texto.replace(/\\u002D/g, '-');
+    // Reemplazar \u000A por saltos de línea
+    texto = texto.replace(/\\u000A/g, '\n');
+    // Reemplazar \u000A (otra variante)
+    texto = texto.replace(/\\n/g, '\n');
+    // Reemplazar \u0020 por espacio
+    texto = texto.replace(/\\u0020/g, ' ');
+    // Reemplazar múltiples guiones seguidos
+    texto = texto.replace(/-{2,}/g, '-');
+    
+    return texto;
+}
+
+// Tooltip y modal
+let tooltipTimeout;
+let currentTooltipElement = null;
+const globalTooltip = document.getElementById('global-tooltip');
+
+function mostrarPasos(element) {
+    clearTimeout(tooltipTimeout);
+
+    if (currentTooltipElement && currentTooltipElement !== element) {
+        globalTooltip.style.display = 'none';
+        globalTooltip.classList.remove('visible');
+    }
+
+    let pasos = element.getAttribute('data-pasos');
+    // LIMPIAR LOS PASOS
+    if (pasos && pasos.includes('\\u')) {
+        pasos = limpiarTextoUnicode(pasos);
+    }
+
+    if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
+        pasos = 'No hay pasos disponibles';
+    }
+
+    currentTooltipElement = element;
+
+    globalTooltip.innerHTML = `
+        <h6>Pasos del Caso de Prueba:</h6>
+        <div class="pasos-text">${pasos.replace(/\n/g, '<br>')}</div>
+    `;
+
+    const cellRect = element.getBoundingClientRect();
+    let left = cellRect.right + 10;
+    let top = cellRect.top;
+
+    globalTooltip.style.display = 'block';
+
+    const tooltipRect = globalTooltip.getBoundingClientRect();
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = cellRect.left - tooltipRect.width - 10;
+    }
+
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = window.innerHeight - tooltipRect.height - 10;
+    }
+
+    if (top < 0) {
+        top = 10;
+    }
+
+    globalTooltip.style.position = 'fixed';
+    globalTooltip.style.left = left + 'px';
+    globalTooltip.style.top = top + 'px';
+
+    setTimeout(() => {
+        globalTooltip.classList.add('visible');
+    }, 10);
+}
+
+function ocultarPasos() {
+    tooltipTimeout = setTimeout(() => {
+        globalTooltip.classList.remove('visible');
+        setTimeout(() => {
+            globalTooltip.style.display = 'none';
+            currentTooltipElement = null;
+        }, 100);
+    }, 150);
+}
+
+function abrirModalPasos(element) {
+    let pasos = element.getAttribute('data-pasos');
+    let criterio = element.getAttribute('data-criterio');
+    const caso = element.getAttribute('data-caso');
+    
+    // LIMPIAR LOS DATOS
+    if (pasos && pasos.includes('\\u')) {
+        pasos = limpiarTextoUnicode(pasos);
+    }
+    if (criterio && criterio.includes('\\u')) {
+        criterio = limpiarTextoUnicode(criterio);
+    }
+
+    document.getElementById('modal-caso-titulo').innerHTML = `
+        <i class="fas fa-file-alt me-2"></i>${caso}
+    `;
+
+    if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
+        document.getElementById('modal-pasos-contenido').innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>No hay pasos definidos para este caso de prueba.
+            </div>
+        `;
+    } else {
+        let pasosFormateado = pasos.replace(/\n/g, '<br>');
+        pasosFormateado = pasosFormateado.replace(/(\d+)-/g, '$1. ');
+        pasosFormateado = pasosFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
+        if (!pasosFormateado.startsWith('<br>')) {
+            pasosFormateado = '<br>' + pasosFormateado;
+        }
+        
+        document.getElementById('modal-pasos-contenido').innerHTML = `
+            <div class="pasos-text-modal">
+                ${pasosFormateado}
+            </div>
+        `;
+    }
+
+    if (!criterio || criterio === 'None' || criterio === 'null' || criterio.trim() === '') {
+        document.getElementById('modal-criterio-contenido').innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle me-2"></i>No hay criterios de aceptación definidos para este caso de prueba.
+            </div>
+        `;
+    } else {
+        let criterioFormateado = criterio.replace(/\n/g, '<br>');
+        criterioFormateado = criterioFormateado.replace(/(\d+)-/g, '$1. ');
+        criterioFormateado = criterioFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
+        criterioFormateado = criterioFormateado.replace(/^[•\-*]\s*/gm, '<br>• ');
+        if (!criterioFormateado.startsWith('<br>') && !criterioFormateado.startsWith('•')) {
+            criterioFormateado = '<br>' + criterioFormateado;
+        }
+        
+        document.getElementById('modal-criterio-contenido').innerHTML = `
+            <div class="criterio-text-modal">
+                ${criterioFormateado}
+            </div>
+        `;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('modalPasos'));
+    modal.show();
+}
+
+// Limpiar también los textos visibles en la tabla al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const elementos = document.querySelectorAll('.caso-prueba-content');
+    elementos.forEach(function(elemento) {
+        let pasos = elemento.getAttribute('data-pasos');
+        let criterio = elemento.getAttribute('data-criterio');
+        
+        if (pasos && pasos.includes('\\u')) {
+            elemento.setAttribute('data-pasos', limpiarTextoUnicode(pasos));
+        }
+        if (criterio && criterio.includes('\\u')) {
+            elemento.setAttribute('data-criterio', limpiarTextoUnicode(criterio));
+        }
+    });
+});
+
+globalTooltip.addEventListener('mouseenter', () => {
+    clearTimeout(tooltipTimeout);
+});
+
+globalTooltip.addEventListener('mouseleave', () => {
+    globalTooltip.classList.remove('visible');
+    setTimeout(() => {
+        globalTooltip.style.display = 'none';
+        currentTooltipElement = null;
+    }, 200);
+});
+
+// WebSocket y actualizaciones
 const matrizId = "{{ matriz.id }}";
 let socket = null;
 let reconnectAttempts = 0;
@@ -108,11 +529,11 @@ function createWebSocketConnection() {
     if (socket && socket.readyState === WebSocket.OPEN) {
         console.log("🔄 Reutilizando conexión WebSocket existente");
         return;
-    }   
+    }
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${window.location.host}/ws/matriz/${matrizId}/`;
     console.log("🔗 Conectando WebSocket a:", wsUrl);
-    
+
     socket = new WebSocket(wsUrl);
 
     socket.onopen = function() {
@@ -129,7 +550,7 @@ function createWebSocketConnection() {
 
     socket.onmessage = function(event) {
         console.log("📨 Mensaje recibido:", event.data);
-        
+
         try {
             const data = JSON.parse(event.data);
 
@@ -201,7 +622,6 @@ function updateCaseNote(caseId, newNote) {
 function applyStateColor(select) {
     const state = select.value.toLowerCase().trim();
 
-    // Reset clases
     select.className = "estado-input form-control";
     select.style.backgroundColor = "";
     select.style.color = "";
@@ -299,7 +719,6 @@ function handleNotaBlur(event) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("🔧 Inicializando aplicación...");
 
-    // Añadir estilos flash
     const style = document.createElement('style');
     style.textContent = `
         .flash-update {
@@ -320,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("🔄 Verificando conexión...");
             createWebSocketConnection();
         }
-    }, 6*1000);
+    }, 6000);
 });
 
 window.addEventListener('beforeunload', function() {
@@ -347,7 +766,6 @@ function actualizarTablaCasos() {
                     const filaActual = tablaActual.querySelector(`tr[data-id="${id}"]`);
                     if (!filaActual) return;
 
-                    // Estado
                     const nuevoSelect = nuevaFila.querySelector('.estado-input');
                     const actualSelect = filaActual.querySelector('.estado-input');
                     if (document.activeElement !== actualSelect) {
@@ -355,7 +773,6 @@ function actualizarTablaCasos() {
                         applyStateColor(actualSelect);
                     }
 
-                    // Nota
                     const nuevaNota = nuevaFila.querySelector('.nota-input');
                     const actualNota = filaActual.querySelector('.nota-input');
                     if (document.activeElement !== actualNota) {
@@ -372,10 +789,9 @@ function actualizarTablaCasos() {
         });
 }
 
-// Auto‐reload cada 60 s
 setInterval(() => {
     actualizarTablaCasos();
-}, 6 * 1000);
+}, 6000);
 
 function actualizarFallos() {
     fetch("{% url 'matrix_app:obtener_num_fallos' matriz.id %}")
@@ -386,14 +802,248 @@ function actualizarFallos() {
         .catch(error => console.error("Error al actualizar fallos:", error));
 }
 
-// Actualizar cada 6 segundos
 setInterval(actualizarFallos, 6000);
 </script>
 
 <style>
+.caso-prueba-cell {
+    position: relative;
+}
+
+.caso-prueba-content {
+    position: relative;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.caso-prueba-content:hover {
+    background-color: #e9ecef;
+    text-decoration: underline;
+}
+
+.global-tooltip {
+    position: absolute;
+    z-index: 10000;
+    background: #fff9e6;
+    border: 2px solid #ffd166;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    line-height: 1.4;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.global-tooltip.visible {
+    opacity: 1;
+}
+
+.global-tooltip h6 {
+    margin: 0 0 8px 0;
+    color: #856404;
+    font-weight: bold;
+    border-bottom: 1px solid #ffd166;
+    padding-bottom: 4px;
+}
+
+.global-tooltip .pasos-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #333;
+}
+
+.pasos-modal-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.criterio-modal-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.pasos-text-modal {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.criterio-text-modal {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    font-size: 0.95em;
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .global-tooltip {
+        width: 300px;
+    }
+
+    .modal-dialog {
+        margin: 20px;
+    }
+}
+
 .flash-update {
     background-color: #fff3cd !important;
     transition: background-color 1s ease;
+}
+
+.dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-btn-enhanced {
+    font-weight: 600 !important;
+    border-width: 2px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.btn-secondary.dropdown-btn-enhanced {
+    background-color: #212529 !important;
+    border-color: #212529 !important;
+    color: white !important;
+}
+
+.btn-secondary.dropdown-btn-enhanced:hover {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+.btn-secondary.dropdown-btn-enhanced:focus {
+    background-color: #212529 !important;
+    border-color: #212529 !important;
+    color: white !important;
+    box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25) !important;
+}
+
+.dropdown-menu-sm .dropdown-item {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.dropdown-menu-sm .dropdown-divider {
+    margin: 0.25rem 0;
+}
+
+.filtros-aplicados-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.filtros-titulo {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.filtro-badge {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 1px solid;
+}
+
+.filtro-estado {
+    background-color: #e7f3ff;
+    color: #0d6efd;
+    border-color: #b6d4fe;
+}
+
+.filtro-fase {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+.filtro-tester {
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #ced4da;
+}
+
+.filtro-tester-asignado {
+    background-color: #e2d9f3;
+    color: #6f42c1;
+    border-color: #c5b3e6;
+}
+
+.filtro-pais {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-color: #a3cfbb;
+}
+
+.filtro-fallo {
+    background-color: #f8d7da;
+    color: #842029;
+    border-color: #f1aeb5;
+}
+
+.btn-limpiar-filtros {
+    background-color: #6c757d;
+    color: white;
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    padding: 0.35rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: background-color 0.2s ease;
+}
+
+.btn-limpiar-filtros:hover {
+    background-color: #5c636a;
+    border-color: #5c636a;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .filtros-aplicados-container {
+        padding: 0.75rem !important;
+    }
+    
+    .filtro-badge {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+    }
+    
+    .btn-limpiar-filtros {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+        margin-top: 0.5rem;
+    }
 }
 </style>
 

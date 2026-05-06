@@ -36,7 +36,7 @@ Validates – {{ super_matriz.nombre }}
             Todos
         </button>
         {% for tester in testers %}
-        <button class="btn btn-outline-primary btn-sm filter-btn me-1 mb-2" 
+        <button class="btn btn-black btn-sm filter-btn me-1 mb-2" 
                 data-tester="{{ tester|escape }}">
             {{ tester }}
         </button>
@@ -45,156 +45,80 @@ Validates – {{ super_matriz.nombre }}
         {% endfor %}
     </div>
 
-    <form id="validates-form" method="post">
-        {% csrf_token %}
-        <div class="table-responsive shadow-sm rounded">
-            <table id="validates-table" 
-                   class="table table-striped table-bordered table-hover align-middle"
-                   style="font-size:0.95rem; border-collapse: separate; border-spacing: 0 8px;">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width:20%;">Tester</th>
-                        <th style="width:15%;">Ticket</th>
-                        <th style="width:35%;">Descripción</th>
-                        <th style="width:15%;">Prioridad</th>
-                        <th style="width:15%;">Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for validate, form in formularios_validates %}
-                    <tr data-id="{{ validate.id }}" data-tester="{{ validate.tester|escape }}" 
-                        class="shadow-sm rounded bg-white">
-                        <td class="align-middle">{{ validate.tester }}</td>
-                        <td class="align-middle">
-                            <a href="https://dlatvarg.atlassian.net/browse/{{ validate.ticket }}" 
-                               target="_blank" class="text-decoration-none fw-semibold text-primary">
-                                {{ validate.ticket }}
-                            </a>
-                        </td>
-                        <td class="align-middle" style="white-space:pre-wrap;">{{ validate.descripcion }}</td>
-                        <td class="align-middle text-center fw-semibold">
-                            {% if validate.prioridad|lower == "blocker" or validate.prioridad|lower == "supone un impedimento" %}
-                                <span class="badge bg-danger">🔶 Bloqueante</span>
-                            {% elif validate.prioridad|lower in "critico,critical,crítica"%}
-                                <span class="badge bg-warning text-dark">🟡 Crítico</span>
-                            {% elif validate.prioridad|lower == "major"  or validate.prioridad|lower == "importante" %}
-                                <span class="badge bg-primary">🔧 Importante</span>
-                            {% elif validate.prioridad|lower == "minor" %}
-                                <span class="badge bg-primary">Menor</span>
-                                
-                            {% endif %}
-                        </td>
-                        <td class="align-middle text-center" id="estado-validate-{{ validate.id }}">{{ form.estado }}</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </form>
+    <div class="table-responsive shadow-sm rounded">
+        <table id="validates-table" 
+               class="table table-striped table-bordered table-hover align-middle"
+               style="font-size:0.95rem; border-collapse: separate; border-spacing: 0 8px;">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width:20%;">Tester</th>
+                    <th style="width:15%;">Ticket</th>
+                    <th style="width:35%;">Descripción</th>
+                    <th style="width:15%;">Prioridad</th>
+                    <th style="width:15%;">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for validate, form in formularios_validates %}
+                <tr data-id="{{ validate.id }}" data-tester="{{ validate.tester|escape }}" 
+                    class="shadow-sm rounded bg-white">
+                    <td class="align-middle">{{ validate.tester }}</td>
+                    <td class="align-middle">
+                        <a href="https://dlatvarg.atlassian.net/browse/{{ validate.ticket }}" 
+                           target="_blank" class="text-decoration-none fw-semibold text-primary">
+                            {{ validate.ticket }}
+                        </a>
+                    </td>
+                    <td class="align-middle" style="white-space:pre-wrap;">{{ validate.descripcion }}</td>
+                    <td class="align-middle text-center fw-semibold">
+                        {% if validate.prioridad|lower == "blocker" or validate.prioridad|lower == "supone un impedimento" %}
+                            <span class="badge bg-danger">🔶 Bloqueante</span>
+                        {% elif validate.prioridad|lower in "critico,critical,crítica"%}
+                            <span class="badge bg-warning text-dark">🟡 Crítico</span>
+                        {% elif validate.prioridad|lower == "major"  or validate.prioridad|lower == "importante" %}
+                            <span class="badge bg-primary">🔧 Importante</span>
+                        {% elif validate.prioridad|lower == "minor" %}
+                            <span class="badge bg-primary">Menor</span>
+                        {% endif %}
+                    </td>
+                    <td class="align-middle text-center" id="estado-validate-{{ validate.id }}">
+                        {{ form.estado }}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-console.log("superMatrizId:", "{{ super_matriz.id }}");
-
-const superMatrizId = "{{ super_matriz.id }}";
-
-// ⚡ SSE - Server-Sent Events
-let eventSource = null;
-let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
-
-function createSSEConnection() {
-    if (eventSource && eventSource.readyState === EventSource.OPEN) {
-        console.log("🔄 SSE validates ya está conectado");
-        return;
-    }
-
-    const sseUrl = `/matrix/validates/${superMatrizId}/sse/`;
-    console.log("🔗 Conectando SSE validates a:", sseUrl);
-    
-    eventSource = new EventSource(sseUrl);
-
-    eventSource.onopen = function() {
-        console.log("✅ SSE validates conectado correctamente");
-        reconnectAttempts = 0;
-    };
-
-    eventSource.onmessage = function(event) {
-        console.log("📨 SSE validates recibido:", event.data);
-        
-        try {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'connected') {
-                console.log("🎯 SSE validates confirmación de conexión");
-                return;
-            }
-
-            if (data.type === "estado_actualizado") {
-                const validateId = data.validate_id;
-                const nuevoEstado = data.nuevo_estado;
-                
-                console.log(`🔄 Actualizando validate ${validateId} a estado: ${nuevoEstado}`);
-                
-                const celda = document.querySelector(`#estado-validate-${validateId}`);
-                if (celda) {
-                    const select = celda.querySelector('select');
-                    if (select && select.value !== nuevoEstado) {
-                        select.value = nuevoEstado;
-                        aplicarColorEstado(select);
-                        select.classList.add("flash-update");
-                        setTimeout(() => select.classList.remove("flash-update"), 1500);
-                        console.log(`✅ Validate ${validateId} actualizado correctamente`);
-                    }
-                } else {
-                    console.warn(`❌ No se encontró celda #estado-validate-${validateId}`);
-                }
-            }
-        } catch (error) {
-            console.error("❌ Error procesando mensaje SSE validates:", error);
-        }
-    };
-
-    eventSource.onerror = function(error) {
-        console.error("❌ Error en SSE validates:", error);
-        
-        if (eventSource.readyState === EventSource.CLOSED) {
-            if (reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                console.log(`⚠️ Reconectando SSE validates... intento ${reconnectAttempts}/${maxReconnectAttempts}`);
-                setTimeout(createSSEConnection, 2000 * reconnectAttempts);
-            }
-        }
-    };
-}
+// Variable para controlar si estamos actualizando
+let isUpdating = false;
 
 // Esperar a que el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🔧 DOM cargado, configurando event listeners validates...");
-    
-    // ⚡ CREAR SSE
-    createSSEConnection();
-    
     // Configurar selects
-    const selects = document.querySelectorAll("select");
-    console.log(`📊 Encontrados ${selects.length} selects validates`);
+    const selects = document.querySelectorAll("select[name$='-estado']");
     
-    selects.forEach((select, index) => {
-        if (!select) {
-            console.warn(`❌ Select ${index} es null`);
-            return;
-        }
-        
-        select.classList.add("form-select", "form-select-sm", "estado-input");
+    selects.forEach((select) => {
         aplicarColorEstado(select);
         
         select.addEventListener("change", function() {
+            if (isUpdating) return;
+            
             const tr = this.closest("tr");
             const validateId = tr.dataset.id;
             const nuevoEstado = this.value;
-            
-            console.log(`🔄 Cambiando estado del validate ${validateId} a: ${nuevoEstado}`);
 
+            // Guardar estado original
+            const estadoOriginal = this.defaultValue;
+
+            // Mostrar indicador de guardando
+            this.disabled = true;
+            const originalBackground = this.style.backgroundColor;
+            this.style.backgroundColor = '#fff3cd';
+
+            // Guardar automáticamente via AJAX
             fetch("{% url 'matrix_app:actualizar_estado_validate' %}", {
                 method: "POST",
                 headers: {
@@ -205,14 +129,35 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => {
                 if (!response.ok) {
-                    console.error("❌ Error en la respuesta del servidor:", response.status);
-                } else {
-                    console.log(`✅ Estado del validate ${validateId} enviado correctamente`);
+                    throw new Error('Error del servidor');
                 }
-                return response;
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Éxito - cambiar color a verde temporalmente
+                    this.style.backgroundColor = '#d4edda';
+                    this.defaultValue = nuevoEstado; // Actualizar valor por defecto
+                    
+                    setTimeout(() => {
+                        aplicarColorEstado(this);
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Error desconocido');
+                }
             })
             .catch(error => {
-                console.error("❌ Error enviando cambio de estado:", error);
+                // Error - revertir al estado anterior
+                this.value = estadoOriginal;
+                this.style.backgroundColor = '#f8d7da';
+                aplicarColorEstado(this);
+                
+                setTimeout(() => {
+                    aplicarColorEstado(this);
+                }, 2000);
+            })
+            .finally(() => {
+                this.disabled = false;
             });
 
             aplicarColorEstado(this);
@@ -221,20 +166,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Filtros por tester
     const filterBtns = document.querySelectorAll(".filter-btn");
-    console.log(`🔍 Encontrados ${filterBtns.length} botones de filtro`);
     
-    filterBtns.forEach((btn, index) => {
-        if (!btn) {
-            console.warn(`❌ Botón ${index} es null`);
-            return;
-        }
-        
+    filterBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
             document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             const tester = btn.dataset.tester;
-            
-            console.log(`🔍 Filtrando por tester: ${tester}`);
             
             const tableRows = document.querySelectorAll("#validates-table tbody tr");
             tableRows.forEach(row => {
@@ -248,18 +185,68 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Verificar conexión cada 30 segundos
+function actualizarTablaValidates() {
+    if (isUpdating) return;
+    
+    isUpdating = true;
+    
+    fetch(window.location.href)
+        .then(res => res.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const nuevaTabla = doc.querySelector('#validates-table tbody');
+            const tablaActual = document.querySelector('#validates-table tbody');
+
+            if (nuevaTabla && tablaActual) {
+                const filtroActivo = document.querySelector('.filter-btn.active').dataset.tester;
+                
+                nuevaTabla.querySelectorAll('tr').forEach(nuevaFila => {
+                    const id = nuevaFila.getAttribute('data-id');
+                    const filaActual = tablaActual.querySelector(`tr[data-id="${id}"]`);
+                    
+                    if (filaActual) {
+                        const nuevoSelect = nuevaFila.querySelector('select');
+                        const actualSelect = filaActual.querySelector('select');
+                        
+                        if (nuevoSelect && actualSelect && actualSelect.value !== nuevoSelect.value) {
+                            // Solo actualizar si el usuario no está editando este campo
+                            if (document.activeElement !== actualSelect && !actualSelect.disabled) {
+                                actualSelect.value = nuevoSelect.value;
+                                aplicarColorEstado(actualSelect);
+                                actualSelect.classList.add("flash-update");
+                                setTimeout(() => actualSelect.classList.remove("flash-update"), 1000);
+                            }
+                        }
+                    }
+                });
+                
+                // Reaplicar filtro si es necesario
+                if (filtroActivo !== "all") {
+                    const tableRows = document.querySelectorAll("#validates-table tbody tr");
+                    tableRows.forEach(row => {
+                        row.style.display = row.dataset.tester === filtroActivo ? "" : "none";
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.log('Error en actualización automática');
+        })
+        .finally(() => {
+            isUpdating = false;
+        });
+}
+
+// Actualización periódica cada 10 segundos
 setInterval(() => {
-    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
-        console.log("🔄 Verificando conexión SSE validates...");
-        createSSEConnection();
-    }
-}, 30000);
+    actualizarTablaValidates();
+}, 10000); // 10 segundos
 
 function aplicarColorEstado(select) {
     const estado = select.value.toLowerCase().trim();
     
-    select.className = "form-select form-select-sm estado-input";
+    select.className = "form-select form-select-sm";
     select.style.backgroundColor = "";
     select.style.color = "";
 
@@ -286,100 +273,10 @@ function aplicarColorEstado(select) {
     select.style.height = "40px";
     select.style.fontWeight = "bold";
 }
-// Agregar esta función después de la función aplicarColorEstado
-
-function actualizarTablaValidates() {
-    console.log("🔄 Refrescando tabla de validates...");
-
-    fetch(window.location.href)
-        .then(res => res.text())
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const nuevaTabla = doc.querySelector('#validates-table tbody');
-            const tablaActual = document.querySelector('#validates-table tbody');
-
-            if (nuevaTabla && tablaActual) {
-                nuevaTabla.querySelectorAll('tr').forEach(nuevaFila => {
-                    const id = nuevaFila.getAttribute('data-id');
-                    const filaActual = tablaActual.querySelector(`tr[data-id="${id}"]`);
-                    if (!filaActual) return;
-
-                    // Actualizar Estado
-                    const nuevaCelda = nuevaFila.querySelector(`#estado-validate-${id}`);
-                    const celdaActual = filaActual.querySelector(`#estado-validate-${id}`);
-                    
-                    if (nuevaCelda && celdaActual) {
-                        const nuevoSelect = nuevaCelda.querySelector('select');
-                        const actualSelect = celdaActual.querySelector('select');
-                        
-                        // Solo actualizar si el usuario NO está editando este select
-                        if (actualSelect && nuevoSelect && document.activeElement !== actualSelect) {
-                            if (actualSelect.value !== nuevoSelect.value) {
-                                actualSelect.value = nuevoSelect.value;
-                                aplicarColorEstado(actualSelect);
-                                
-                                // Aplicar efecto flash para indicar actualización
-                                actualSelect.classList.add("flash-update");
-                                setTimeout(() => actualSelect.classList.remove("flash-update"), 1500);
-                                
-                                console.log(`✅ Validate ${id} actualizado: ${nuevoSelect.value}`);
-                            }
-                        }
-                    }
-                });
-
-                console.log("✅ Tabla de validates actualizada sin recarga completa.");
-            }
-        })
-        .catch(err => {
-            console.error("❌ Error actualizando tabla de validates:", err);
-        });
-}
-
-// Agregar después del DOMContentLoaded existente:
-
-// Actualización periódica cada 6 segundos
-setInterval(() => {
-    actualizarTablaValidates();
-}, 6 * 1000);
-
-// También puedes agregar una verificación adicional de la conexión SSE junto con la actualización:
-setInterval(() => {
-    // Verificar SSE
-    if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
-        console.log("🔄 Verificando conexión SSE validates...");
-        createSSEConnection();
-    }
-    
-    // Actualizar tabla
-    actualizarTablaValidates();
-}, 6 * 1000);
-
-// CSS para animaciones
-const style = document.createElement('style');
-style.textContent = `
-    .flash-update {
-        animation: flash 1.5s ease-in-out;
-    }
-    
-    @keyframes flash {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.3; transform: scale(1.02); }
-    }
-`;
-document.head.appendChild(style);
-
-// Cleanup al cerrar página
-window.addEventListener('beforeunload', function() {
-    if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
-        eventSource.close();
-    }
-});
 </script>
 <style>
 .flash-update {
-    animation: flashHighlight 1.5s ease;
+    animation: flashHighlight 1s ease;
 }
 @keyframes flashHighlight {
     0% { background-color: #ffff99; }
@@ -398,8 +295,6 @@ window.addEventListener('beforeunload', function() {
 </style>
 
 {% endblock %}
-
-
 <!-- <style>
     /* Colores para los estados */
     .estado-funciona          { background-color:#d4edda!important; color:#155724!important; }

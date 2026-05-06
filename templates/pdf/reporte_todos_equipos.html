@@ -185,6 +185,15 @@
                                     </span>
                                 </p>
                                 
+                                {% if matriz.externos  %}
+                                    <p><strong>Casos Pendientes Por Externo</strong> 
+                                    <span class="badge {% if matriz.casos_bloqueantes > 0 %}badge-info{% else %}badge-success{% endif %}">
+                                        {{ matriz.num_externos }}
+                                    </span>
+                                    </p>
+                                {% endif %}
+                                    
+                                
                                 <p><strong>Avance:</strong> 
                                     <span class="badge badge-info">{{ matriz.porcentaje }}%</span>
                                 </p>
