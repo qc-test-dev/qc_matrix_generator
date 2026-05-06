@@ -18,7 +18,7 @@
         <div class="col-md-12">
             <h4 class="mb-3">Filtros Rápidos:</h4>
             <div class="d-flex gap-2 align-items-end flex-wrap">
-                <!-- Dropdown para Estado - MANTIENE OTROS FILTROS -->
+                <!-- Dropdown para Estado -->
                 <div class="flex-grow-1" style="min-width: 200px; max-width: 300px;">
                     <label class="form-label fw-bold small mb-1">Estado</label>
                     <div class="dropdown">
@@ -254,7 +254,6 @@
                             <td class="text-truncate" style="max-width: 120px;">{{ caso.tipo_usuario }}</td>
                         {% endif %}
 
-                        <!-- COLUMNA MODIFICADA con data-pasos y data-criterio -->
                         <td class="caso-prueba-cell">
                             <div class="caso-prueba-content"
                                  data-pasos="{{ caso.pasos|default:''|escapejs }}"
@@ -309,7 +308,6 @@
                     <h6 id="modal-caso-titulo" class="text-muted mb-3"></h6>
                 </div>
                 
-                <!-- Sección de Pasos a Seguir -->
                 <div class="mb-4">
                     <h6 class="fw-bold text-primary">
                         <i class="fas fa-list-ol me-2"></i>Pasos a Seguir:
@@ -319,7 +317,6 @@
                     </div>
                 </div>
                 
-                <!-- Sección de Criterios de Aceptación -->
                 <div>
                     <h6 class="fw-bold text-success">
                         <i class="fas fa-check-circle me-2"></i>Criterios de Aceptación:
@@ -339,6 +336,27 @@
 </div>
 
 <script>
+// ============================================
+// FUNCIÓN PARA LIMPIAR TEXTOS CON \u002D
+// ============================================
+function limpiarTextoUnicode(texto) {
+    if (!texto) return texto;
+    if (typeof texto !== 'string') texto = String(texto);
+    
+    // Reemplazar \u002D por -
+    texto = texto.replace(/\\u002D/g, '-');
+    // Reemplazar \u000A por saltos de línea
+    texto = texto.replace(/\\u000A/g, '\n');
+    // Reemplazar \u000A (otra variante)
+    texto = texto.replace(/\\n/g, '\n');
+    // Reemplazar \u0020 por espacio
+    texto = texto.replace(/\\u0020/g, ' ');
+    // Reemplazar múltiples guiones seguidos
+    texto = texto.replace(/-{2,}/g, '-');
+    
+    return texto;
+}
+
 // Tooltip y modal
 let tooltipTimeout;
 let currentTooltipElement = null;
@@ -347,59 +365,51 @@ const globalTooltip = document.getElementById('global-tooltip');
 function mostrarPasos(element) {
     clearTimeout(tooltipTimeout);
 
-    // Ocultar tooltip anterior si existe
     if (currentTooltipElement && currentTooltipElement !== element) {
         globalTooltip.style.display = 'none';
         globalTooltip.classList.remove('visible');
     }
 
     let pasos = element.getAttribute('data-pasos');
+    // LIMPIAR LOS PASOS
+    if (pasos && pasos.includes('\\u')) {
+        pasos = limpiarTextoUnicode(pasos);
+    }
 
-    // Verificar si no hay pasos disponibles
     if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
         pasos = 'No hay pasos disponibles';
     }
 
     currentTooltipElement = element;
 
-    // Configurar contenido
     globalTooltip.innerHTML = `
         <h6>Pasos del Caso de Prueba:</h6>
         <div class="pasos-text">${pasos.replace(/\n/g, '<br>')}</div>
     `;
 
-    // Obtener la posición de la celda actual
     const cellRect = element.getBoundingClientRect();
-
-    // Calcular posición
     let left = cellRect.right + 10;
     let top = cellRect.top;
 
-    // Mostrar tooltip
     globalTooltip.style.display = 'block';
 
-    // Ajustar si se sale por la derecha
     const tooltipRect = globalTooltip.getBoundingClientRect();
     if (left + tooltipRect.width > window.innerWidth) {
         left = cellRect.left - tooltipRect.width - 10;
     }
 
-    // Ajustar si se sale por abajo
     if (top + tooltipRect.height > window.innerHeight) {
         top = window.innerHeight - tooltipRect.height - 10;
     }
 
-    // Ajustar si se sale por arriba
     if (top < 0) {
         top = 10;
     }
 
-    // Aplicar posición
     globalTooltip.style.position = 'fixed';
     globalTooltip.style.left = left + 'px';
     globalTooltip.style.top = top + 'px';
 
-    // Mostrar con transición
     setTimeout(() => {
         globalTooltip.classList.add('visible');
     }, 10);
@@ -415,18 +425,23 @@ function ocultarPasos() {
     }, 150);
 }
 
-// Función para abrir el modal con los pasos y criterios de aceptación
 function abrirModalPasos(element) {
     let pasos = element.getAttribute('data-pasos');
     let criterio = element.getAttribute('data-criterio');
     const caso = element.getAttribute('data-caso');
+    
+    // LIMPIAR LOS DATOS
+    if (pasos && pasos.includes('\\u')) {
+        pasos = limpiarTextoUnicode(pasos);
+    }
+    if (criterio && criterio.includes('\\u')) {
+        criterio = limpiarTextoUnicode(criterio);
+    }
 
-    // Configurar el título del modal
     document.getElementById('modal-caso-titulo').innerHTML = `
         <i class="fas fa-file-alt me-2"></i>${caso}
     `;
 
-    // Verificar y formatear pasos
     if (!pasos || pasos === 'None' || pasos === 'null' || pasos.trim() === '') {
         document.getElementById('modal-pasos-contenido').innerHTML = `
             <div class="alert alert-info mb-0">
@@ -434,9 +449,7 @@ function abrirModalPasos(element) {
             </div>
         `;
     } else {
-        // Formatear pasos: convertir saltos de línea a <br> y mejorar numeración
         let pasosFormateado = pasos.replace(/\n/g, '<br>');
-        // Mejorar formato de números (1- texto -> 1. texto)
         pasosFormateado = pasosFormateado.replace(/(\d+)-/g, '$1. ');
         pasosFormateado = pasosFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
         if (!pasosFormateado.startsWith('<br>')) {
@@ -450,7 +463,6 @@ function abrirModalPasos(element) {
         `;
     }
 
-    // Verificar y formatear criterios de aceptación
     if (!criterio || criterio === 'None' || criterio === 'null' || criterio.trim() === '') {
         document.getElementById('modal-criterio-contenido').innerHTML = `
             <div class="alert alert-info mb-0">
@@ -458,9 +470,7 @@ function abrirModalPasos(element) {
             </div>
         `;
     } else {
-        // Formatear criterios: convertir saltos de línea a <br> y mejorar formato
         let criterioFormateado = criterio.replace(/\n/g, '<br>');
-        // Mejorar formato de viñetas
         criterioFormateado = criterioFormateado.replace(/(\d+)-/g, '$1. ');
         criterioFormateado = criterioFormateado.replace(/(\d+)\. /g, '<br><strong>$1.</strong> ');
         criterioFormateado = criterioFormateado.replace(/^[•\-*]\s*/gm, '<br>• ');
@@ -475,12 +485,26 @@ function abrirModalPasos(element) {
         `;
     }
 
-    // Mostrar el modal
     const modal = new bootstrap.Modal(document.getElementById('modalPasos'));
     modal.show();
 }
 
-// Cancelar el ocultamiento si el mouse entra en el tooltip
+// Limpiar también los textos visibles en la tabla al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    const elementos = document.querySelectorAll('.caso-prueba-content');
+    elementos.forEach(function(elemento) {
+        let pasos = elemento.getAttribute('data-pasos');
+        let criterio = elemento.getAttribute('data-criterio');
+        
+        if (pasos && pasos.includes('\\u')) {
+            elemento.setAttribute('data-pasos', limpiarTextoUnicode(pasos));
+        }
+        if (criterio && criterio.includes('\\u')) {
+            elemento.setAttribute('data-criterio', limpiarTextoUnicode(criterio));
+        }
+    });
+});
+
 globalTooltip.addEventListener('mouseenter', () => {
     clearTimeout(tooltipTimeout);
 });
@@ -835,7 +859,6 @@ setInterval(actualizarFallos, 6000);
     color: #333;
 }
 
-/* Estilos para el modal */
 .pasos-modal-content {
     max-height: 300px;
     overflow-y: auto;
@@ -927,7 +950,6 @@ setInterval(actualizarFallos, 6000);
     margin: 0.25rem 0;
 }
 
-/* Filtros aplicados */
 .filtros-aplicados-container {
     background: #f8f9fa;
     border: 1px solid #dee2e6;

@@ -105,7 +105,10 @@ DATABASES = {
         'PASSWORD': 'qc_admin_pass',
         'HOST': 'localhost',  # Cambia esto si tu base de datos está en otro host
         'PORT': '5432',
+        
+        
     }
+     
 }
 CHANNEL_LAYERS = {
     "default": {

@@ -244,6 +244,22 @@ def detalle_super_matriz(request, super_matriz_id):
         'casos_bloqueantes': casos_bloqueantes,
     })
 
+def limpiar_texto_vista(texto):
+    """Limpia caracteres Unicode problemáticos como \u002D para mostrar en vista"""
+    if not texto:
+        return ""
+    
+    texto = str(texto)
+    
+    # Reemplazar la cadena literal '\u002D' con '-'
+    texto = texto.replace('\\u002D', '-')
+    
+    # Reemplazar múltiples guiones seguidos
+    import re
+    texto = re.sub(r'-{2,}', '-', texto)
+    
+    return texto.strip()
+
 
 @login_required
 def detalle_matriz(request, matriz_id):
@@ -262,7 +278,7 @@ def detalle_matriz(request, matriz_id):
     # Casos de prueba base
     casos_de_prueba = matriz.casos.all()
 
-    # Aplicar filtros existentes (se mantienen igual)
+    # Aplicar filtros
     if tester_filtrado:
         casos_de_prueba = casos_de_prueba.filter(tester=tester_filtrado)
 
@@ -291,14 +307,10 @@ def detalle_matriz(request, matriz_id):
     elif pais_filtrado:
         casos_de_prueba = casos_de_prueba.filter(pais=pais_filtrado)
 
-    # NUEVO: Aplicar filtro por fase si existe
     if fase_filtrada:
         casos_de_prueba = casos_de_prueba.filter(fase=fase_filtrada)
 
-    # NUEVO: Aplicar filtro por estado si existe
-    # Si el estado es "bloqueante", aplicar filtro especial de bloqueantes
     if estado_filtrado == 'bloqueante':
-        # Filtrar casos bloqueantes (criticidad='Bloqueante' y estado en ['falla_nueva', 'falla_persistente'])
         casos_de_prueba = casos_de_prueba.filter(
             criticidad__iexact='Bloqueante',
             estado__in=['falla_nueva', 'falla_persistente']
@@ -306,18 +318,13 @@ def detalle_matriz(request, matriz_id):
     elif estado_filtrado:
         casos_de_prueba = casos_de_prueba.filter(estado=estado_filtrado)
 
-    # Ordenar los casos
     casos_de_prueba = casos_de_prueba.order_by("fase", "id")
 
-    # Inicializar fallos para evitar errores
     fallos = []
     
-    # Aplicar filtro de fallo usando la función matriz_fails (mantener compatibilidad con botón antiguo)
-    # Solo aplicar si no se está usando estado=bloqueante (para evitar conflictos)
     if fallo_filtrado == 'bloqueante' and estado_filtrado != 'bloqueante':
         fallos = matriz_fails(matriz)
         casos_filtrados = fallos[0]['casos_filtrados']
-        # Aplicar otros filtros al resultado de bloqueantes
         if fase_filtrada:
             casos_filtrados = casos_filtrados.filter(fase=fase_filtrada)
         if tester_filtrado:
@@ -347,11 +354,30 @@ def detalle_matriz(request, matriz_id):
     else:
         casos_filtrados = casos_de_prueba
 
+    # ============================================
+    # LIMPIAR TEXTOS PARA LA VISTA
+    # ============================================
+    casos_para_template = []
+    for caso in casos_filtrados:
+        casos_para_template.append({
+            'id': caso.id,
+            'etiqueta': limpiar_texto_vista(caso.etiqueta),
+            'fase': limpiar_texto_vista(caso.fase),
+            'tipo_usuario': limpiar_texto_vista(caso.tipo_usuario),
+            'caso_de_prueba': limpiar_texto_vista(caso.caso_de_prueba),
+            'pasos': limpiar_texto_vista(caso.pasos),
+            'criterio_aceptacion': limpiar_texto_vista(caso.criterio_aceptacion),
+            'nota': limpiar_texto_vista(caso.nota),
+            'estado': caso.estado,
+            'criticidad': caso.criticidad,
+        })
+
     # Formularios por caso
     formularios_casos_de_prueba = [
-        (caso, CasoDePruebaForm(instance=caso, prefix=f"caso_{caso.id}"))
-        for caso in casos_filtrados
+        (caso, CasoDePruebaForm(instance=matriz.casos.get(id=caso['id']), prefix=f"caso_{caso['id']}"))
+        for caso in casos_para_template
     ]
+
     # Alcances
     if matriz.alcances_utilizados == 'A':
         alcance = "MVP (Minimum Viable Product:A)"
@@ -364,7 +390,6 @@ def detalle_matriz(request, matriz_id):
 
     alcances_lista = matriz.alcances_utilizados.split(',') if matriz.alcances_utilizados else []
 
-    # Testers disponibles (viejo - campo tester)
     testers_disponibles = list(
         matriz.casos.exclude(tester='').exclude(tester__isnull=True).values_list('tester', flat=True).distinct())
 
@@ -372,7 +397,6 @@ def detalle_matriz(request, matriz_id):
         'funciona', 'falla_nueva', 'falla_persistente',
         'na', 'pendiente_por_qc', 'por_ejecutar', 'pendiente_por_externo'
     ]
-    # Agregar "bloqueante" como opción especial en el dropdown
     estados_disponibles = ESTADOS_POSIBLES + ['bloqueante']
     fases_disponibles = list(matriz.casos.exclude(
         fase__isnull=True
@@ -380,7 +404,6 @@ def detalle_matriz(request, matriz_id):
         fase=''
     ).values_list('fase', flat=True).distinct().order_by('fase'))
 
-    # Obtener los IDs de los testers asignados para filtrado preciso
     combinaciones_tester_pais = matriz.casos.exclude(
         tester_asignado__isnull=True
     ).exclude(
@@ -400,7 +423,6 @@ def detalle_matriz(request, matriz_id):
             'pais': pais
         })
 
-    # Obtener testers asignados únicos (sin país)
     testers_asignados_unicos = matriz.casos.exclude(
         tester_asignado__isnull=True
     ).values_list('tester_asignado__id', 'tester_asignado__nombre', 'tester_asignado__apellido').distinct()
@@ -414,30 +436,23 @@ def detalle_matriz(request, matriz_id):
             'nombre_completo': nombre_completo
         })
     
-    # Obtener países únicos
     paises_disponibles = list(matriz.casos.exclude(
         pais__isnull=True
     ).exclude(
         pais=''
     ).values_list('pais', flat=True).distinct().order_by('pais'))
 
-    # Determinar qué botones mostrar
     mostrar_botones_viejos = len(testers_disponibles) > 0
     mostrar_botones_nuevos = len(botones_nuevos) > 0
     mostrar_tester_asignado = len(testers_asignados_lista) > 0
     mostrar_paises = len(paises_disponibles) > 0
 
-    # determinar si hay datos en la matriz (etiqueta,tipo_usuario,pasos
     campos = {
         "etiqueta": casos_de_prueba.filter(etiqueta__isnull=False).exclude(etiqueta="").exists(),
         "tipo_usuario": casos_de_prueba.filter(tipo_usuario__isnull=False).exclude(tipo_usuario="").exists(),
         "pasos": casos_de_prueba.filter(pasos__isnull=False).exclude(pasos="").exists(),
-        #"mdp": casos_de_prueba.filter(mdp__isnull=False).exclude(mdp="").exists(),
-        #"monto": casos_de_prueba.filter(monto__isnull=False).exclude(monto="").exists(),
-        #"navegador": casos_de_prueba.filter(navegador__isnull=False).exclude(navegador="").exists(),
     }
 
-    # Crear lista de tuplas con (estado_original, estado_formateado)
     estados_combinados = []
     for estado in estados_disponibles:
         if estado == 'bloqueante':
@@ -446,7 +461,6 @@ def detalle_matriz(request, matriz_id):
             estado_formateado = estado.replace('_', ' ').title()
         estados_combinados.append((estado, estado_formateado))
 
-    # Formatear también el estado filtrado actual
     if estado_filtrado == 'bloqueante':
         estado_filtrado_formateado = '🛑 Bloqueante (Falla Nueva + Persistente)'
     elif estado_filtrado:
@@ -454,24 +468,20 @@ def detalle_matriz(request, matriz_id):
     else:
         estado_filtrado_formateado = None
 
-    # Crear parámetros de query string para mantener los filtros actuales
-    # Si estado_filtrado es 'bloqueante', no incluir fallo_filtrado para evitar conflictos
+    # Query strings para filtros
     query_params = []
-
     if tester_filtrado:
         query_params.append(f"tester={tester_filtrado}")
     if tester_asignado_filtrado:
         query_params.append(f"tester_asignado={tester_asignado_filtrado}")
     if pais_filtrado:
         query_params.append(f"pais={pais_filtrado}")
-    # Solo incluir fallo_filtrado si no estamos usando estado=bloqueante
     if fallo_filtrado and estado_filtrado != 'bloqueante':
         query_params.append(f"fallo={fallo_filtrado}")
 
     current_query_string = "&".join(query_params)
     has_other_filters = bool(current_query_string)
     
-    # Crear query strings específicos para cada filtro (excluyendo el filtro que se está cambiando)
     query_params_sin_estado = []
     if tester_filtrado:
         query_params_sin_estado.append(f"tester={tester_filtrado}")
@@ -554,13 +564,11 @@ def detalle_matriz(request, matriz_id):
         'mostrar_botones_viejos': mostrar_botones_viejos,
         'mostrar_botones_nuevos': mostrar_botones_nuevos,
         'campos': campos,
-        # NUEVAS VARIABLES PARA LOS FILTROS
         'estados_combinados': estados_combinados,
         'fases_disponibles': fases_disponibles,
         'estado_filtrado': estado_filtrado,
         'estado_filtrado_formateado': estado_filtrado_formateado,
         'fase_filtrada': fase_filtrada,
-        # NUEVAS VARIABLES PARA MANTENER FILTROS
         'current_query_string': current_query_string,
         'has_other_filters': has_other_filters,
         'query_string_sin_estado': query_string_sin_estado,
@@ -568,13 +576,11 @@ def detalle_matriz(request, matriz_id):
         'query_string_sin_tester': query_string_sin_tester,
         'query_string_sin_tester_asignado': query_string_sin_tester_asignado,
         'query_string_sin_pais': query_string_sin_pais,
-        # NUEVAS VARIABLES PARA DROPDOWNS SEPARADOS
         'testers_asignados_lista': testers_asignados_lista,
         'paises_disponibles': paises_disponibles,
         'mostrar_tester_asignado': mostrar_tester_asignado,
         'mostrar_paises': mostrar_paises,
     })
-
 
 @login_required
 def actualizar_estado_caso(request):
