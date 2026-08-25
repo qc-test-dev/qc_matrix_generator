@@ -54,6 +54,7 @@ from .forms import MatrizForm, ValidateForm
 from django.utils import timezone
 import os
 import random
+from asgiref.sync import sync_to_async
 
 @login_required
 def detalle_super_matriz(request, super_matriz_id):
@@ -764,7 +765,7 @@ def eliminar_matriz(request, matriz_id):
     return redirect('matrix_app:detalle_super_matriz', super_matriz_id=super_matriz_id)
 
 
-def generar_pdf_supermatriz(request, supermatriz_id):
+def _generar_pdf_supermatriz_sync(request, supermatriz_id):
     super_matriz = get_object_or_404(SuperMatriz, id=supermatriz_id)
     matrices = super_matriz.matrices.all()
     
@@ -841,7 +842,13 @@ def generar_pdf_supermatriz(request, supermatriz_id):
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
     
-    return response    
+    return response
+
+
+async def generar_pdf_supermatriz(request, supermatriz_id):
+    return await sync_to_async(_generar_pdf_supermatriz_sync, thread_sensitive=False)(request, supermatriz_id)
+
+
 User = get_user_model()
 
 @login_required
@@ -1046,7 +1053,7 @@ def editar_descripcion(request, pk):
         "supermatriz": supermatriz
     }
     return render(request, "home.html", context)
-def descargar_pdf_equipo(request, equipo_id):
+def _descargar_pdf_equipo_sync(request, equipo_id):
     """
     View para descargar un PDF con todas las supermatrices de un equipo
     """
@@ -1102,7 +1109,13 @@ def descargar_pdf_equipo(request, equipo_id):
     except Exception as e:
         print(f"Error generando PDF: {e}")
         return HttpResponse("Error generando el PDF", status=500)
-def descargar_pdf_todos_equipos(request):
+
+
+async def descargar_pdf_equipo(request, equipo_id):
+    return await sync_to_async(_descargar_pdf_equipo_sync, thread_sensitive=False)(request, equipo_id)
+
+
+def _descargar_pdf_todos_equipos_sync(request):
     """
     View para descargar un PDF con TODOS los equipos y sus supermatrices completas
     """
@@ -1142,6 +1155,12 @@ def descargar_pdf_todos_equipos(request):
     except Exception as e:
         print(f"Error generando PDF completo: {e}")
         return HttpResponse("Error generando el PDF completo", status=500)
+
+
+async def descargar_pdf_todos_equipos(request):
+    return await sync_to_async(_descargar_pdf_todos_equipos_sync, thread_sensitive=False)(request)
+
+
 @login_required
 def obtener_num_fallos(request, matriz_id):
     matriz = get_object_or_404(Matriz, id=matriz_id)
