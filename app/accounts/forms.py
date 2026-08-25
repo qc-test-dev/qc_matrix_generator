@@ -2,10 +2,12 @@ from django import forms
 from .models import User, Equipo
 from django.contrib.auth.forms import PasswordChangeForm, SetPasswordForm
 from django.core.exceptions import ValidationError
-from .utils import validar_formato_no_operativo,validar_formato_operativo
+# from .utils import validar_formato_no_operativo,validar_formato_operativo
 from app.matrix.models import Dispositivo
+from app.matrix.models import procesar_excel_matriz
+from django.core.files.base import ContentFile
 import pandas as pd
-import re
+import re,os
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     def clean_new_password1(self):
@@ -49,90 +51,211 @@ class DispositivoForm(forms.ModelForm):
     archivo_excel = forms.FileField(
         label='Archivo Excel',
         help_text='Seleccione el archivo .xlsx de la matriz base',
-        required=True  # Asegurar que siempre sea requerido
+        required=True,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': '.xlsx'
+        })
     )
     
     class Meta:
         model = Dispositivo
-        fields = ['nombre', 'equipo', 'operativo']
+        fields = ['nombre', 'equipo', 'archivo_excel']
         widgets = {
-            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del dispositivo'}),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Nombre de la matriz'
+            }),
             'equipo': forms.Select(attrs={'class': 'form-control'}),
-            'operativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Hacer que archivo_excel no sea requerido en edición
-        if self.instance and self.instance.pk:
-            self.fields['archivo_excel'].required = False
-    
     def clean_archivo_excel(self):
-        archivo = self.cleaned_data.get('archivo_excel')
+        archivo = self.cleaned_data.get('archivo_excel', None)  # Usar None por defecto
         
-        # Si no hay archivo y estamos editando, es válido (no se cambia)
-        if not archivo and self.instance and self.instance.pk:
-            return None
-        
-        # Si no hay archivo y estamos creando, error
         if not archivo:
-            raise forms.ValidationError("Debe seleccionar un archivo Excel")
+            raise ValidationError("Debe seleccionar un archivo Excel")
         
         # Validar extensión
-        if not archivo.name.endswith('.xlsx'):
-            raise forms.ValidationError("El archivo debe ser un Excel (.xlsx)")
+        if not archivo.name.lower().endswith('.xlsx'):
+            raise ValidationError("El archivo debe ser un Excel (.xlsx)")
+        
+        # Validar tamaño del archivo (50MB máximo)
+        if archivo.size > 50 * 1024 * 1024:
+            raise ValidationError("El archivo es demasiado grande. Tamaño máximo: 50MB")
         
         return archivo
     
     def clean(self):
         cleaned_data = super().clean()
+        equipo = cleaned_data.get('equipo')
         archivo_excel = cleaned_data.get('archivo_excel')
-        operativo = cleaned_data.get('operativo')
         
-        # Solo validar si hay un archivo nuevo
+        if not equipo:
+            raise ValidationError("Debe seleccionar un equipo")
+        
         if archivo_excel:
             try:
-                # Validar duplicados
-                self.validar_archivo_duplicado(archivo_excel)
-                
-                # Leer y validar el archivo Excel
-                archivo_excel.seek(0)  # Asegurar que podemos leer el archivo
-                df = pd.read_excel(archivo_excel)
-                
-                if operativo:
-                    validar_formato_operativo(df)
-                else:
-                    validar_formato_no_operativo(df)
-                
-                # Guardar el nombre del archivo
-                cleaned_data['nombre_archivo'] = archivo_excel.name
-                
-                # Restaurar posición del archivo para guardarlo después
+                # Validar que el Excel tenga los headers correctos
                 archivo_excel.seek(0)
                 
-            except forms.ValidationError:
-                raise  # Re-lanzar errores de validación específicos
+                # Leer el Excel para buscar headers
+                df_raw = pd.read_excel(archivo_excel, engine='openpyxl', header=None)
+                
+                if len(df_raw) == 0:
+                    raise ValidationError("El archivo Excel está vacío")
+                
+                # HEADERS OBLIGATORIOS (6)
+                required_headers = [
+                    'alcance de evaluacion',
+                    'funcionalidad',
+                    'descripcion',
+                    'criticidad',
+                    'estado',
+                    'otros'
+                ]
+                
+                # VARIANTES DE HEADERS (español e inglés)
+                variantes_headers = {
+                    'alcance de evaluacion': ['alcance de evaluacion', 'alcance', 'alcance de evaluación', 'evaluacion', 'priority'],
+                    'funcionalidad': ['funcionalidad', 'fase', 'section'],
+                    'descripcion': ['descripcion', 'descripción', 'caso de prueba', 'caso prueba', 'test case name', 'description'],
+                    'criticidad': ['criticidad', 'prioridad', 'severity level', 'severidad', 'severity'],
+                    'estado': ['estado', 'status', 'situación', 'state'],
+                    'otros': ['otros', 'comentarios', 'comentarios y datos de prueba', 'observaciones', 'nota', 'notas', 'others', 'notes'],
+                    'id-prueba': ['id-prueba', 'id', 'id caso', 'id prueba', 'identificador', 'test case id'],
+                    'tipo de usuario': ['tipo de usuario', 'tipo usuario', 'perfil usuario', 'rol', 'usuario', 'type', 'user type'],
+                    'pasos a seguir': ['pasos a seguir', 'pasos', 'procedimiento', 'step by step', 'test step', 'step'],
+                    'criterio aceptacion': ['criterio aceptacion', 'criterio de aceptacion', 'criterio aceptación', 'aceptacion', 'expected result']
+                }
+                
+                # Buscar la fila de headers
+                headers_encontrados = False
+                fila_headers = None
+                
+                for idx_fila in range(min(50, len(df_raw))):
+                    fila = df_raw.iloc[idx_fila]
+                    temp_headers = []
+                    
+                    for celda in fila:
+                        if pd.isna(celda):
+                            continue
+                        
+                        celda_str = str(celda).strip()
+                        celda_str_lower = celda_str.lower()
+                        
+                        # Buscar coincidencia con headers obligatorios
+                        for header in required_headers:
+                            # Coincidencia exacta
+                            if celda_str_lower == header.lower():
+                                if header not in temp_headers:
+                                    temp_headers.append(header)
+                                break
+                            # Coincidencia con variantes
+                            elif header in variantes_headers:
+                                for variante in variantes_headers[header]:
+                                    if celda_str_lower == variante.lower():
+                                        if header not in temp_headers:
+                                            temp_headers.append(header)
+                                        break
+                    
+                    # Verificar si encontramos los 6 headers obligatorios
+                    if len(temp_headers) == 6:
+                        headers_encontrados = True
+                        fila_headers = idx_fila + 1
+                        break
+                
+                if not headers_encontrados:
+                    raise ValidationError(
+                        f"No se encontraron los 6 encabezados obligatorios.\n\n"
+                        f"Encabezados requeridos (español/inglés):\n"
+                        f"  • alcance de evaluacion / Priority\n"
+                        f"  • funcionalidad / Section\n"
+                        f"  • descripcion / Test Case Name\n"
+                        f"  • criticidad / Severity Level\n"
+                        f"  • estado / Status\n"
+                        f"  • otros / Nota\n\n"
+                        f"Los encabezados opcionales son:\n"
+                        f"  • id-prueba / Test Case ID\n"
+                        f"  • tipo de usuario / Type\n"
+                        f"  • pasos a seguir / Test Step\n"
+                        f"  • criterio aceptacion / Expected Result"
+                    )
+                
+                # Restaurar posición del archivo
+                archivo_excel.seek(0)
+                
+            except pd.errors.EmptyDataError:
+                raise ValidationError("El archivo Excel está vacío o no se puede leer")
+            except ValidationError:
+                raise
             except Exception as e:
-                raise forms.ValidationError(f"Error al procesar el archivo Excel: {str(e)}")
+                if 'Workbook' in str(e) or 'openpyxl' in str(e):
+                    raise ValidationError("El archivo no es un Excel válido o está corrupto")
+                else:
+                    raise ValidationError(f"Error al validar el archivo Excel: {str(e)}")
         
         return cleaned_data
     
-    def validar_archivo_duplicado(self, archivo_excel):
-        """Valida que el nombre del archivo no esté duplicado."""
-        nombre_archivo = archivo_excel.name
+    def save(self, commit=True):
+        archivo_excel = self.cleaned_data.get('archivo_excel')
+        equipo = self.cleaned_data.get('equipo')
         
-        # Buscar si hay otro dispositivo con el mismo nombre de archivo
-        qs = Dispositivo.objects.filter(matriz_base=nombre_archivo)
+        if not archivo_excel or not equipo:
+            raise ValidationError("Faltan datos para procesar el archivo")
         
-        # Si estamos editando, excluir el dispositivo actual
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        
-        if qs.exists():
-            # Obtener información sobre el dispositivo duplicado
-            dispositivo_duplicado = qs.first()
-            raise forms.ValidationError(
-                f'El archivo "{nombre_archivo}" ya está siendo usado por el dispositivo '
-                f'"{dispositivo_duplicado.nombre}" (Equipo: {dispositivo_duplicado.equipo.nombre}). '
-                f'Por favor, use un archivo con un nombre diferente o renombre el archivo actual.'
-            )
+        try:
+            archivo_excel.seek(0)
+            excel_procesado, num_filas = procesar_excel_matriz(archivo_excel)
+            
+            nombre_original = archivo_excel.name
+            nombre_base = os.path.basename(nombre_original)
+            
+            if '.' in nombre_base:
+                nombre, extension = nombre_base.rsplit('.', 1)
+                extension = '.' + extension
+            else:
+                nombre = nombre_base
+                extension = ''
+            
+            nombres_existentes = list(Dispositivo.objects.filter(
+                equipo=equipo
+            ).values_list('matriz_base', flat=True))
+            
+            if nombre_base not in nombres_existentes:
+                nombre_unico = nombre_base
+            else:
+                contador = 1
+                while True:
+                    nombre_propuesto = f"{nombre}_{contador}{extension}"
+                    if nombre_propuesto not in nombres_existentes:
+                        nombre_unico = nombre_propuesto
+                        break
+                    contador += 1
+                    if contador > 100:
+                        import time
+                        timestamp = int(time.time())
+                        nombre_unico = f"{nombre}_{timestamp}{extension}"
+                        break
+            
+            nombre_equipo_carpeta = equipo.nombre.replace(' ', '_').replace(',', '').replace('(', '').replace(')', '')
+            ruta_final = f"{nombre_equipo_carpeta}/{nombre_unico}"
+            
+            dispositivo = super().save(commit=False)
+            
+            content_file = ContentFile(excel_procesado.getvalue())
+            content_file.name = nombre_unico
+            
+            dispositivo.archivo_excel.save(ruta_final, content_file, save=False)
+            dispositivo.matriz_base = nombre_unico
+            
+            excel_procesado.close()
+            
+            if commit:
+                dispositivo.save()
+            
+            self.num_filas_procesadas = num_filas
+            
+            return dispositivo
+            
+        except Exception as e:
+            raise ValidationError(f"Error al procesar y guardar el archivo Excel: {str(e)}")

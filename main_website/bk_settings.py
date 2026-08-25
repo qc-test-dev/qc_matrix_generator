@@ -105,7 +105,10 @@ DATABASES = {
         'PASSWORD': 'qc_admin_pass',
         'HOST': 'localhost',  # Cambia esto si tu base de datos está en otro host
         'PORT': '5432',
+        
+        
     }
+     
 }
 CHANNEL_LAYERS = {
     "default": {
@@ -159,13 +162,12 @@ USE_TZ = True
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
-
-MEDIA_URL = '/media/'  # Esto ya debería estar en tu settings.py
+#Configuracion para guardar en media 
 
 # O, si deseas apuntar directamente a /tmp:
 #MEDIA_ROOT = '/tmp'
 
-
+###Olo para desarollo esto 
 
 STATIC_URL = '/static/'  # Esto ya debería estar en tu settings.py
 
@@ -181,6 +183,12 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+# Media files Configuracion para los media
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Crear directorios necesarios
+os.makedirs(os.path.join(MEDIA_ROOT, 'excel'), exist_ok=True)
 
 # Directorios donde Django busca archivos estáticos durante desarrollo
 
