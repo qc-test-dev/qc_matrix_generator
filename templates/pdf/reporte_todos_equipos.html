@@ -70,14 +70,16 @@
             margin-bottom: 15px;
         }
         .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
+            display: flex;
+            flex-wrap: wrap;
             margin: 8px 0;
         }
         .info-item {
+            width: 48%;
+            margin: 1%;
             padding: 3px;
             border-left: 3px solid #28a745;
+            box-sizing: border-box;
         }
         .badge {
             background-color: #6c757d;
