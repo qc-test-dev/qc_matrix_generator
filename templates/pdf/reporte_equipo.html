@@ -133,13 +133,15 @@
             padding: 20px;
         }
         .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
+            display: flex;
+            flex-wrap: wrap;
             margin: 8px 0;
         }
         .stat-item {
+            width: 48%;
+            margin: 1%;
             padding: 3px;
+            box-sizing: border-box;
         }
         .paises-count {
             font-size: 9px;

@@ -12,6 +12,7 @@ import os,json
 from .models import Matriz,SuperMatriz
 from app.accounts.models import Equipo
 from django.db.models import Q, F
+from django.utils import timezone
 import openpyxl
 import traceback
 from .models import CasoDePrueba
@@ -555,13 +556,15 @@ def obtener_matrices_por_supermatriz(supermatriz_id):
     except Exception as e:
         print(f"Error obteniendo matrices de supermatriz: {e}")
         return None
-def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
+def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True, solo_mes_actual=False):
     """
     Obtiene supermatrices por equipo con filtros adicionales
     
     Args:
         equipo_id (int): ID del equipo
         solo_activas (bool): Si True, solo retorna supermatrices no archivadas
+        solo_mes_actual (bool): Si True, solo retorna supermatrices activas durante el mes actual
+            (fecha_creacion <= fin de mes) y (fecha_fin es NULL o fecha_fin >= inicio de mes)
     
     Returns:
         list: Lista de supermatrices filtradas
@@ -577,6 +580,21 @@ def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
         # Aplicar filtro de archivado si se solicita
         if solo_activas:
             supermatrices = supermatrices.filter(archivado=False)
+        
+        # Aplicar filtro de mes actual si se solicita
+        if solo_mes_actual:
+            hoy = timezone.localdate()
+            inicio_mes = hoy.replace(day=1)
+            if hoy.month == 12:
+                fin_mes = hoy.replace(day=31)
+            else:
+                siguiente_mes = hoy.replace(month=hoy.month + 1, day=1)
+                fin_mes = siguiente_mes - timezone.timedelta(days=1)
+            supermatrices = supermatrices.filter(
+                fecha_creacion__lte=fin_mes
+            ).filter(
+                Q(fecha_fin__isnull=True) | Q(fecha_fin__gte=inicio_mes)
+            )
         
         supermatrices = supermatrices.order_by('-fecha_creacion')
         
@@ -599,12 +617,14 @@ def obtener_supermatrices_por_equipo_con_filtros(equipo_id, solo_activas=True):
         
     except Equipo.DoesNotExist:
         return None
-def obtener_todos_los_equipos_completo(solo_activas=True):
+    
+def obtener_todos_los_equipos_completo(solo_activas=True, solo_mes_actual=False):
     """
     Obtiene todos los equipos con todas sus supermatrices y matrices completas
     
     Args:
         solo_activas (bool): Si True, solo retorna supermatrices no archivadas
+        solo_mes_actual (bool): Si True, solo retorna supermatrices activas durante el mes actual
     
     Returns:
         list: Lista de equipos con toda su información anidada
@@ -616,7 +636,7 @@ def obtener_todos_los_equipos_completo(solo_activas=True):
         
         for equipo in equipos:
             # Obtener supermatrices del equipo
-            resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(equipo.id, solo_activas)
+            resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(equipo.id, solo_activas, solo_mes_actual)
             
             if resultado_equipo:
                 equipo_info = {

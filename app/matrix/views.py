@@ -1089,7 +1089,8 @@ def _descargar_pdf_equipo_sync(request, equipo_id):
         # Obtener información completa del equipo usando nuestras funciones
         resultado_equipo = obtener_supermatrices_por_equipo_con_filtros(
             equipo_id, 
-            solo_activas=True
+            solo_activas=True,
+            solo_mes_actual=True
         )
         
         if not resultado_equipo:
@@ -1149,7 +1150,7 @@ def _descargar_pdf_todos_equipos_sync(request):
     """
     try:
         # Usar nuestra función para obtener todos los equipos completos
-        resultado_completo = obtener_todos_los_equipos_completo(solo_activas=True)
+        resultado_completo = obtener_todos_los_equipos_completo(solo_activas=True, solo_mes_actual=True)
         
         if not resultado_completo or not resultado_completo['equipos']:
             return HttpResponse("No hay datos para generar el PDF", status=404)

@@ -73,14 +73,15 @@
         }
         
         .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            display: flex;
+            flex-wrap: wrap;
             margin-bottom: 10px;
         }
         
         .info-item {
-            margin: 5px 0;
+            width: 48%;
+            margin: 1%;
+            box-sizing: border-box;
         }
         
         .info-label {
@@ -204,18 +205,20 @@
         }
         
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin: 10px 0;
             text-align: center;
         }
         
         .stat-item {
+            flex: 1 1 30%;
             background: #f8f9fa;
             padding: 8px;
             border-radius: 5px;
             border: 1px solid #dee2e6;
+            box-sizing: border-box;
         }
         
         .stat-value {
